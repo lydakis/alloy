@@ -33,6 +33,9 @@ include-package-data = true
 where = ["src"]
 include = ["alloy*"]
 
+[tool.setuptools.package-data]
+alloy = ["py.typed", "__init__.pyi"]
+
 [project.optional-dependencies]
 openai = ["openai>=1.0.0", "python-dotenv>=1.0.0"]
 dev = [
