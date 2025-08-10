@@ -71,7 +71,8 @@ class Command:
     # Synchronous call
     def __call__(self, *args, **kwargs):
         if self._is_async:
-            raise CommandError("This command is async; await it or use .async_().")
+            # Return a coroutine to be awaited
+            return self.async_(*args, **kwargs)
         prompt = self._func(*args, **kwargs)
         if not isinstance(prompt, str):
             prompt = str(prompt)
