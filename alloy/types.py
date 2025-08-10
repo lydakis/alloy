@@ -37,7 +37,8 @@ def to_json_schema(tp: t.Any) -> t.Optional[dict]:
         for f in fields(tp):
             f_schema = to_json_schema(f.type) or {}
             props[f.name] = f_schema
-            if f.default is MISSING and f.default_factory is MISSING:  # type: ignore[attr-defined]
+            # Some Field objects may not define default_factory; guard via getattr.
+            if f.default is MISSING and getattr(f, "default_factory", MISSING) is MISSING:
                 required.append(f.name)
         schema = {"type": "object", "properties": props}
         if required:
@@ -116,11 +117,10 @@ def _coerce(tp: t.Any, value: t.Any) -> t.Any:
 
 def is_dataclass_type(tp: t.Any) -> bool:
     try:
-        return is_dataclass(tp)  # type: ignore[arg-type]
+        return is_dataclass(tp)
     except Exception:
         return False
 
 
 def _primitive_name(tp: t.Any) -> str:
     return {str: "string", int: "integer", float: "number", bool: "boolean"}[tp]
-

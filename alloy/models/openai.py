@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, AsyncIterable
+from typing import Any
 
 from ..config import Config
 from ..errors import ConfigurationError
@@ -23,20 +24,20 @@ class OpenAIBackend(ModelBackend):
         config: Config,
     ) -> str:
         try:
-            from openai import OpenAI  # type: ignore
+            from openai import OpenAI
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(
                 "OpenAI SDK not installed. Run `pip install openai>=1.0`."
             ) from e
 
-        client = OpenAI()
-        messages = []
+        client: Any = OpenAI()
+        messages: list[dict[str, Any]] = []
         if config.default_system:
             messages.append({"role": "system", "content": config.default_system})
         messages.append({"role": "user", "content": prompt})
 
         tool_schemas = None
-        tool_map: dict[str, any] = {}
+        tool_map: dict[str, Any] = {}
         if tools:
             tool_schemas = [
                 {"type": "function", "function": t.spec.as_schema()} for t in tools
@@ -57,8 +58,8 @@ class OpenAIBackend(ModelBackend):
 
         while True:
             is_gpt5 = bool(config.model and "gpt-5" in config.model)
-            kwargs = {
-                "model": config.model,
+            kwargs: dict[str, object] = {
+                "model": config.model if config.model is not None else "",
                 "messages": messages,
             }
             if tool_schemas is not None:
@@ -122,7 +123,7 @@ class OpenAIBackend(ModelBackend):
         config: Config,
     ) -> Iterable[str]:
         try:
-            from openai import OpenAI  # type: ignore
+            from openai import OpenAI
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(
                 "OpenAI SDK not installed. Run `pip install openai>=1.0`."
@@ -132,15 +133,15 @@ class OpenAIBackend(ModelBackend):
             # Streaming with tool calling adds complexity; keep simple for v1
             raise ConfigurationError("Streaming with tools is not supported yet")
 
-        client = OpenAI()
-        messages = []
+        client: Any = OpenAI()
+        messages: list[dict[str, Any]] = []
         if config.default_system:
             messages.append({"role": "system", "content": config.default_system})
         messages.append({"role": "user", "content": prompt})
 
         is_gpt5 = bool(config.model and "gpt-5" in config.model)
-        kwargs = {
-            "model": config.model,
+        kwargs: dict[str, object] = {
+            "model": config.model if config.model is not None else "",
             "messages": messages,
             "stream": True,
         }
@@ -168,20 +169,20 @@ class OpenAIBackend(ModelBackend):
         config: Config,
     ) -> str:
         try:
-            from openai import AsyncOpenAI  # type: ignore
+            from openai import AsyncOpenAI
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(
                 "OpenAI SDK not installed. Run `pip install openai>=1.0`."
             ) from e
 
-        client = AsyncOpenAI()
-        messages = []
+        client: Any = AsyncOpenAI()
+        messages: list[dict[str, Any]] = []
         if config.default_system:
             messages.append({"role": "system", "content": config.default_system})
         messages.append({"role": "user", "content": prompt})
 
         tool_schemas = None
-        tool_map: dict[str, any] = {}
+        tool_map: dict[str, Any] = {}
         if tools:
             tool_schemas = [
                 {"type": "function", "function": t.spec.as_schema()} for t in tools
@@ -200,8 +201,8 @@ class OpenAIBackend(ModelBackend):
 
         while True:
             is_gpt5 = bool(config.model and "gpt-5" in config.model)
-            kwargs = {
-                "model": config.model,
+            kwargs: dict[str, object] = {
+                "model": config.model if config.model is not None else "",
                 "messages": messages,
             }
             if tool_schemas is not None:
@@ -258,7 +259,7 @@ class OpenAIBackend(ModelBackend):
         config: Config,
     ) -> AsyncIterable[str]:
         try:
-            from openai import AsyncOpenAI  # type: ignore
+            from openai import AsyncOpenAI
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(
                 "OpenAI SDK not installed. Run `pip install openai>=1.0`."
@@ -267,14 +268,14 @@ class OpenAIBackend(ModelBackend):
         if tools:
             raise ConfigurationError("Streaming with tools is not supported yet")
 
-        client = AsyncOpenAI()
-        messages = []
+        client: Any = AsyncOpenAI()
+        messages: list[dict[str, Any]] = []
         if config.default_system:
             messages.append({"role": "system", "content": config.default_system})
         messages.append({"role": "user", "content": prompt})
 
-        kwargs = {
-            "model": config.model,
+        kwargs: dict[str, object] = {
+            "model": config.model if config.model is not None else "",
             "messages": messages,
             "stream": True,
         }

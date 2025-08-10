@@ -62,7 +62,7 @@ class Command:
     ):
         self._func = func
         self._output_type = output_type
-        self._tools = [t if isinstance(t, ToolCallable) else ToolCallable(_to_spec(t)) for t in tools]  # type: ignore[arg-type]
+        self._tools = [t if isinstance(t, ToolCallable) else ToolCallable(_to_spec(t)) for t in tools]
         self._cfg = {k: v for k, v in per_command_cfg.items() if v is not None}
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__

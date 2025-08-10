@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 from dataclasses import dataclass
+from typing import TypedDict
 import os, sys
 
 # Ensure project root (with `alloy/`) is importable when running as a script
@@ -12,7 +13,13 @@ from alloy import command, tool, require, ensure, configure
 
 
 # Simple in-memory catalog for demo purposes
-CATALOG = [
+class Product(TypedDict):
+    name: str
+    category: str
+    price: float
+    discount: int
+
+CATALOG: list[Product] = [
     {"name": "ProBook 14", "category": "laptop", "price": 999.0, "discount": 10},
     {"name": "ZenPhone X", "category": "phone", "price": 799.0, "discount": 5},
     {"name": "UltraPad 11", "category": "tablet", "price": 649.0, "discount": 0},
@@ -22,7 +29,7 @@ CATALOG = [
 
 @tool
 @ensure(lambda r: isinstance(r, list) and len(r) > 0, "Must find at least one product")
-def search_products(category: str, budget: str) -> list[dict[str, object]]:
+def search_products(category: str, budget: str) -> list[Product]:
     """Search demo catalog by category and budget (strings accepted)."""
     try:
         b = float(budget)

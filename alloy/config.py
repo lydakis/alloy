@@ -16,7 +16,7 @@ class Config:
     # Opaque provider-specific kwargs
     extra: dict[str, Any] = field(default_factory=dict)
 
-    def merged(self, other: Optional["Config"]) -> "Config":
+    def merged(self, other: "Config" | None) -> "Config":
         if other is None:
             return self
         # Merge with right precedence: other overrides self

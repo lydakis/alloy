@@ -35,10 +35,13 @@ jobs:
       - name: Install linters
         run: |
           python -m pip install --upgrade pip
-          python -m pip install ruff black
+          python -m pip install ruff black mypy
       - name: Ruff
         run: |
           ruff .
       - name: Black (check)
         run: |
           black --check .
+      - name: Mypy
+        run: |
+          mypy .
