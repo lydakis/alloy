@@ -43,7 +43,7 @@ class AnthropicBackend(ModelBackend):
         config: Config,
     ) -> str:
         try:
-            import anthropic  # type: ignore
+            import anthropic
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(
                 "Anthropic SDK not installed. Run `pip install anthropic`."
@@ -106,7 +106,7 @@ class AnthropicBackend(ModelBackend):
                     name = tc.get("name") if isinstance(tc, dict) else getattr(tc, "name", "")
                     args = tc.get("input") if isinstance(tc, dict) else getattr(tc, "input", {})
                     tuid = tc.get("id") if isinstance(tc, dict) else getattr(tc, "id", "")
-                    tool = tool_map.get(name)
+                    tool = tool_map.get(name or "")
                     result: Any
                     if not tool:
                         result = {"type": "tool_error", "error": f"Tool '{name}' not available"}
@@ -148,7 +148,7 @@ class AnthropicBackend(ModelBackend):
         config: Config,
     ) -> str:
         try:
-            import anthropic  # type: ignore
+            import anthropic
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(
                 "Anthropic SDK not installed. Run `pip install anthropic`."
@@ -201,7 +201,7 @@ class AnthropicBackend(ModelBackend):
                     name = tc.get("name") if isinstance(tc, dict) else getattr(tc, "name", "")
                     args = tc.get("input") if isinstance(tc, dict) else getattr(tc, "input", {})
                     tuid = tc.get("id") if isinstance(tc, dict) else getattr(tc, "id", "")
-                    tool = tool_map.get(name)
+                    tool = tool_map.get(name or "")
                     if not tool:
                         result = {"type": "tool_error", "error": f"Tool '{name}' not available"}
                     else:

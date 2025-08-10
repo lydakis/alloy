@@ -25,7 +25,7 @@ class GeminiBackend(ModelBackend):
         config: Config,
     ) -> str:
         try:
-            import google.generativeai as genai  # type: ignore
+            import google.generativeai as genai
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(
                 "Google Generative AI SDK not installed. Run `pip install google-generativeai`."
@@ -78,4 +78,3 @@ class GeminiBackend(ModelBackend):
         config: Config,
     ) -> AsyncIterable[str]:
         raise ConfigurationError("Gemini streaming not implemented in this scaffold")
-

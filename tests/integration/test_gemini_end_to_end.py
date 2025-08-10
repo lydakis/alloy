@@ -5,7 +5,7 @@ from alloy import command, configure
 
 
 has_key = bool(os.getenv("GOOGLE_API_KEY"))
-model_env = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", ""))
+model_env = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gemini-2.5-flash"))
 is_gemini = model_env.lower().startswith("gemini")
 
 requires_gemini = pytest.mark.skipif(

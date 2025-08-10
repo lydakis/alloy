@@ -5,7 +5,7 @@ from alloy import command, configure, tool
 
 
 has_key = bool(os.getenv("ANTHROPIC_API_KEY"))
-model_env = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", ""))
+model_env = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "claude-4-sonnet"))
 is_claude = model_env.lower().startswith("claude")
 
 requires_anthropic = pytest.mark.skipif(

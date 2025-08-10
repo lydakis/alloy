@@ -83,4 +83,5 @@ Support matrix (v1)
 - OpenAI (GPT-4/5 and o-series): completions, typed commands, ask, streaming (no tools in stream), tool-calling, structured JSON for object schemas, tool-loop cap.
 - Anthropic (Claude 3/3.5): completions and tool-calling loop (no streaming yet).
 - Google (Gemini 1.5): basic completions (no tools/streaming in scaffold).
+- Ollama (local): basic completions via `model="ollama:<name>"` (no tools/streaming in scaffold).
 - ReAct fallback: not implemented yet (planned for local models/LLMs without native tools).

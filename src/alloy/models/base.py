@@ -107,6 +107,10 @@ def get_backend(model: str | None) -> ModelBackend:
         from .gemini import GeminiBackend
 
         return GeminiBackend()
+    if name.startswith("ollama:") or name.startswith("local:"):
+        from .ollama import OllamaBackend
+
+        return OllamaBackend()
 
     # Future: route to Anthropic/Gemini/Local or ReAct fallback
     raise ConfigurationError(
