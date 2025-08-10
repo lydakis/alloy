@@ -29,6 +29,9 @@ Notes
 - OpenAI backend is implemented for sync/async/streaming.
 - Streaming with tools is not yet supported.
 - For structured outputs, Alloy attempts to use OpenAI structured responses (JSON schema). If unavailable, the model may still return JSON, which Alloy parses best-effort.
+- Configuration defaults: Alloy uses `model=gpt-5-mini` if `configure(...)` is not called. You can also set process environment variables instead of a `.env` file:
+  - `ALLOY_MODEL`, `ALLOY_TEMPERATURE`, `ALLOY_MAX_TOKENS`, `ALLOY_SYSTEM`/`ALLOY_DEFAULT_SYSTEM`, `ALLOY_RETRY`.
+  - Example: `export ALLOY_MODEL=gpt-4o` then run your script.
 
 Examples
 - See `examples/basic_usage.py` and `examples/tools_demo.py` (tools + contracts).

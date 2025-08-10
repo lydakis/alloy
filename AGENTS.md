@@ -40,3 +40,4 @@ Defaults: The global config uses `model="gpt-5-mini"` so you can call `ask(...)`
 ## Security & Configuration Tips
 - Secrets: Keep `OPENAI_API_KEY` in `.env` locally; never commit secrets.
 - Fail‑safe defaults: Validate config in `config.py`; handle missing keys with clear errors.
+- Environment overrides: You can set process env vars to avoid code changes: `ALLOY_MODEL`, `ALLOY_TEMPERATURE`, `ALLOY_MAX_TOKENS`, `ALLOY_SYSTEM`/`ALLOY_DEFAULT_SYSTEM`, `ALLOY_RETRY`. Example: `export ALLOY_MODEL=gpt-4o`.
