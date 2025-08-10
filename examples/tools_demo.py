@@ -6,7 +6,7 @@ from typing import TypedDict
 import os, sys
 
 # Ensure project root (with `alloy/`) is importable when running as a script
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 from dotenv import load_dotenv
 from alloy import command, tool, require, ensure, configure

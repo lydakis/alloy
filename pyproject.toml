@@ -12,6 +12,13 @@ authors = [{ name = "Alloy Contributors" }]
 license = { text = "Proprietary" }
 dependencies = []
 
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["alloy*"]
+
 [project.optional-dependencies]
 openai = ["openai>=1.0.0", "python-dotenv>=1.0.0"]
 dev = [

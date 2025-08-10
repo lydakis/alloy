@@ -27,3 +27,4 @@ def react_stream(
     config: Config,
 ) -> Iterable[str]:
     raise NotImplementedError("ReAct streaming not implemented in scaffold")
+

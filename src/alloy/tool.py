@@ -126,3 +126,4 @@ def tool(fn: Optional[Callable[..., Any]] = None):
     if fn is not None:
         return wrap(fn)
     return wrap
+

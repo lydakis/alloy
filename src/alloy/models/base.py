@@ -71,3 +71,4 @@ def get_backend(model: str | None) -> ModelBackend:
     raise ConfigurationError(
         f"No backend available for model '{model}'."
     )
+

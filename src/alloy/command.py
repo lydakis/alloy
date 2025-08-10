@@ -203,3 +203,4 @@ def _get_return_type(func: Callable[..., Any]):
         return sig.return_annotation if sig.return_annotation is not inspect.Signature.empty else None
     except Exception:
         return None
+

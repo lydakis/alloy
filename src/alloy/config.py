@@ -73,3 +73,4 @@ def get_config(overrides: dict[str, Any] | None = None) -> Config:
         extra = overrides.pop("extra", {})
         cfg = cfg.merged(Config(extra=extra, **overrides))
     return cfg
+

@@ -38,10 +38,10 @@ How to run locally
 - Option A (no install):
   - `python examples/basic_usage.py`
   - `python examples/tools_demo.py`
-  - (examples add the repo root to `sys.path` for you)
+  - (examples add `src/` to `sys.path` for you)
 - Option B (editable install):
   - `pip install -e .`
-  - Then run from anywhere: `python -m examples.basic_usage`
+  - Then run from anywhere.
 
 .env example
 ```

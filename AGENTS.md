@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `alloy/`: Core library.
+- `src/alloy/`: Core library.
   - `ask.py`, `command.py`, `tool.py`: Prompt, command, and tool orchestration.
   - `config.py`, `types.py`, `errors.py`: Configuration, shared types, errors.
   - `models/`: Model adapters (`base.py`, `openai.py`). Put provider‑specific code here.
@@ -14,6 +14,7 @@
 - Install deps: `pip install openai python-dotenv`
 - Run examples: `python examples/basic_usage.py` or `python examples/tools_demo.py`.
 - Lint/format (optional): `ruff .` and `black .` if you use them.
+  - Without installing the package, examples/tests add `src/` to `sys.path` for convenience.
 
 ## Coding Style & Naming Conventions
 - Indentation: 4 spaces; follow PEP 8 + type hints.
