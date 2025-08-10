@@ -16,6 +16,8 @@
 - Lint/format (optional): `ruff .` and `black .` if you use them.
   - Without installing the package, examples/tests add `src/` to `sys.path` for convenience.
 
+Defaults: The global config uses `model="gpt-5-mini"` so you can call `ask(...)` and commands without `configure(...)`. Use `configure(...)` to override.
+
 ## Coding Style & Naming Conventions
 - Indentation: 4 spaces; follow PEP 8 + type hints.
 - Naming: `snake_case` for functions/vars, `PascalCase` for classes, `UPPER_SNAKE_CASE` for constants.

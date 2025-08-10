@@ -30,7 +30,8 @@ class Config:
         return Config(**data)
 
 
-_global_config: Config = Config()
+# Provide sensible defaults so users can call APIs without configure()
+_global_config: Config = Config(model="gpt-5-mini")
 _context_config: contextvars.ContextVar[Config | None] = contextvars.ContextVar(
     "alloy_context_config", default=None
 )
@@ -73,4 +74,3 @@ def get_config(overrides: dict[str, Any] | None = None) -> Config:
         extra = overrides.pop("extra", {})
         cfg = cfg.merged(Config(extra=extra, **overrides))
     return cfg
-

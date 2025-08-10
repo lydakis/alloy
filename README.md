@@ -13,7 +13,8 @@ from dotenv import load_dotenv
 from alloy import command, ask, configure
 
 load_dotenv()
-configure(model="gpt-5", temperature=0.7)
+# Optional: configure() — default model is `gpt-5-mini` if omitted
+# configure(model="gpt-5", temperature=0.7)
 
 @command(output=float)
 def ExtractPrice(text: str) -> str:
