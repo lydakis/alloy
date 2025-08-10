@@ -18,8 +18,8 @@ class ModelBackend:
         self,
         prompt: str,
         *,
-        tools: Optional[list] = None,
-        output_schema: Optional[dict] = None,
+        tools: list | None = None,
+        output_schema: dict | None = None,
         config: Config,
     ) -> str:
         raise NotImplementedError
@@ -28,8 +28,8 @@ class ModelBackend:
         self,
         prompt: str,
         *,
-        tools: Optional[list] = None,
-        output_schema: Optional[dict] = None,
+        tools: list | None = None,
+        output_schema: dict | None = None,
         config: Config,
     ) -> Iterable[str]:
         raise NotImplementedError
@@ -39,8 +39,8 @@ class ModelBackend:
         self,
         prompt: str,
         *,
-        tools: Optional[list] = None,
-        output_schema: Optional[dict] = None,
+        tools: list | None = None,
+        output_schema: dict | None = None,
         config: Config,
     ) -> str:
         raise NotImplementedError
@@ -49,8 +49,8 @@ class ModelBackend:
         self,
         prompt: str,
         *,
-        tools: Optional[list] = None,
-        output_schema: Optional[dict] = None,
+        tools: list | None = None,
+        output_schema: dict | None = None,
         config: Config,
     ) -> AsyncIterable[str]:
         raise NotImplementedError
