@@ -35,7 +35,7 @@ jobs:
       - name: Install linters
         run: |
           python -m pip install --upgrade pip
-          python -m pip install ruff black mypy
+          python -m pip install ruff black mypy pre-commit
       - name: Ruff
         run: |
           ruff .
@@ -45,3 +45,6 @@ jobs:
       - name: Mypy
         run: |
           mypy .
+      - name: Pre-commit (all files)
+        run: |
+          pre-commit run --all-files --show-diff-on-failure

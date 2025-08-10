@@ -11,6 +11,20 @@ requires-python = ">=3.10"
 authors = [{ name = "Alloy Contributors" }]
 license = { text = "Proprietary" }
 dependencies = []
+classifiers = [
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/openai/alloy-py"
+Repository = "https://github.com/openai/alloy-py"
+Issues = "https://github.com/openai/alloy-py/issues"
 
 [tool.setuptools]
 include-package-data = true
@@ -26,6 +40,8 @@ dev = [
   "pytest-asyncio>=0.23.0",
   "ruff>=0.5.0",
   "black>=24.0.0",
+  "mypy>=1.8.0",
+  "pre-commit>=3.7.0",
 ]
 
 [tool.pytest.ini_options]
