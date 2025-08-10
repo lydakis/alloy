@@ -44,10 +44,7 @@ alloy = ["py.typed", "__init__.pyi"]
 [project.optional-dependencies]
 openai = ["openai>=1.99.6,<2", "python-dotenv>=1.1.1,<2"]
 anthropic = ["anthropic>=0.62.0,<0.63"]
-# New GA SDK
 gemini = ["google-genai>=1.29.0,<2"]
-# Legacy SDK
-gemini-legacy = ["google-generativeai>=0.8.5,<0.9"]
 providers = [
   "openai>=1.99.6,<2",
   "python-dotenv>=1.1.1,<2",

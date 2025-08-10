@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels: ["dependencies", "python"]
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    groups:
+      tooling:
+        patterns:
+          - "black*"
+          - "ruff*"
+          - "mypy*"
+          - "pre-commit*"
+      providers:
+        patterns:
+          - "openai*"
+          - "anthropic*"
+          - "google-genai*"
+          - "ollama*"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "ci"]

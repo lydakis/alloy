@@ -5,7 +5,8 @@ License: MIT
 This repository contains an early scaffold of the Alloy library per `alloy-spec-v1.md`.
 
 Quick start
-- Install: `pip install openai python-dotenv`
+- Install (all providers): `pip install 'alloy[providers]'`
+- Or minimal (OpenAI only): `pip install alloy`
 - Create `.env` with `OPENAI_API_KEY=...`
 - Use the API:
 
@@ -65,17 +66,17 @@ Integration tests
 - OpenAI: Set `OPENAI_API_KEY` (and optionally `ALLOY_IT_MODEL`, default `gpt-5-mini`). Run `pytest -q` — OpenAI integration tests auto-enable.
 - Anthropic: Set `ANTHROPIC_API_KEY` and `ALLOY_IT_MODEL=claude-3.5-sonnet` (or another Claude). Run `pytest -q` — Anthropic integration tests auto-enable.
 - Gemini: Set `GOOGLE_API_KEY` and `ALLOY_IT_MODEL=gemini-1.5-pro` (or another Gemini). Run `pytest -q` — Gemini integration tests auto-enable.
-  - SDK note: The default extra now uses `google-genai` (GA). If you need the older SDK, install the legacy extra.
+  - SDK note: Gemini support uses `google-genai` (GA).
 
 How to run locally
-- `pip install openai python-dotenv`
+- Install providers bundle: `pip install 'alloy[providers]'`
 - Create `.env` with `OPENAI_API_KEY=...`
 - Option A (no install):
   - `python examples/basic_usage.py`
   - `python examples/tools_demo.py`
   - (examples add `src/` to `sys.path` for you)
 - Option B (editable install):
-  - `pip install -e .`
+  - `pip install -e '.[providers]'`
   - Then run from anywhere.
 
 .env example
@@ -92,4 +93,4 @@ Support matrix (v1)
 Install options
 - Base: `pip install alloy` (includes OpenAI + python-dotenv).
 - All providers: `pip install 'alloy[providers]'` (OpenAI, Anthropic, Gemini via `google-genai`, Ollama).
-- Specific extras: `pip install 'alloy[anthropic]'`, `pip install 'alloy[gemini]'`, `pip install 'alloy[gemini-legacy]'`, `pip install 'alloy[ollama]'`.
+- Specific extras: `pip install 'alloy[anthropic]'`, `pip install 'alloy[gemini]'`, `pip install 'alloy[ollama]'`.
