@@ -95,7 +95,9 @@ def RecommendProduct(category: str, budget: float) -> str:
 
 def main():
     load_dotenv()
-    configure(model="gpt-5", temperature=0.2, max_tokens=600)
+    # Default model is `gpt-5-mini`; set explicitly for clarity and speed
+    # Tip: cap tool iterations with `export ALLOY_MAX_TOOL_TURNS=1` if desired
+    configure(model="gpt-5-mini", temperature=0.2, max_tokens=600)
 
     rec = RecommendProduct("laptop", 1200)
     print("Recommended:", rec.product_name)

@@ -14,7 +14,7 @@ from alloy import command, ask, configure
 
 load_dotenv()
 # Optional: configure() — default model is `gpt-5-mini` if omitted
-# configure(model="gpt-5", temperature=0.7)
+# configure(model="gpt-5-mini", temperature=0.7)
 
 @command(output=float)
 def ExtractPrice(text: str) -> str:
@@ -39,6 +39,25 @@ Examples
 Offline mode (dev only)
 - To run examples without network/API keys, set `ALLOY_BACKEND=fake`.
 - Example: `ALLOY_BACKEND=fake python examples/basic_usage.py`
+
+Config precedence
+- Defaults: `model=gpt-5-mini`, `max_tool_turns=2`.
+- Process env (ALLOY_*) overrides defaults.
+- Context/use_config and `configure(...)` override env/defaults.
+- Per-call overrides (e.g., `ask(..., model=...)`) override everything above.
+
+Make targets
+- `make setup` — install dev deps and package in editable mode.
+- `make test`, `make lint`, `make typecheck` — CI-like checks.
+- `make examples` — runs `examples/basic_usage.py` and `examples/tools_demo.py`.
+  - Tip: `ALLOY_BACKEND=fake make examples` to run offline.
+
+Troubleshooting
+- API key: Ensure `OPENAI_API_KEY` is set (process env or `.env`).
+- Model choice: Prefer `gpt-5-mini` for fastest latency; switch via `configure(model=...)` or `ALLOY_MODEL`.
+- Timeouts/slow runs: Reduce `max_tokens`, lower `temperature`, prefer smaller models, and cap tool loops.
+- Tool loops: Alloy caps tool iterations by default (`max_tool_turns=2`). Adjust via `configure(max_tool_turns=1)` or env `ALLOY_MAX_TOOL_TURNS`.
+- Rate limits (429): Shorten prompts/outputs, add retries with backoff, or use lower-throughput settings.
 
 How to run locally
 - `pip install openai python-dotenv`

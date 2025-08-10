@@ -1,4 +1,4 @@
-.PHONY: setup test lint format typecheck precommit ci
+.PHONY: setup test lint format typecheck precommit ci examples
 
 PY ?= python
 
@@ -25,3 +25,6 @@ precommit:
 
 ci: lint typecheck test
 
+examples:
+	$(PY) examples/basic_usage.py
+	$(PY) examples/tools_demo.py
