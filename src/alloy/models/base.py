@@ -99,6 +99,10 @@ def get_backend(model: str | None) -> ModelBackend:
         from .openai import OpenAIBackend
 
         return OpenAIBackend()
+    if name.startswith("claude") or name.startswith("anthropic"):
+        from .anthropic import AnthropicBackend
+
+        return AnthropicBackend()
 
     # Future: route to Anthropic/Gemini/Local or ReAct fallback
     raise ConfigurationError(

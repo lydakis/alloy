@@ -1,0 +1,17 @@
+import pytest
+
+from alloy.models.base import get_backend
+from alloy.config import Config
+from alloy.errors import ConfigurationError
+
+
+def test_routing_to_anthropic_backend():
+    be = get_backend("claude-3.5-sonnet")
+    # Avoid importing the class directly; just check class name to prevent coupling
+    assert be.__class__.__name__ == "AnthropicBackend"
+
+
+def test_anthropic_complete_requires_sdk():
+    be = get_backend("claude-3.5-sonnet")
+    with pytest.raises(ConfigurationError):
+        be.complete("hi", config=Config(model="claude-3.5-sonnet"))

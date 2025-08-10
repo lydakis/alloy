@@ -65,7 +65,12 @@ class OpenAIBackend(ModelBackend):
             if (config.temperature is not None) and not is_gpt5:
                 kwargs["temperature"] = config.temperature
             if config.max_tokens is not None:
-                kwargs["max_tokens"] = config.max_tokens
+                # Some newer models require max_completion_tokens instead of max_tokens
+                use_completion_tokens = False
+                m = (config.model or "").lower()
+                if "gpt-5" in m or m.startswith("o1") or m.startswith("o3"):
+                    use_completion_tokens = True
+                kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = config.max_tokens
             if response_format is not None:
                 kwargs["response_format"] = response_format
             resp = client.chat.completions.create(**kwargs)
@@ -151,7 +156,9 @@ class OpenAIBackend(ModelBackend):
         if (config.temperature is not None) and not is_gpt5:
             kwargs["temperature"] = config.temperature
         if config.max_tokens is not None:
-            kwargs["max_tokens"] = config.max_tokens
+            m = (config.model or "").lower()
+            use_completion_tokens = ("gpt-5" in m) or m.startswith("o1") or m.startswith("o3")
+            kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = config.max_tokens
         stream = client.chat.completions.create(**kwargs)
         def gen():
             for event in stream:
@@ -213,7 +220,9 @@ class OpenAIBackend(ModelBackend):
             if (config.temperature is not None) and not is_gpt5:
                 kwargs["temperature"] = config.temperature
             if config.max_tokens is not None:
-                kwargs["max_tokens"] = config.max_tokens
+                m = (config.model or "").lower()
+                use_completion_tokens = ("gpt-5" in m) or m.startswith("o1") or m.startswith("o3")
+                kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = config.max_tokens
             if response_format is not None:
                 kwargs["response_format"] = response_format
             resp = await client.chat.completions.create(**kwargs)
@@ -293,7 +302,9 @@ class OpenAIBackend(ModelBackend):
         if config.temperature is not None:
             kwargs["temperature"] = config.temperature
         if config.max_tokens is not None:
-            kwargs["max_tokens"] = config.max_tokens
+            m = (config.model or "").lower()
+            use_completion_tokens = ("gpt-5" in m) or m.startswith("o1") or m.startswith("o3")
+            kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = config.max_tokens
         stream = await client.chat.completions.create(**kwargs)
 
         async def agen():
