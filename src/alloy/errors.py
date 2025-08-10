@@ -12,4 +12,3 @@ class ToolError(AlloyError):
 
 class ConfigurationError(AlloyError):
     """Raised when required configuration or provider backends are missing."""
-

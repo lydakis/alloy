@@ -3,10 +3,11 @@ from __future__ import annotations
 import datetime as dt
 from dataclasses import dataclass
 from typing import TypedDict
-import os, sys
+import os
+import sys
 
 # Ensure project root (with `alloy/`) is importable when running as a script
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
 from dotenv import load_dotenv
 from alloy import command, tool, require, ensure, configure
@@ -18,6 +19,7 @@ class Product(TypedDict):
     category: str
     price: float
     discount: int
+
 
 CATALOG: list[Product] = [
     {"name": "ProBook 14", "category": "laptop", "price": 999.0, "discount": 10},
@@ -35,9 +37,7 @@ def search_products(category: str, budget: str) -> list[Product]:
         b = float(budget)
     except Exception:
         b = 1e9
-    results = [
-        p for p in CATALOG if p["category"].lower() == category.lower() and p["price"] <= b
-    ]
+    results = [p for p in CATALOG if p["category"].lower() == category.lower() and p["price"] <= b]
     return results
 
 
@@ -75,7 +75,10 @@ class ProductRecommendation:
     reasoning: str
 
 
-@command(output=ProductRecommendation, tools=[search_products, calculate_discount, validate_data, save_to_production])
+@command(
+    output=ProductRecommendation,
+    tools=[search_products, calculate_discount, validate_data, save_to_production],
+)
 def RecommendProduct(category: str, budget: float) -> str:
     """Find and recommend a product within budget."""
     return f"""

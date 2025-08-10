@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import inspect
-from dataclasses import dataclass
 from collections.abc import Iterable
 from typing import Any, Callable
 
-from .config import get_config, Config
+from .config import get_config
 from .errors import CommandError
 from .models.base import get_backend
 from .tool import ToolCallable, ToolSpec
@@ -62,7 +61,9 @@ class Command:
     ):
         self._func = func
         self._output_type = output_type
-        self._tools = [t if isinstance(t, ToolCallable) else ToolCallable(_to_spec(t)) for t in tools]
+        self._tools = [
+            t if isinstance(t, ToolCallable) else ToolCallable(_to_spec(t)) for t in tools
+        ]
         self._cfg = {k: v for k, v in per_command_cfg.items() if v is not None}
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
@@ -105,7 +106,9 @@ class Command:
         raise CommandError(str(last_err) if last_err else "Unknown command error")
 
     # Streaming interface (sync iterator)
-    def stream(self, *args, **kwargs) -> Iterable[str] | Any:  # may return AsyncIterable for async commands
+    def stream(
+        self, *args, **kwargs
+    ) -> Iterable[str] | Any:  # may return AsyncIterable for async commands
         effective = get_config(self._cfg)
         backend = get_backend(effective.model)
         output_schema = to_json_schema(self._output_type) if self._output_type else None
@@ -200,7 +203,8 @@ def _to_spec(func: Callable[..., Any]) -> ToolSpec:
 def _get_return_type(func: Callable[..., Any]):
     try:
         sig = inspect.signature(func)
-        return sig.return_annotation if sig.return_annotation is not inspect.Signature.empty else None
+        return (
+            sig.return_annotation if sig.return_annotation is not inspect.Signature.empty else None
+        )
     except Exception:
         return None
-

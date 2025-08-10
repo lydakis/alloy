@@ -1,4 +1,3 @@
-import asyncio
 from dataclasses import dataclass
 
 import importlib
@@ -6,7 +5,6 @@ import importlib
 import pytest
 
 from alloy import command, configure
-from alloy.errors import CommandError
 from alloy.models.base import ModelBackend
 from alloy.config import Config
 
@@ -15,9 +13,15 @@ class AsyncFakeBackend(ModelBackend):
     def __init__(self):
         self.calls = 0
 
-    async def acomplete(self, prompt: str, *, tools=None, output_schema=None, config: Config) -> str:
+    async def acomplete(
+        self, prompt: str, *, tools=None, output_schema=None, config: Config
+    ) -> str:
         self.calls += 1
-        if output_schema and isinstance(output_schema, dict) and output_schema.get("type") == "object":
+        if (
+            output_schema
+            and isinstance(output_schema, dict)
+            and output_schema.get("type") == "object"
+        ):
             return '{"n": 7, "s": "hi"}'
         return "3.14"
 
@@ -25,6 +29,7 @@ class AsyncFakeBackend(ModelBackend):
         async def agen():
             for part in ("a", "sync"):
                 yield part
+
         return agen()
 
 
@@ -80,4 +85,3 @@ async def test_sync_command_async_convenience(monkeypatch):
     val = await Pi.async_()
     assert isinstance(val, float)
     assert str(val).startswith("3.14")
-

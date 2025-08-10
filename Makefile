@@ -10,12 +10,20 @@ test:
 	$(PY) -m pytest -q
 
 lint:
-	ruff .
-	black --check .
+	ruff check .
+	@if command -v black >/dev/null 2>&1; then \
+	  black --check .; \
+	else \
+	  echo "[lint] black not found; skipping black check"; \
+	fi
 
 format:
-	ruff --fix .
-	black .
+	ruff check --fix .
+	@if command -v black >/dev/null 2>&1; then \
+	  black .; \
+	else \
+	  echo "[format] black not found; skipping black format"; \
+	fi
 
 typecheck:
 	mypy .

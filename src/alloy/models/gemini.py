@@ -11,9 +11,10 @@ from .base import ModelBackend
 class GeminiBackend(ModelBackend):
     """Google Gemini backend (minimal implementation).
 
-    This implementation requires the `google-generativeai` SDK. If it isn't installed,
-    calls raise ConfigurationError. Tool-calling and structured outputs are not
-    implemented in this scaffold.
+    Supports either the new `google-genai` SDK (preferred) or the legacy
+    `google-generativeai` SDK. If neither is installed, calls raise
+    ConfigurationError. Tool-calling and structured outputs are not implemented
+    in this scaffold.
     """
 
     def complete(
@@ -24,28 +25,45 @@ class GeminiBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> str:
+        # Prefer the new GA SDK if available
         try:
-            import google.generativeai as genai
-        except Exception as e:  # pragma: no cover
-            raise ConfigurationError(
-                "Google Generative AI SDK not installed. Run `pip install alloy[gemini]`."
-            ) from e
+            from google import genai as genai_new  # type: ignore
 
-        if tools:
-            # Not implemented in this scaffold
-            raise ConfigurationError("Gemini tool calling not implemented in this scaffold")
+            if tools:
+                raise ConfigurationError("Gemini tool calling not implemented in this scaffold")
 
-        api_key = None  # let the SDK read GOOGLE_API_KEY from env
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(config.model)
-        kwargs: dict[str, Any] = {}
-        if config.temperature is not None:
-            kwargs.setdefault("generation_config", {})["temperature"] = config.temperature
-        res = model.generate_content(prompt, **kwargs)
-        try:
-            return res.text or ""
+            client = genai_new.Client()  # reads GOOGLE_API_KEY from env
+            # Minimal call; omit advanced config for now
+            res = client.models.generate_content(
+                model=config.model or "gemini-1.5-pro", contents=prompt
+            )
+            try:
+                return getattr(res, "text", "") or ""
+            except Exception:
+                return ""
         except Exception:
-            return ""
+            # Fallback to legacy SDK
+            try:
+                import google.generativeai as genai_legacy  # type: ignore
+            except Exception as e:  # pragma: no cover
+                raise ConfigurationError(
+                    "Google GenAI SDK not installed. Install `alloy[gemini]` (new) or `alloy[gemini-legacy]`."
+                ) from e
+
+            if tools:
+                raise ConfigurationError("Gemini tool calling not implemented in this scaffold")
+
+            api_key = None  # let the SDK read GOOGLE_API_KEY from env
+            genai_legacy.configure(api_key=api_key)
+            model = genai_legacy.GenerativeModel(config.model)
+            kwargs: dict[str, Any] = {}
+            if config.temperature is not None:
+                kwargs.setdefault("generation_config", {})["temperature"] = config.temperature
+            res = model.generate_content(prompt, **kwargs)
+            try:
+                return res.text or ""
+            except Exception:
+                return ""
 
     def stream(
         self,

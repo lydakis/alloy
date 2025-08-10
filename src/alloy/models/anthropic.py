@@ -64,7 +64,11 @@ class AnthropicBackend(ModelBackend):
                     "name": t.spec.name,
                     "description": t.spec.description,
                     # Our as_schema() returns OpenAI-like function schema; map parameters->input_schema
-                    "input_schema": (t.spec.as_schema().get("parameters") if hasattr(t, "spec") else {"type": "object"}),
+                    "input_schema": (
+                        t.spec.as_schema().get("parameters")
+                        if hasattr(t, "spec")
+                        else {"type": "object"}
+                    ),
                 }
                 for t in tools
             ]
@@ -88,7 +92,10 @@ class AnthropicBackend(ModelBackend):
             content = getattr(resp, "content", []) or []
             # Look for any tool_use blocks
             tool_calls = [
-                block for block in content if getattr(block, "type", None) == "tool_use" or (isinstance(block, dict) and block.get("type") == "tool_use")
+                block
+                for block in content
+                if getattr(block, "type", None) == "tool_use"
+                or (isinstance(block, dict) and block.get("type") == "tool_use")
             ]
             if tool_calls and tool_defs is not None:
                 turns += 1
@@ -97,10 +104,12 @@ class AnthropicBackend(ModelBackend):
                     # Return whatever text we have so far
                     return _as_text_from_content(resp)
                 # Append assistant message that requested tool uses
-                messages.append({
-                    "role": "assistant",
-                    "content": content,
-                })
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": content,
+                    }
+                )
                 # Execute each tool and append tool_result
                 for tc in tool_calls:
                     name = tc.get("name") if isinstance(tc, dict) else getattr(tc, "name", "")
@@ -120,16 +129,18 @@ class AnthropicBackend(ModelBackend):
                         result_text = json.dumps(result)
                     except Exception:
                         result_text = str(result)
-                    messages.append({
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": tuid,
-                                "content": result_text,
-                            }
-                        ],
-                    })
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "tool_result",
+                                    "tool_use_id": tuid,
+                                    "content": result_text,
+                                }
+                            ],
+                        }
+                    )
                 continue
             # No tools requested; return assistant text
             return _as_text_from_content(resp)
@@ -172,7 +183,11 @@ class AnthropicBackend(ModelBackend):
                 {
                     "name": t.spec.name,
                     "description": t.spec.description,
-                    "input_schema": (t.spec.as_schema().get("parameters") if hasattr(t, "spec") else {"type": "object"}),
+                    "input_schema": (
+                        t.spec.as_schema().get("parameters")
+                        if hasattr(t, "spec")
+                        else {"type": "object"}
+                    ),
                 }
                 for t in tools
             ]
@@ -195,7 +210,10 @@ class AnthropicBackend(ModelBackend):
             resp = await client.messages.create(**kwargs)
             content = getattr(resp, "content", []) or []
             tool_calls = [
-                block for block in content if getattr(block, "type", None) == "tool_use" or (isinstance(block, dict) and block.get("type") == "tool_use")
+                block
+                for block in content
+                if getattr(block, "type", None) == "tool_use"
+                or (isinstance(block, dict) and block.get("type") == "tool_use")
             ]
             if tool_calls and tool_defs is not None:
                 turns += 1
@@ -219,16 +237,18 @@ class AnthropicBackend(ModelBackend):
                         result_text = json.dumps(result)
                     except Exception:
                         result_text = str(result)
-                    messages.append({
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": tuid,
-                                "content": result_text,
-                            }
-                        ],
-                    })
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "tool_result",
+                                    "tool_use_id": tuid,
+                                    "content": result_text,
+                                }
+                            ],
+                        }
+                    )
                 continue
             return _as_text_from_content(resp)
 

@@ -1,10 +1,4 @@
 from dataclasses import dataclass
-
-import builtins
-
-import types
-
-import alloy
 from alloy import command, ask, configure
 from alloy.models.base import ModelBackend
 from alloy.config import Config
@@ -21,7 +15,11 @@ class FakeBackend(ModelBackend):
         if config.retry and self.calls < config.retry:
             raise CommandError("transient")
         # Return JSON only for object schemas; else a simple number string
-        if output_schema and isinstance(output_schema, dict) and output_schema.get("type") == "object":
+        if (
+            output_schema
+            and isinstance(output_schema, dict)
+            and output_schema.get("type") == "object"
+        ):
             return '{"value": 42, "label": "ok"}'
         return "12.5"
 
@@ -33,6 +31,7 @@ class FakeBackend(ModelBackend):
 def use_fake_backend(monkeypatch):
     # Patch the bound references used inside modules; avoid package attribute shadowing
     import importlib
+
     _cmd_mod = importlib.import_module("alloy.command")
     _ask_mod = importlib.import_module("alloy.ask")
     monkeypatch.setattr(_cmd_mod, "get_backend", lambda model: FakeBackend())

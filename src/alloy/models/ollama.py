@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, AsyncIterable
-from typing import Any
 
 from ..config import Config
 from ..errors import ConfigurationError

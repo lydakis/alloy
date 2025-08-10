@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict, replace
+from dataclasses import dataclass, field, asdict
 import os
 import json
 from typing import Any
@@ -40,6 +40,7 @@ _context_config: contextvars.ContextVar[Config | None] = contextvars.ContextVar(
     "alloy_context_config", default=None
 )
 
+
 def _config_from_env() -> Config:
     """Build a Config from process environment variables (optional).
 
@@ -54,10 +55,7 @@ def _config_from_env() -> Config:
     model = os.environ.get("ALLOY_MODEL")
     temperature = os.environ.get("ALLOY_TEMPERATURE")
     max_tokens = os.environ.get("ALLOY_MAX_TOKENS")
-    system = (
-        os.environ.get("ALLOY_DEFAULT_SYSTEM")
-        or os.environ.get("ALLOY_SYSTEM")
-    )
+    system = os.environ.get("ALLOY_DEFAULT_SYSTEM") or os.environ.get("ALLOY_SYSTEM")
     retry = os.environ.get("ALLOY_RETRY")
     max_tool_turns = os.environ.get("ALLOY_MAX_TOOL_TURNS")
     extra_json = os.environ.get("ALLOY_EXTRA_JSON")
@@ -114,9 +112,7 @@ def use_config(temp_config: Config):
 
     class _Cfg:
         def __enter__(self):
-            self._token = _context_config.set(
-                get_config().merged(temp_config)
-            )
+            self._token = _context_config.set(get_config().merged(temp_config))
             return get_config()
 
         def __exit__(self, exc_type, exc, tb):

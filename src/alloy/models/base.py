@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from collections.abc import Iterable, AsyncIterable
-from typing import Any
 
 from ..config import Config
 from ..errors import ConfigurationError
-import os, json
+import os
+import json
 
 
 class ModelBackend:
@@ -59,13 +58,14 @@ class ModelBackend:
 
 def get_backend(model: str | None) -> ModelBackend:
     if not model:
-        raise ConfigurationError(
-            "No model configured. Call alloy.configure(model=...) first."
-        )
+        raise ConfigurationError("No model configured. Call alloy.configure(model=...) first.")
     # Development helper: allow a fake backend for offline/examples via env flag
     if os.environ.get("ALLOY_BACKEND", "").lower() == "fake":
+
         class _Fake(ModelBackend):
-            def complete(self, prompt: str, *, tools=None, output_schema=None, config: Config) -> str:
+            def complete(
+                self, prompt: str, *, tools=None, output_schema=None, config: Config
+            ) -> str:
                 if isinstance(output_schema, dict) and output_schema.get("type") == "object":
                     props = output_schema.get("properties", {})
                     obj: dict[str, object] = {}
@@ -85,14 +85,23 @@ def get_backend(model: str | None) -> ModelBackend:
                             obj[k] = "demo"
                     return json.dumps(obj)
                 return "42"
+
             def stream(self, prompt: str, *, tools=None, output_schema=None, config: Config):
                 yield "demo"
-            async def acomplete(self, prompt: str, *, tools=None, output_schema=None, config: Config) -> str:
-                return self.complete(prompt, tools=tools, output_schema=output_schema, config=config)
+
+            async def acomplete(
+                self, prompt: str, *, tools=None, output_schema=None, config: Config
+            ) -> str:
+                return self.complete(
+                    prompt, tools=tools, output_schema=output_schema, config=config
+                )
+
             async def astream(self, prompt: str, *, tools=None, output_schema=None, config: Config):
                 async def agen():
                     yield "demo"
+
                 return agen()
+
         return _Fake()
     name = model.lower()
     # Check explicit provider prefixes first to avoid substring collisions
@@ -115,6 +124,4 @@ def get_backend(model: str | None) -> ModelBackend:
         return OpenAIBackend()
 
     # Future: route to Anthropic/Gemini/Local or ReAct fallback
-    raise ConfigurationError(
-        f"No backend available for model '{model}'."
-    )
+    raise ConfigurationError(f"No backend available for model '{model}'.")

@@ -9,7 +9,6 @@ Primitive = t.Union[str, int, float, bool]
 
 
 def to_json_schema(tp: t.Any) -> t.Optional[dict]:
-    origin = t.get_origin(tp)
     if tp in (str, int, float, bool):
         return {"type": _primitive_name(tp)}
     if is_dataclass_type(tp):
@@ -70,4 +69,3 @@ def is_dataclass_type(tp: t.Any) -> bool:
 
 def _primitive_name(tp: t.Any) -> str:
     return {str: "string", int: "integer", float: "number", bool: "boolean"}[tp]
-

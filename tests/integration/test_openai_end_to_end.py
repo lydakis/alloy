@@ -48,4 +48,3 @@ def test_openai_tools_minimal():
     # Do not assert exact path (tool vs model), only that it produces a valid int
     assert isinstance(out, int)
     assert out > 0
-

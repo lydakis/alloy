@@ -39,9 +39,7 @@ class OpenAIBackend(ModelBackend):
         tool_schemas = None
         tool_map: dict[str, Any] = {}
         if tools:
-            tool_schemas = [
-                {"type": "function", "function": t.spec.as_schema()} for t in tools
-            ]
+            tool_schemas = [{"type": "function", "function": t.spec.as_schema()} for t in tools]
             tool_map = {t.spec.name: t for t in tools}
 
         response_format = None
@@ -70,7 +68,9 @@ class OpenAIBackend(ModelBackend):
                 m = (config.model or "").lower()
                 if "gpt-5" in m or m.startswith("o1") or m.startswith("o3"):
                     use_completion_tokens = True
-                kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = config.max_tokens
+                kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = (
+                    config.max_tokens
+                )
             if response_format is not None:
                 kwargs["response_format"] = response_format
             resp = client.chat.completions.create(**kwargs)
@@ -86,11 +86,13 @@ class OpenAIBackend(ModelBackend):
                     # Safety: avoid long loops; return current assistant content
                     return msg.content or ""
                 # Append assistant message that requested tool calls first
-                messages.append({
-                    "role": "assistant",
-                    "content": msg.content or "",
-                    "tool_calls": [tc for tc in tool_calls],
-                })
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": msg.content or "",
+                        "tool_calls": [tc for tc in tool_calls],
+                    }
+                )
                 for tc in tool_calls:
                     name = tc.function.name
                     args = tc.function.arguments or "{}"
@@ -113,12 +115,14 @@ class OpenAIBackend(ModelBackend):
                         except Exception as _tool_exc:
                             content = json.dumps({"type": "tool_error", "error": str(_tool_exc)})
 
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tc.id,
-                        "name": name,
-                        "content": content,
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc.id,
+                            "name": name,
+                            "content": content,
+                        }
+                    )
                 continue
 
             return msg.content or ""
@@ -158,8 +162,11 @@ class OpenAIBackend(ModelBackend):
         if config.max_tokens is not None:
             m = (config.model or "").lower()
             use_completion_tokens = ("gpt-5" in m) or m.startswith("o1") or m.startswith("o3")
-            kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = config.max_tokens
+            kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = (
+                config.max_tokens
+            )
         stream = client.chat.completions.create(**kwargs)
+
         def gen():
             for event in stream:
                 try:
@@ -168,6 +175,7 @@ class OpenAIBackend(ModelBackend):
                     delta = ""
                 if delta:
                     yield delta
+
         return gen()
 
     async def acomplete(
@@ -194,9 +202,7 @@ class OpenAIBackend(ModelBackend):
         tool_schemas = None
         tool_map: dict[str, Any] = {}
         if tools:
-            tool_schemas = [
-                {"type": "function", "function": t.spec.as_schema()} for t in tools
-            ]
+            tool_schemas = [{"type": "function", "function": t.spec.as_schema()} for t in tools]
             tool_map = {t.spec.name: t for t in tools}
 
         response_format = None
@@ -222,7 +228,9 @@ class OpenAIBackend(ModelBackend):
             if config.max_tokens is not None:
                 m = (config.model or "").lower()
                 use_completion_tokens = ("gpt-5" in m) or m.startswith("o1") or m.startswith("o3")
-                kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = config.max_tokens
+                kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = (
+                    config.max_tokens
+                )
             if response_format is not None:
                 kwargs["response_format"] = response_format
             resp = await client.chat.completions.create(**kwargs)
@@ -234,11 +242,13 @@ class OpenAIBackend(ModelBackend):
                 limit = config.max_tool_turns or 2
                 if tool_turns > limit:
                     return msg.content or ""
-                messages.append({
-                    "role": "assistant",
-                    "content": msg.content or "",
-                    "tool_calls": [tc for tc in tool_calls],
-                })
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": msg.content or "",
+                        "tool_calls": [tc for tc in tool_calls],
+                    }
+                )
                 for tc in tool_calls:
                     name = tc.function.name
                     args = tc.function.arguments or "{}"
@@ -261,12 +271,14 @@ class OpenAIBackend(ModelBackend):
                         except Exception as _tool_exc:
                             content = json.dumps({"type": "tool_error", "error": str(_tool_exc)})
 
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tc.id,
-                        "name": name,
-                        "content": content,
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc.id,
+                            "name": name,
+                            "content": content,
+                        }
+                    )
                 continue
             return msg.content or ""
 
@@ -304,7 +316,9 @@ class OpenAIBackend(ModelBackend):
         if config.max_tokens is not None:
             m = (config.model or "").lower()
             use_completion_tokens = ("gpt-5" in m) or m.startswith("o1") or m.startswith("o3")
-            kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = config.max_tokens
+            kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = (
+                config.max_tokens
+            )
         stream = await client.chat.completions.create(**kwargs)
 
         async def agen():

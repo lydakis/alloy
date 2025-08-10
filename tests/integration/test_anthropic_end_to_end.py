@@ -42,4 +42,3 @@ def test_anthropic_tool_calling():
     out = UseAdd()
     assert isinstance(out, int)
     assert out == 42 or out > 0
-
