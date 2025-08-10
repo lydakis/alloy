@@ -28,7 +28,7 @@ class GeminiBackend(ModelBackend):
             import google.generativeai as genai
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(
-                "Google Generative AI SDK not installed. Run `pip install google-generativeai`."
+                "Google Generative AI SDK not installed. Run `pip install alloy[gemini]`."
             ) from e
 
         if tools:

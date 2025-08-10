@@ -95,10 +95,11 @@ def get_backend(model: str | None) -> ModelBackend:
                 return agen()
         return _Fake()
     name = model.lower()
-    if name.startswith("gpt") or name.startswith("openai") or "gpt-" in name:
-        from .openai import OpenAIBackend
+    # Check explicit provider prefixes first to avoid substring collisions
+    if name.startswith("ollama:") or name.startswith("local:"):
+        from .ollama import OllamaBackend
 
-        return OpenAIBackend()
+        return OllamaBackend()
     if name.startswith("claude") or name.startswith("anthropic"):
         from .anthropic import AnthropicBackend
 
@@ -107,10 +108,11 @@ def get_backend(model: str | None) -> ModelBackend:
         from .gemini import GeminiBackend
 
         return GeminiBackend()
-    if name.startswith("ollama:") or name.startswith("local:"):
-        from .ollama import OllamaBackend
+    # OpenAI routing
+    if name.startswith("gpt") or name.startswith("openai") or "gpt-" in name:
+        from .openai import OpenAIBackend
 
-        return OllamaBackend()
+        return OpenAIBackend()
 
     # Future: route to Anthropic/Gemini/Local or ReAct fallback
     raise ConfigurationError(

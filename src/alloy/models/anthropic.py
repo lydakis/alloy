@@ -46,7 +46,7 @@ class AnthropicBackend(ModelBackend):
             import anthropic
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(
-                "Anthropic SDK not installed. Run `pip install anthropic`."
+                "Anthropic SDK not installed. Run `pip install alloy[anthropic]`."
             ) from e
 
         client: Any = anthropic.Anthropic()
@@ -121,8 +121,14 @@ class AnthropicBackend(ModelBackend):
                     except Exception:
                         result_text = str(result)
                     messages.append({
-                        "role": "tool",
-                        "content": [{"type": "tool_result", "tool_use_id": tuid, "content": result_text}],
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": tuid,
+                                "content": result_text,
+                            }
+                        ],
                     })
                 continue
             # No tools requested; return assistant text
@@ -151,7 +157,7 @@ class AnthropicBackend(ModelBackend):
             import anthropic
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(
-                "Anthropic SDK not installed. Run `pip install anthropic`."
+                "Anthropic SDK not installed. Run `pip install alloy[anthropic]`."
             ) from e
 
         client: Any = anthropic.AsyncAnthropic()
@@ -214,8 +220,14 @@ class AnthropicBackend(ModelBackend):
                     except Exception:
                         result_text = str(result)
                     messages.append({
-                        "role": "tool",
-                        "content": [{"type": "tool_result", "tool_use_id": tuid, "content": result_text}],
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": tuid,
+                                "content": result_text,
+                            }
+                        ],
                     })
                 continue
             return _as_text_from_content(resp)
