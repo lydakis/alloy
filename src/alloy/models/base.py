@@ -103,6 +103,10 @@ def get_backend(model: str | None) -> ModelBackend:
         from .anthropic import AnthropicBackend
 
         return AnthropicBackend()
+    if name.startswith("gemini") or name.startswith("google"):
+        from .gemini import GeminiBackend
+
+        return GeminiBackend()
 
     # Future: route to Anthropic/Gemini/Local or ReAct fallback
     raise ConfigurationError(
