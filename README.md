@@ -59,6 +59,10 @@ Troubleshooting
 - Tool loops: Alloy caps tool iterations by default (`max_tool_turns=2`). Adjust via `configure(max_tool_turns=1)` or env `ALLOY_MAX_TOOL_TURNS`.
 - Rate limits (429): Shorten prompts/outputs, add retries with backoff, or use lower-throughput settings.
 
+Integration tests
+- OpenAI: Set `OPENAI_API_KEY` (and optionally `ALLOY_IT_MODEL`, default `gpt-5-mini`). Run `pytest -q` — OpenAI integration tests auto-enable.
+- Anthropic: Set `ANTHROPIC_API_KEY` and `ALLOY_IT_MODEL=claude-3.5-sonnet` (or another Claude). Run `pytest -q` — Anthropic integration tests auto-enable.
+
 How to run locally
 - `pip install openai python-dotenv`
 - Create `.env` with `OPENAI_API_KEY=...`
