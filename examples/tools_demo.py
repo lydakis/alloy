@@ -79,18 +79,23 @@ class ProductRecommendation:
 def RecommendProduct(category: str, budget: float) -> str:
     """Find and recommend a product within budget."""
     return f"""
-    Find the best {category} product under ${budget}.
-    - Use search_products to list candidates under budget.
-    - Use calculate_discount(price, discount_percent) when helpful.
-    - Validate your chosen result with validate_data before saving.
-    - Then save_to_production(validated_data) to persist.
-    - Return a structured ProductRecommendation.
+    Task: Recommend the best {category} under ${budget}.
+    Tools:
+    - search_products(category, budget)
+    - calculate_discount(price, discount_percent)
+    - validate_data(data) -> adds validated_at
+    - save_to_production(data)
+
+    Rules:
+    - Always call validate_data on your chosen result once before save.
+    - If any tool fails once, do not retry; continue and finalize recommendation.
+    - Be concise. Then return ProductRecommendation.
     """
 
 
 def main():
     load_dotenv()
-    configure(model="gpt-5")
+    configure(model="gpt-5", temperature=0.2, max_tokens=600)
 
     rec = RecommendProduct("laptop", 1200)
     print("Recommended:", rec.product_name)

@@ -36,6 +36,10 @@ Notes
 Examples
 - See `examples/basic_usage.py` and `examples/tools_demo.py` (tools + contracts).
 
+Offline mode (dev only)
+- To run examples without network/API keys, set `ALLOY_BACKEND=fake`.
+- Example: `ALLOY_BACKEND=fake python examples/basic_usage.py`
+
 How to run locally
 - `pip install openai python-dotenv`
 - Create `.env` with `OPENAI_API_KEY=...`

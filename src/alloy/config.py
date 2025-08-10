@@ -15,6 +15,8 @@ class Config:
     default_system: str | None = None
     retry: int | None = None
     retry_on: type[BaseException] | None = None
+    # Safety/perf for tool loops
+    max_tool_turns: int | None = 2
     # Opaque provider-specific kwargs
     extra: dict[str, Any] = field(default_factory=dict)
 
@@ -57,6 +59,7 @@ def _config_from_env() -> Config:
         or os.environ.get("ALLOY_SYSTEM")
     )
     retry = os.environ.get("ALLOY_RETRY")
+    max_tool_turns = os.environ.get("ALLOY_MAX_TOOL_TURNS")
     extra_json = os.environ.get("ALLOY_EXTRA_JSON")
 
     cfg_kwargs: dict[str, object] = {}
@@ -77,6 +80,11 @@ def _config_from_env() -> Config:
     if retry is not None:
         try:
             cfg_kwargs["retry"] = int(retry)
+        except Exception:
+            pass
+    if max_tool_turns is not None:
+        try:
+            cfg_kwargs["max_tool_turns"] = int(max_tool_turns)
         except Exception:
             pass
     extra: dict[str, object] = {}
