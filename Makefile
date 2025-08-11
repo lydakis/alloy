@@ -75,3 +75,12 @@ docs-build:
 	else \
 	  echo "[docs] mkdocs not found. Try: pip install 'alloy[docs]'"; \
 	fi
+dist:
+	@python -m pip install --upgrade build >/dev/null 2>&1 || true
+	python -m build
+	@ls -lh dist || true
+
+release:
+	@echo "Create and push a tag to publish via GitHub Actions (trusted publishing):"
+	@echo "  git tag v$${VERSION:-0.1.0} && git push origin v$${VERSION:-0.1.0}"
+	@echo "Ensure PyPI trusted publishing is configured for this repo under the 'alloy' project."
