@@ -9,6 +9,7 @@ from .errors import CommandError
 from .models.base import get_backend
 from .tool import ToolCallable, ToolSpec
 from .types import to_json_schema, parse_output
+import json as _json
 
 
 def command(
@@ -77,6 +78,8 @@ class Command:
         prompt = self._func(*args, **kwargs)
         if not isinstance(prompt, str):
             prompt = str(prompt)
+        # Light guardrails to help models output the right shape
+        prompt = _augment_prompt(prompt, self._output_type)
         effective = get_config(self._cfg)
         backend = get_backend(effective.model)
 
@@ -94,7 +97,15 @@ class Command:
                 )
                 if self._output_type is None:
                     return text
-                return parse_output(self._output_type, text)
+                try:
+                    return parse_output(self._output_type, text)
+                except Exception as parse_exc:
+                    # Provide a clearer error that includes the expected type and a snippet
+                    expected = getattr(self._output_type, "__name__", str(self._output_type))
+                    snippet = (text[:120] + "…") if isinstance(text, str) and len(text) > 120 else text
+                    raise CommandError(
+                        f"Failed to parse model output as {expected}: {snippet!r}"
+                    ) from parse_exc
             except Exception as e:
                 last_err = e
                 if effective.retry_on and not isinstance(e, effective.retry_on):
@@ -133,6 +144,7 @@ class Command:
                 prompt_str = str(prompt_val)
             else:
                 prompt_str = prompt_val
+            prompt_str = _augment_prompt(prompt_str, self._output_type)
             try:
                 aiter = await backend.astream(
                     prompt_str,
@@ -157,6 +169,7 @@ class Command:
             prompt = str(prompt_val)
         else:
             prompt = prompt_val
+        prompt = _augment_prompt(prompt, self._output_type)
         effective = get_config(self._cfg)
         backend = get_backend(effective.model)
         output_schema = to_json_schema(self._output_type) if self._output_type else None
@@ -173,7 +186,14 @@ class Command:
                 )
                 if self._output_type is None:
                     return text
-                return parse_output(self._output_type, text)
+                try:
+                    return parse_output(self._output_type, text)
+                except Exception as parse_exc:
+                    expected = getattr(self._output_type, "__name__", str(self._output_type))
+                    snippet = (text[:120] + "…") if isinstance(text, str) and len(text) > 120 else text
+                    raise CommandError(
+                        f"Failed to parse model output as {expected}: {snippet!r}"
+                    ) from parse_exc
             except Exception as e:
                 last_err = e
                 if effective.retry_on and not isinstance(e, effective.retry_on):
@@ -208,3 +228,48 @@ def _get_return_type(func: Callable[..., Any]):
         )
     except Exception:
         return None
+
+
+def _augment_prompt(prompt: str, output_type: type | None) -> str:
+    """Add minimal, unobtrusive hints to steer models to the expected shape.
+
+    This supplements provider-side structured outputs and helps models that
+    ignore response_format by biasing the completion toward strict outputs.
+    """
+    if output_type is None:
+        return prompt
+    # Primitive guidance
+    if output_type is float:
+        guard = (
+            "\n\nInstructions: Return only the number as a decimal using '.'; "
+            "no currency symbols, units, or extra text."
+        )
+        return f"{prompt}{guard}"
+    if output_type is int:
+        guard = (
+            "\n\nInstructions: Return only an integer number; "
+            "no words or punctuation."
+        )
+        return f"{prompt}{guard}"
+    if output_type is bool:
+        guard = (
+            "\n\nInstructions: Return only true or false in lowercase; "
+            "no extra text."
+        )
+        return f"{prompt}{guard}"
+    # Dataclass/object guidance: include schema hint for older providers
+    try:
+        schema = to_json_schema(output_type)
+    except Exception:
+        schema = None
+    if isinstance(schema, dict):
+        try:
+            schema_json = _json.dumps(schema)
+        except Exception:
+            schema_json = str(schema)
+        guard = (
+            "\n\nInstructions: Output only valid JSON matching this schema exactly, "
+            "with no commentary, code fences, or extra properties.\n" + schema_json
+        )
+        return f"{prompt}{guard}"
+    return prompt

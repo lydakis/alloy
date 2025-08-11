@@ -34,10 +34,48 @@ class GeminiBackend(ModelBackend):
             raise ConfigurationError("Gemini tool calling not implemented in this scaffold")
 
         client = genai_new.Client()  # reads GOOGLE_API_KEY from env
-        # Minimal call; omit advanced config for now
-        res_new = client.models.generate_content(
-            model=(config.model or "gemini-1.5-pro"), contents=prompt
-        )
+        model_name = (config.model or "gemini-1.5-pro")
+        # Prefer structured output when schema is provided; Gemini supports
+        # response_mime_type + response_schema for JSON. If primitive, wrap.
+        generation_config = {}
+        wrapped_primitive = False
+        schema = None
+        if output_schema and isinstance(output_schema, dict):
+            schema = output_schema
+            if schema.get("type") != "object":
+                schema = {
+                    "type": "object",
+                    "properties": {"value": output_schema},
+                    "required": ["value"],
+                }
+                wrapped_primitive = True
+            generation_config = {
+                "response_mime_type": "application/json",
+                "response_schema": schema,
+            }
+
+        try:
+            if generation_config:
+                res_new = client.models.generate_content(
+                    model=model_name, contents=prompt, generation_config=generation_config
+                )
+                text = getattr(res_new, "text", "") or ""
+                if wrapped_primitive and text:
+                    import json as _json
+
+                    try:
+                        data = _json.loads(text)
+                        if isinstance(data, dict) and "value" in data:
+                            return str(data["value"])
+                    except Exception:
+                        pass
+                return text
+        except Exception:
+            # Fallback to non-structured call below
+            pass
+
+        # Non-structured fallback
+        res_new = client.models.generate_content(model=model_name, contents=prompt)
         try:
             return getattr(res_new, "text", "") or ""
         except Exception:

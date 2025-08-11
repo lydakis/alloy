@@ -43,12 +43,21 @@ class OpenAIBackend(ModelBackend):
             tool_map = {t.spec.name: t for t in tools}
 
         response_format = None
+        # OpenAI structured outputs require an object schema. If primitive, wrap.
+        wrapped_primitive = False
         if output_schema and isinstance(output_schema, dict):
-            if output_schema.get("type") == "object":
-                response_format = {
-                    "type": "json_schema",
-                    "json_schema": {"name": "alloy_output", "schema": output_schema},
+            schema = output_schema
+            if schema.get("type") != "object":
+                schema = {
+                    "type": "object",
+                    "properties": {"value": output_schema},
+                    "required": ["value"],
                 }
+                wrapped_primitive = True
+            response_format = {
+                "type": "json_schema",
+                "json_schema": {"name": "alloy_output", "schema": schema},
+            }
 
         tool_turns = 0
         while True:
@@ -125,7 +134,18 @@ class OpenAIBackend(ModelBackend):
                     )
                 continue
 
-            return msg.content or ""
+            content = msg.content or ""
+            if response_format is not None and wrapped_primitive and content:
+                # Try to extract {"value": ...} for primitives
+                try:
+                    import json as _json
+
+                    data = _json.loads(content)
+                    if isinstance(data, dict) and "value" in data:
+                        return str(data["value"])  # let parse_output coerce type
+                except Exception:
+                    pass
+            return content
 
     def stream(
         self,
@@ -206,12 +226,20 @@ class OpenAIBackend(ModelBackend):
             tool_map = {t.spec.name: t for t in tools}
 
         response_format = None
+        wrapped_primitive = False
         if output_schema and isinstance(output_schema, dict):
-            if output_schema.get("type") == "object":
-                response_format = {
-                    "type": "json_schema",
-                    "json_schema": {"name": "alloy_output", "schema": output_schema},
+            schema = output_schema
+            if schema.get("type") != "object":
+                schema = {
+                    "type": "object",
+                    "properties": {"value": output_schema},
+                    "required": ["value"],
                 }
+                wrapped_primitive = True
+            response_format = {
+                "type": "json_schema",
+                "json_schema": {"name": "alloy_output", "schema": schema},
+            }
 
         tool_turns = 0
         while True:
@@ -280,7 +308,17 @@ class OpenAIBackend(ModelBackend):
                         }
                     )
                 continue
-            return msg.content or ""
+            content = msg.content or ""
+            if response_format is not None and wrapped_primitive and content:
+                try:
+                    import json as _json
+
+                    data = _json.loads(content)
+                    if isinstance(data, dict) and "value" in data:
+                        return str(data["value"])
+                except Exception:
+                    pass
+            return content
 
     async def astream(
         self,

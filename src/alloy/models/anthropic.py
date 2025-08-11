@@ -74,6 +74,23 @@ class AnthropicBackend(ModelBackend):
             ]
             tool_map = {t.spec.name: t for t in tools}
 
+        # Anthropic supports structured outputs via response_format json_schema
+        response_format = None
+        wrapped_primitive = False
+        if output_schema and isinstance(output_schema, dict):
+            schema = output_schema
+            if schema.get("type") != "object":
+                schema = {
+                    "type": "object",
+                    "properties": {"value": output_schema},
+                    "required": ["value"],
+                }
+                wrapped_primitive = True
+            response_format = {
+                "type": "json_schema",
+                "json_schema": {"name": "alloy_output", "schema": schema},
+            }
+
         turns = 0
         while True:
             kwargs: dict[str, Any] = {
@@ -87,6 +104,8 @@ class AnthropicBackend(ModelBackend):
                 kwargs["temperature"] = config.temperature
             if tool_defs is not None:
                 kwargs["tools"] = tool_defs
+            if response_format is not None:
+                kwargs["response_format"] = response_format
 
             resp = client.messages.create(**kwargs)
             content = getattr(resp, "content", []) or []
@@ -143,7 +162,17 @@ class AnthropicBackend(ModelBackend):
                     )
                 continue
             # No tools requested; return assistant text
-            return _as_text_from_content(resp)
+            text = _as_text_from_content(resp)
+            if response_format is not None and wrapped_primitive and text:
+                try:
+                    import json as _json
+
+                    data = _json.loads(text)
+                    if isinstance(data, dict) and "value" in data:
+                        return str(data["value"])
+                except Exception:
+                    pass
+            return text
 
     def stream(
         self,
@@ -193,6 +222,22 @@ class AnthropicBackend(ModelBackend):
             ]
             tool_map = {t.spec.name: t for t in tools}
 
+        response_format = None
+        wrapped_primitive = False
+        if output_schema and isinstance(output_schema, dict):
+            schema = output_schema
+            if schema.get("type") != "object":
+                schema = {
+                    "type": "object",
+                    "properties": {"value": output_schema},
+                    "required": ["value"],
+                }
+                wrapped_primitive = True
+            response_format = {
+                "type": "json_schema",
+                "json_schema": {"name": "alloy_output", "schema": schema},
+            }
+
         turns = 0
         while True:
             kwargs: dict[str, Any] = {
@@ -206,6 +251,8 @@ class AnthropicBackend(ModelBackend):
                 kwargs["temperature"] = config.temperature
             if tool_defs is not None:
                 kwargs["tools"] = tool_defs
+            if response_format is not None:
+                kwargs["response_format"] = response_format
 
             resp = await client.messages.create(**kwargs)
             content = getattr(resp, "content", []) or []
@@ -250,7 +297,17 @@ class AnthropicBackend(ModelBackend):
                         }
                     )
                 continue
-            return _as_text_from_content(resp)
+            text = _as_text_from_content(resp)
+            if response_format is not None and wrapped_primitive and text:
+                try:
+                    import json as _json
+
+                    data = _json.loads(text)
+                    if isinstance(data, dict) and "value" in data:
+                        return str(data["value"])
+                except Exception:
+                    pass
+            return text
 
     async def astream(
         self,

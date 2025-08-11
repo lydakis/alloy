@@ -41,6 +41,7 @@ nav:
   - Configuration: configuration.md
   - Commands & Tools: commands.md
   - Backends & Routing: backends.md
+  - Enforcing Outputs: outputs.md
   - Examples: examples.md
   - What's New: whats-new.md
   - API Reference:

@@ -2,6 +2,7 @@ Alloy (Python): Python for logic. English for intelligence.
 
 [![CI](https://github.com/lydakis/alloy-py/actions/workflows/ci.yml/badge.svg)](https://github.com/lydakis/alloy-py/actions/workflows/ci.yml)
 [![Docs](https://github.com/lydakis/alloy-py/actions/workflows/docs.yml/badge.svg)](https://lydakis.github.io/alloy-py/)
+[![Docs Site](https://img.shields.io/badge/docs-website-blue)](https://lydakis.github.io/alloy-py/)
 [![PyPI](https://img.shields.io/pypi/v/alloy-ai.svg)](https://pypi.org/project/alloy-ai/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -33,10 +34,14 @@ print(ExtractPrice("This item costs $49.99."))
 print(ask("Say hi"))
 ```
 
+Enforcing outputs
+- Alloy biases models to return the expected shape and uses provider structured outputs where available. If parsing still fails, you get a clear error.
+- Docs: https://lydakis.github.io/alloy-py/outputs/
+
 Notes
 - OpenAI backend is implemented for sync/async/streaming.
 - Streaming with tools is not yet supported.
-- For structured outputs, Alloy attempts to use OpenAI structured responses (JSON schema). If unavailable, the model may still return JSON, which Alloy parses best-effort.
+- Structured outputs: Alloy uses provider JSON Schema features (OpenAI/Anthropic/Gemini) and prompt guardrails. See Enforcing outputs above.
 - Configuration defaults: Alloy uses `model=gpt-5-mini` if `configure(...)` is not called. You can also set process environment variables instead of a `.env` file:
   - `ALLOY_MODEL`, `ALLOY_TEMPERATURE`, `ALLOY_MAX_TOKENS`, `ALLOY_SYSTEM`/`ALLOY_DEFAULT_SYSTEM`, `ALLOY_RETRY`.
   - Example: `export ALLOY_MODEL=gpt-4o` then run your script.

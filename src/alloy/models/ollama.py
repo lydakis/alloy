@@ -46,12 +46,60 @@ class OllamaBackend(ModelBackend):
         if not model_name:
             raise ConfigurationError("Ollama model not specified (use model='ollama:<name>')")
 
+        # If a primitive schema is provided, bias toward strict JSON output
+        if isinstance(output_schema, dict):
+            t = output_schema.get("type")
+            if t in ("number", "integer", "boolean", "string"):
+                example = {
+                    "number": '{"value": 3.14}',
+                    "integer": '{"value": 7}',
+                    "boolean": '{"value": true}',
+                    "string": '{"value": "text"}',
+                }[t]
+                prompt = (
+                    f"{prompt}\n\nInstructions: Return only a JSON object with a single key 'value' "
+                    f"matching the required type. No code fences or extra text.\nExample: {example}"
+                )
+
         # Use chat API for consistency with role/content messaging
         messages = [{"role": "user", "content": prompt}]
         try:
             res = ollama.chat(model=model_name, messages=messages)
             msg = res.get("message", {}) if isinstance(res, dict) else getattr(res, "message", {})
-            return msg.get("content", "") if isinstance(msg, dict) else getattr(msg, "content", "")
+            content = msg.get("content", "") if isinstance(msg, dict) else getattr(msg, "content", "")
+            # If primitive schema expected, attempt strict JSON extraction; if it fails, re-ask once
+            if isinstance(output_schema, dict):
+                t = output_schema.get("type")
+                if t in ("number", "integer", "boolean", "string"):
+                    import json as _json
+
+                    try:
+                        data = _json.loads(content)
+                        if isinstance(data, dict) and "value" in data:
+                            return str(data["value"])
+                    except Exception:
+                        pass
+                    # One retry: append assistant content and a strict user instruction
+                    messages.append({"role": "assistant", "content": content or ""})
+                    strict = (
+                        "Return only a JSON object with a single key 'value' matching the required type. "
+                        "No code fences or extra text."
+                    )
+                    messages.append({"role": "user", "content": strict})
+                    res2 = ollama.chat(model=model_name, messages=messages)
+                    msg2 = (
+                        res2.get("message", {}) if isinstance(res2, dict) else getattr(res2, "message", {})
+                    )
+                    content2 = (
+                        msg2.get("content", "") if isinstance(msg2, dict) else getattr(msg2, "content", "")
+                    )
+                    try:
+                        data2 = _json.loads(content2)
+                        if isinstance(data2, dict) and "value" in data2:
+                            return str(data2["value"])
+                    except Exception:
+                        pass
+            return content
         except Exception as e:
             raise ConfigurationError(str(e)) from e
 

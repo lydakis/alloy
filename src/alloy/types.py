@@ -33,6 +33,9 @@ def parse_output(tp: t.Any, raw: str) -> t.Any:
             data = json.loads(raw)
         except Exception:
             data = raw
+        # If expecting a primitive and model returned an object {"value": ...}, unwrap
+        if tp in (str, int, float, bool) and isinstance(data, dict) and "value" in data:
+            data = data["value"]
         return _coerce(tp, data)
     if tp in (str, int, float, bool):
         return _coerce(tp, raw)

@@ -6,6 +6,14 @@ The format is based on Keep a Changelog and this project adheres to
 Semantic Versioning.
 
 ## [Unreleased]
+
+## 0.1.3 - 2025-08-11
+- Structured outputs: OpenAI/Anthropic/Gemini now receive JSON Schema; primitives are wrapped and unwrapped as `{ "value": ... }`.
+- Prompt shaping: Minimal guardrails appended to prompts to bias models to strict outputs for primitives and JSON for objects.
+- Clearer errors: Parse failures raise `CommandError` with expected type and an output snippet.
+- Ollama: Primitive outputs enforced via JSON instruction and a single follow-up attempt; tolerant unwrapping supported.
+- Tests: Consolidated unit tests under `tests/unit`; kept integration tests under `tests/integration`.
+- Docs: Added `docs/outputs.md` and linked from navigation; README links to the page.
 - Add docs site with MkDocs + mkdocstrings
 - GitHub Pages deploy workflow; docs build on PRs
 - Drop legacy Gemini SDK; support google-genai only
