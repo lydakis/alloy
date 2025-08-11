@@ -66,7 +66,9 @@ class OllamaBackend(ModelBackend):
         try:
             res = ollama.chat(model=model_name, messages=messages)
             msg = res.get("message", {}) if isinstance(res, dict) else getattr(res, "message", {})
-            content = msg.get("content", "") if isinstance(msg, dict) else getattr(msg, "content", "")
+            content = (
+                msg.get("content", "") if isinstance(msg, dict) else getattr(msg, "content", "")
+            )
             # If primitive schema expected, attempt strict JSON extraction; if it fails, re-ask once
             if isinstance(output_schema, dict):
                 t = output_schema.get("type")
@@ -88,10 +90,14 @@ class OllamaBackend(ModelBackend):
                     messages.append({"role": "user", "content": strict})
                     res2 = ollama.chat(model=model_name, messages=messages)
                     msg2 = (
-                        res2.get("message", {}) if isinstance(res2, dict) else getattr(res2, "message", {})
+                        res2.get("message", {})
+                        if isinstance(res2, dict)
+                        else getattr(res2, "message", {})
                     )
                     content2 = (
-                        msg2.get("content", "") if isinstance(msg2, dict) else getattr(msg2, "content", "")
+                        msg2.get("content", "")
+                        if isinstance(msg2, dict)
+                        else getattr(msg2, "content", "")
                     )
                     try:
                         data2 = _json.loads(content2)

@@ -102,7 +102,9 @@ class Command:
                 except Exception as parse_exc:
                     # Provide a clearer error that includes the expected type and a snippet
                     expected = getattr(self._output_type, "__name__", str(self._output_type))
-                    snippet = (text[:120] + "…") if isinstance(text, str) and len(text) > 120 else text
+                    snippet = (
+                        (text[:120] + "…") if isinstance(text, str) and len(text) > 120 else text
+                    )
                     raise CommandError(
                         f"Failed to parse model output as {expected}: {snippet!r}"
                     ) from parse_exc
@@ -190,7 +192,9 @@ class Command:
                     return parse_output(self._output_type, text)
                 except Exception as parse_exc:
                     expected = getattr(self._output_type, "__name__", str(self._output_type))
-                    snippet = (text[:120] + "…") if isinstance(text, str) and len(text) > 120 else text
+                    snippet = (
+                        (text[:120] + "…") if isinstance(text, str) and len(text) > 120 else text
+                    )
                     raise CommandError(
                         f"Failed to parse model output as {expected}: {snippet!r}"
                     ) from parse_exc
@@ -246,16 +250,10 @@ def _augment_prompt(prompt: str, output_type: type | None) -> str:
         )
         return f"{prompt}{guard}"
     if output_type is int:
-        guard = (
-            "\n\nInstructions: Return only an integer number; "
-            "no words or punctuation."
-        )
+        guard = "\n\nInstructions: Return only an integer number; " "no words or punctuation."
         return f"{prompt}{guard}"
     if output_type is bool:
-        guard = (
-            "\n\nInstructions: Return only true or false in lowercase; "
-            "no extra text."
-        )
+        guard = "\n\nInstructions: Return only true or false in lowercase; " "no extra text."
         return f"{prompt}{guard}"
     # Dataclass/object guidance: include schema hint for older providers
     try:

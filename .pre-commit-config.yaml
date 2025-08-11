@@ -4,12 +4,12 @@ repos:
     hooks:
       - id: ruff
         args: ["--fix"]
-        stages: [commit, push]
+        stages: [pre-commit, pre-push]
   - repo: https://github.com/psf/black
     rev: 24.8.0
     hooks:
       - id: black
-        stages: [commit, push]
+        stages: [pre-commit, pre-push]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:

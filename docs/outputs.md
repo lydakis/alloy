@@ -45,4 +45,3 @@ This will request structured output where available; otherwise the appended hint
 - Anthropic: Uses `response_format` with JSON Schema; primitives are wrapped and unwrapped similarly.
 - Gemini: Uses `generation_config.response_schema` and `response_mime_type=application/json`, with primitive unwrapping.
 - Ollama: No native structured outputs yet; Alloy enforces via prompt instructions and tolerant parsing.
-

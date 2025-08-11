@@ -24,4 +24,3 @@ def test_env_system_and_retry(monkeypatch):
     assert cfg.default_system == "You are helpful"
     assert cfg.retry == 3
     assert cfg.max_tool_turns == 2
-
