@@ -47,3 +47,13 @@ jobs:
           packages-dir: dist
           print-hash: true
           skip-existing: true
+
+  mark-pypi-deployment:
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/alloy-ai/
+    steps:
+      - name: Mark PyPI deployment as successful
+        run: echo "PyPI publish completed; marking deployment green."

@@ -73,7 +73,7 @@ jobs:
           python -m pip install ruff black mypy pre-commit
       - name: Ruff
         run: |
-          ruff .
+          ruff check .
       - name: Black (check)
         run: |
           black --check .
