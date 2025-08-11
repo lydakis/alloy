@@ -64,7 +64,7 @@ dev = [
 docs = [
   "mkdocs>=1.6,<2",
   "mkdocs-material>=9.5,<10",
-  "mkdocstrings>=0.28,<0.29",
+  "mkdocstrings>=0.28,<0.31",
   "mkdocstrings-python>=1.16,<2",
   "pymdown-extensions>=10.11,<11",
 ]
