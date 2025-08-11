@@ -1,5 +1,6 @@
 site_name: Alloy (Python)
 site_description: Python for logic. English for intelligence.
+site_url: https://openai.github.io/alloy-py/
 repo_url: https://github.com/openai/alloy-py
 theme:
   name: material
@@ -8,6 +9,12 @@ theme:
     - navigation.sections
     - toc.follow
     - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+  logo: assets/logo.svg
+  favicon: assets/favicon.svg
 plugins:
   - search
   - mkdocstrings:
@@ -36,4 +43,17 @@ nav:
   - Backends & Routing: backends.md
   - Examples: examples.md
   - API Reference:
-      - alloy: api/alloy.md
+      - Top-level: api/alloy.md
+      - Commands: api/command.md
+      - Ask: api/ask.md
+      - Config: api/config.md
+      - Tools: api/tool.md
+      - Errors: api/errors.md
+      - Types: api/types.md
+      - Models:
+          - Base: api/models/base.md
+          - OpenAI: api/models/openai.md
+          - Anthropic: api/models/anthropic.md
+          - Gemini: api/models/gemini.md
+          - Ollama: api/models/ollama.md
+  - Contributing Docs: contributing-docs.md
