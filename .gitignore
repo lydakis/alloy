@@ -19,6 +19,8 @@ build/
 
 # Virtual environments
 .venv/
+/.venv-pypi-check/
+/.venv-pypi-check2/
 venv/
 env/
 
@@ -28,4 +30,3 @@ env/
 
 # Env files
 .env
-
