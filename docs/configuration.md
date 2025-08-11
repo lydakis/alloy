@@ -24,4 +24,3 @@ from alloy import configure
 
 configure(model="gpt-5-mini", temperature=0.2)
 ```
-

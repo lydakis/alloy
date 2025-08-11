@@ -10,4 +10,3 @@ Alloy lets you declare typed AI commands in Python, wire up tools, and route to 
 - Multi‑provider backends (OpenAI, Anthropic, Gemini, Ollama)
 
 See Getting Started for installation and a 2‑minute tutorial.
-

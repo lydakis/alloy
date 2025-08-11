@@ -9,4 +9,3 @@ Release notes and highlights. See full changelog for details.
 - Docs site (MkDocs + mkdocstrings)
 - Google GenAI (gemini) via `google-genai` only
 - Dependency refresh, MIT license
-

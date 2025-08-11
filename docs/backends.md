@@ -8,4 +8,3 @@ Alloy auto-routes based on the `model` string:
 - Ollama: `ollama:*` or `local:*`
 
 Set `ALLOY_BACKEND=fake` to use a fake offline backend for examples.
-

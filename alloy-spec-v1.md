@@ -41,7 +41,7 @@ def AnalyzeData(data: dict) -> str:  # Returns prompt string
     # Python preprocessing
     cleaned_data = clean_data(data)
     stats = calculate_statistics(cleaned_data)
-    
+
     # Return English specification
     return f"""
     Analyze this data:
@@ -121,13 +121,13 @@ answer = ask("What is quantum computing?")
 
 # With tools
 response = ask(
-    "Find recent news about AI", 
+    "Find recent news about AI",
     tools=[search_web, fetch_url]
 )
 
 # With context
 explanation = ask(
-    "Explain this error", 
+    "Explain this error",
     context={"error": error_message, "code": code_snippet}
 )
 ```
@@ -166,7 +166,7 @@ async def AnalyzeWithContext(data: dict) -> str:
     # Async operations in prompt building
     market_data = await fetch_market_data()
     user_context = await get_user_context()
-    
+
     return f"""
     Analyze {data}
     Market: {market_data}
@@ -247,7 +247,7 @@ def WriteCreatively(prompt: str) -> str:
 
 # Runtime overrides
 response = ask(
-    "Explain simply", 
+    "Explain simply",
     model="gpt-3.5-turbo",
     temperature=0.3
 )
@@ -323,7 +323,7 @@ def command(__func: Callable[P, str], /, *, output: type[T] | None = ...) -> Cal
 @overload
 def command(*, output: type[T] | None = ...) -> Callable[[Callable[P, str]], Callable[P, T]]: ...
 
-# Async command overloads  
+# Async command overloads
 @overload
 def command(__func: Callable[P, Coroutine[Any, Any, str]], /, *, output: type[T] | None = ...) -> Callable[P, Coroutine[Any, Any, T]]: ...
 @overload
@@ -383,7 +383,7 @@ async def RecommendProductAsync(category: str, budget: float) -> str:
     # Async preprocessing
     market_trends = await fetch_market_trends(category)
     user_prefs = await get_user_preferences()
-    
+
     return f"""
     Find the best {category} product under ${budget}.
     Consider market trends: {market_trends}
@@ -400,7 +400,7 @@ print(f"Price: ${recommendation.discount_price}")
 async def get_recommendations():
     # Direct async calls
     laptop = await RecommendProductAsync("laptop", 1500)
-    
+
     # Parallel async execution
     results = await asyncio.gather(
         RecommendProductAsync("laptop", 1500),
@@ -422,7 +422,7 @@ async def stream_report():
     async def GenerateDetailedReport(product: ProductRecommendation) -> str:
         reviews = await fetch_reviews(product.product_name)
         return f"Generate detailed report for {product.product_name} with reviews: {reviews}"
-    
+
     async for chunk in GenerateDetailedReport.stream(recommendation):
         await update_ui(chunk)
 ```
@@ -437,14 +437,14 @@ conversation_history = []
 
 def chat_with_memory(message: str) -> str:
     conversation_history.append({"role": "user", "content": message})
-    
+
     @command(output=str)
     def Respond(message: str, history: list) -> str:
         return f"""
         Conversation history: {history}
         Respond to: {message}
         """
-    
+
     response = Respond(message, conversation_history)
     conversation_history.append({"role": "assistant", "content": response})
     return response
@@ -456,13 +456,13 @@ async def chat_with_context(message: str) -> str:
         # Fetch context asynchronously
         user_profile = await get_user_profile()
         recent_topics = await get_recent_topics()
-        
+
         return f"""
         User profile: {user_profile}
         Recent topics: {recent_topics}
         Respond to: {message}
         """
-    
+
     return await RespondWithContext(message)
 ```
 
@@ -526,7 +526,7 @@ def GenerateInterface(user_intent: str) -> str:
 ### v1.0 (Launch)
 - [x] Core decorators: @command, @tool
 - [x] Output type in decorator pattern
-- [x] Type stubs for IDE support  
+- [x] Type stubs for IDE support
 - [x] ask() for exploration
 - [x] Native tool support + ReAct fallback
 - [x] Sync/async/streaming execution

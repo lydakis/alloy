@@ -8,4 +8,27 @@ repos:
     rev: 24.8.0
     hooks:
       - id: black
-
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+  - repo: local
+    hooks:
+      - id: no-built-docs
+        name: Do not commit built docs (site/)
+        entry: bash
+        args: ["-lc", "echo 'error: do not commit built docs under site/' >&2; exit 1"]
+        language: system
+        files: ^site/
+      - id: no-venv
+        name: Do not commit virtualenvs
+        entry: bash
+        args: ["-lc", "echo 'error: do not commit virtualenvs' >&2; exit 1"]
+        language: system
+        files: ^(\.venv.*|venv/|env/)
