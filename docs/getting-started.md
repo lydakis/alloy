@@ -2,8 +2,8 @@
 
 ## Install
 
-- All providers: `pip install "alloy[providers]"`
-- Minimal (OpenAI only): `pip install alloy`
+- All providers: `pip install "alloy-ai[providers]"`
+- Minimal (OpenAI only): `pip install alloy-ai`
 
 Optional: `pip install -e '.[providers]'` to work on the repo in editable mode.
 
@@ -33,4 +33,3 @@ def ExtractPrice(text: str) -> str:
 print(ExtractPrice("This item costs $49.99."))
 print(ask("Say OK in one word."))
 ```
-

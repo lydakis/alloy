@@ -1,7 +1,7 @@
 Alloy (Python): Python for logic. English for intelligence.
 
 [![Docs](https://github.com/openai/alloy-py/actions/workflows/docs.yml/badge.svg)](https://openai.github.io/alloy-py/)
-[![PyPI](https://img.shields.io/pypi/v/alloy.svg)](https://pypi.org/project/alloy/)
+[![PyPI](https://img.shields.io/pypi/v/alloy-ai.svg)](https://pypi.org/project/alloy-ai/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 License: MIT
@@ -9,8 +9,8 @@ License: MIT
 This repository contains an early scaffold of the Alloy library per `alloy-spec-v1.md`.
 
 Quick start
-- Install (all providers): `pip install 'alloy[providers]'`
-- Or minimal (OpenAI only): `pip install alloy`
+- Install (all providers): `pip install 'alloy-ai[providers]'`
+- Or minimal (OpenAI only): `pip install alloy-ai`
 - Create `.env` with `OPENAI_API_KEY=...`
 - Use the API:
 
@@ -73,7 +73,7 @@ Integration tests
   - SDK note: Gemini support uses `google-genai` (GA).
 
 How to run locally
-- Install providers bundle: `pip install 'alloy[providers]'`
+- Install providers bundle: `pip install 'alloy-ai[providers]'`
 - Create `.env` with `OPENAI_API_KEY=...`
 - Option A (no install):
   - `python examples/basic_usage.py`
@@ -95,12 +95,12 @@ Support matrix (v1)
 - ReAct fallback: not implemented yet (planned for local models/LLMs without native tools).
 
 Install options
-- Base: `pip install alloy` (includes OpenAI + python-dotenv).
-- All providers: `pip install 'alloy[providers]'` (OpenAI, Anthropic, Gemini via `google-genai`, Ollama).
-- Specific extras: `pip install 'alloy[anthropic]'`, `pip install 'alloy[gemini]'`, `pip install 'alloy[ollama]'`.
+- Base: `pip install alloy-ai` (includes OpenAI + python-dotenv).
+- All providers: `pip install 'alloy-ai[providers]'` (OpenAI, Anthropic, Gemini via `google-genai`, Ollama).
+- Specific extras: `pip install 'alloy-ai[anthropic]'`, `pip install 'alloy-ai[gemini]'`, `pip install 'alloy-ai[ollama]'`.
 Documentation
 - Full docs: https://openai.github.io/alloy-py/
 
 Releases
 - Changelog: CHANGELOG.md
-- Publishing: Create a tag like `v0.1.0` on main — CI builds and uploads to PyPI (needs PyPI trusted publishing or a configured token).
+- Publishing: Create a tag like `v0.1.1` on main — CI builds and uploads to PyPI (needs Trusted Publishing for `alloy-ai` or a configured token).
