@@ -1,6 +1,8 @@
 Alloy (Python): Python for logic. English for intelligence.
 
 [![Docs](https://github.com/openai/alloy-py/actions/workflows/docs.yml/badge.svg)](https://openai.github.io/alloy-py/)
+[![PyPI](https://img.shields.io/pypi/v/alloy.svg)](https://pypi.org/project/alloy/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 License: MIT
 
@@ -98,3 +100,7 @@ Install options
 - Specific extras: `pip install 'alloy[anthropic]'`, `pip install 'alloy[gemini]'`, `pip install 'alloy[ollama]'`.
 Documentation
 - Full docs: https://openai.github.io/alloy-py/
+
+Releases
+- Changelog: CHANGELOG.md
+- Publishing: Create a tag like `v0.1.0` on main — CI builds and uploads to PyPI (needs PyPI trusted publishing or a configured token).

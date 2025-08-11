@@ -42,6 +42,7 @@ nav:
   - Commands & Tools: commands.md
   - Backends & Routing: backends.md
   - Examples: examples.md
+  - What's New: whats-new.md
   - API Reference:
       - Top-level: api/alloy.md
       - Commands: api/command.md
