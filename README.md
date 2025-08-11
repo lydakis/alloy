@@ -1,5 +1,6 @@
 Alloy (Python): Python for logic. English for intelligence.
 
+[![CI](https://github.com/lydakis/alloy-py/actions/workflows/ci.yml/badge.svg)](https://github.com/lydakis/alloy-py/actions/workflows/ci.yml)
 [![Docs](https://github.com/lydakis/alloy-py/actions/workflows/docs.yml/badge.svg)](https://lydakis.github.io/alloy-py/)
 [![PyPI](https://img.shields.io/pypi/v/alloy-ai.svg)](https://pypi.org/project/alloy-ai/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
