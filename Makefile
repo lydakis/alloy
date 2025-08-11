@@ -62,3 +62,16 @@ itest-gemini:
 
 itest-ollama:
 	@if command -v dotenv >/dev/null 2>&1; then 	  ALLOY_IT_MODEL?=ollama:gpt-oss; 	  dotenv -f .env run -- env ALLOY_IT_MODEL=$$ALLOY_IT_MODEL $(PY) -m pytest -q tests/integration/test_ollama_end_to_end.py; 	else 	  ALLOY_IT_MODEL?=ollama:gpt-oss; 	  env ALLOY_IT_MODEL=$$ALLOY_IT_MODEL $(PY) -m pytest -q tests/integration/test_ollama_end_to_end.py; 	fi
+docs-serve:
+	@if command -v mkdocs >/dev/null 2>&1; then \
+	  mkdocs serve -a 127.0.0.1:8000; \
+	else \
+	  echo "[docs] mkdocs not found. Try: pip install 'alloy[docs]'"; \
+	fi
+
+docs-build:
+	@if command -v mkdocs >/dev/null 2>&1; then \
+	  mkdocs build --strict; \
+	else \
+	  echo "[docs] mkdocs not found. Try: pip install 'alloy[docs]'"; \
+	fi

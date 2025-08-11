@@ -1,0 +1,39 @@
+site_name: Alloy (Python)
+site_description: Python for logic. English for intelligence.
+repo_url: https://github.com/openai/alloy-py
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.sections
+    - toc.follow
+    - content.code.copy
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            show_root_heading: true
+            show_source: false
+            members_order: source
+            separate_signature: true
+            filters: []
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+nav:
+  - Overview: index.md
+  - Getting Started: getting-started.md
+  - Configuration: configuration.md
+  - Commands & Tools: commands.md
+  - Backends & Routing: backends.md
+  - Examples: examples.md
+  - API Reference:
+      - alloy: api/alloy.md

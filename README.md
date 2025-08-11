@@ -1,5 +1,7 @@
 Alloy (Python): Python for logic. English for intelligence.
 
+[![Docs](https://github.com/openai/alloy-py/actions/workflows/docs.yml/badge.svg)](https://openai.github.io/alloy-py/)
+
 License: MIT
 
 This repository contains an early scaffold of the Alloy library per `alloy-spec-v1.md`.
@@ -94,3 +96,5 @@ Install options
 - Base: `pip install alloy` (includes OpenAI + python-dotenv).
 - All providers: `pip install 'alloy[providers]'` (OpenAI, Anthropic, Gemini via `google-genai`, Ollama).
 - Specific extras: `pip install 'alloy[anthropic]'`, `pip install 'alloy[gemini]'`, `pip install 'alloy[ollama]'`.
+Documentation
+- Full docs: https://openai.github.io/alloy-py/
