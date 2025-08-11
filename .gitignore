@@ -22,6 +22,9 @@ site/
 .venv/
 /.venv-pypi-check/
 /.venv-pypi-check2/
+/.venv-pypi-check3/
+# Future check sandboxes
+/.venv-pypi-check*/
 venv/
 env/
 

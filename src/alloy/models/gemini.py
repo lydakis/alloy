@@ -34,7 +34,7 @@ class GeminiBackend(ModelBackend):
             raise ConfigurationError("Gemini tool calling not implemented in this scaffold")
 
         client = genai_new.Client()  # reads GOOGLE_API_KEY from env
-        model_name = (config.model or "gemini-1.5-pro")
+        model_name = config.model or "gemini-1.5-pro"
         # Prefer structured output when schema is provided; Gemini supports
         # response_mime_type + response_schema for JSON. If primitive, wrap.
         generation_config = {}

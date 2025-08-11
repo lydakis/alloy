@@ -4,12 +4,12 @@ import inspect
 from collections.abc import Iterable
 from typing import Any, Callable
 
+import json as _json
 from .config import get_config
 from .errors import CommandError
 from .models.base import get_backend
 from .tool import ToolCallable, ToolSpec
 from .types import to_json_schema, parse_output
-import json as _json
 
 
 def command(

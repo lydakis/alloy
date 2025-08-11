@@ -1,12 +1,11 @@
 from dataclasses import dataclass
-
 import importlib
 
 import pytest
 
 from alloy import command, configure
-from alloy.models.base import ModelBackend
 from alloy.config import Config
+from alloy.models.base import ModelBackend
 
 
 class AsyncFakeBackend(ModelBackend):
@@ -85,4 +84,3 @@ async def test_sync_command_async_convenience(monkeypatch):
     val = await Pi.async_()
     assert isinstance(val, float)
     assert str(val).startswith("3.14")
-

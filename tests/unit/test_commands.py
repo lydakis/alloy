@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from alloy import command, ask, configure
-from alloy.models.base import ModelBackend
+
+from alloy import ask, command, configure
 from alloy.config import Config
 from alloy.errors import CommandError
+from alloy.models.base import ModelBackend
 
 
 class FakeBackend(ModelBackend):
@@ -90,4 +91,3 @@ def test_ask_namespace(monkeypatch):
     assert ask("hi") == "12.5"
     chunks = list(ask.stream("hi"))
     assert "".join(chunks) == "hello"
-

@@ -1,9 +1,9 @@
+import importlib.util
 import pytest
 
-from alloy.models.base import get_backend
 from alloy.config import Config
 from alloy.errors import ConfigurationError
-import importlib.util
+from alloy.models.base import get_backend
 
 
 def test_routing_to_anthropic_backend():
@@ -29,4 +29,3 @@ def test_routing_to_gemini_backend():
 def test_routing_to_ollama_backend():
     be = get_backend("ollama:phi3")
     assert be.__class__.__name__ == "OllamaBackend"
-
