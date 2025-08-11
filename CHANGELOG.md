@@ -23,6 +23,6 @@ Semantic Versioning.
 - OpenAI backend (structured outputs, tools), Anthropic, Gemini, Ollama
 - Retries, streaming, env-based config, src layout, tests, CI
 
-[Unreleased]: https://github.com/openai/alloy-py/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/openai/alloy-py/releases/tag/v0.1.1
-[0.1.0]: https://github.com/openai/alloy-py/releases/tag/v0.1.0
+[Unreleased]: https://github.com/lydakis/alloy-py/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/lydakis/alloy-py/releases/tag/v0.1.1
+[0.1.0]: https://github.com/lydakis/alloy-py/releases/tag/v0.1.0

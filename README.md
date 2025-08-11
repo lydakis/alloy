@@ -1,6 +1,6 @@
 Alloy (Python): Python for logic. English for intelligence.
 
-[![Docs](https://github.com/openai/alloy-py/actions/workflows/docs.yml/badge.svg)](https://openai.github.io/alloy-py/)
+[![Docs](https://github.com/lydakis/alloy-py/actions/workflows/docs.yml/badge.svg)](https://lydakis.github.io/alloy-py/)
 [![PyPI](https://img.shields.io/pypi/v/alloy-ai.svg)](https://pypi.org/project/alloy-ai/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -90,7 +90,7 @@ OPENAI_API_KEY=sk-...
 Support matrix (v1)
 - OpenAI (GPT-4/5 and o-series): completions, typed commands, ask, streaming (no tools in stream), tool-calling, structured JSON for object schemas, tool-loop cap.
 - Anthropic (Claude 3/3.5): completions and tool-calling loop (no streaming yet).
-- Google (Gemini 1.5): basic completions (no tools/streaming in scaffold). Uses `google-genai` by default; `google-generativeai` supported via legacy extra.
+- Google (Gemini 1.5): basic completions (no tools/streaming in scaffold). Uses `google-genai` by default.
 - Ollama (local): basic completions via `model="ollama:<name>"` (no tools/streaming in scaffold).
 - ReAct fallback: not implemented yet (planned for local models/LLMs without native tools).
 
@@ -99,7 +99,7 @@ Install options
 - All providers: `pip install 'alloy-ai[providers]'` (OpenAI, Anthropic, Gemini via `google-genai`, Ollama).
 - Specific extras: `pip install 'alloy-ai[anthropic]'`, `pip install 'alloy-ai[gemini]'`, `pip install 'alloy-ai[ollama]'`.
 Documentation
-- Full docs: https://openai.github.io/alloy-py/
+- Full docs: https://lydakis.github.io/alloy-py/
 
 Releases
 - Changelog: CHANGELOG.md
