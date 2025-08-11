@@ -26,24 +26,36 @@ jobs:
           python -m pytest -q
 
   integration:
-    if: ${{ secrets.OPENAI_API_KEY != '' || secrets.ANTHROPIC_API_KEY != '' || secrets.GOOGLE_API_KEY != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Check for provider secrets
+        id: check_secrets
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          if [ -z "${OPENAI_API_KEY}" ] && [ -z "${ANTHROPIC_API_KEY}" ] && [ -z "${GOOGLE_API_KEY}" ]; then
+            echo "no_secrets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "no_secrets=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Install deps
+        if: steps.check_secrets.outputs.no_secrets == 'false'
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e .[dev]
           python -m pip install openai anthropic google-genai
       - name: Run integration tests
+        if: steps.check_secrets.outputs.no_secrets == 'false'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-          # Optional per-run model override
           ALLOY_IT_MODEL: ${{ vars.ALLOY_IT_MODEL }}
         run: |
           python -m pytest -q tests/integration
