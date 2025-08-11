@@ -12,6 +12,10 @@ Semantic Versioning.
 - Bump dependencies to current sane minimums
 - MIT license
 
+## [0.1.2] - 2025-08-11
+- CI: fix Ruff invocation on GitHub Actions (use `ruff check .`)
+- Release: mark PyPI deployment green post-publish
+
 ## [0.1.1] - 2025-08-11
 - First PyPI publish under distribution name `alloy-ai` (import remains `alloy`)
 - CI: release workflow with Trusted Publishing (OIDC)
@@ -23,6 +27,7 @@ Semantic Versioning.
 - OpenAI backend (structured outputs, tools), Anthropic, Gemini, Ollama
 - Retries, streaming, env-based config, src layout, tests, CI
 
-[Unreleased]: https://github.com/lydakis/alloy-py/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/lydakis/alloy-py/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/lydakis/alloy-py/releases/tag/v0.1.2
 [0.1.1]: https://github.com/lydakis/alloy-py/releases/tag/v0.1.1
 [0.1.0]: https://github.com/lydakis/alloy-py/releases/tag/v0.1.0
