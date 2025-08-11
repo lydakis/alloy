@@ -12,11 +12,17 @@ Semantic Versioning.
 - Bump dependencies to current sane minimums
 - MIT license
 
+## [0.1.1] - 2025-08-11
+- First PyPI publish under distribution name `alloy-ai` (import remains `alloy`)
+- CI: release workflow with Trusted Publishing (OIDC)
+- Docs: expanded API pages, theme, and link checker
+
 ## [0.1.0] - 2025-08-10
 - Initial public scaffold of Alloy (Python)
 - Typed commands, ask namespace, tools
 - OpenAI backend (structured outputs, tools), Anthropic, Gemini, Ollama
 - Retries, streaming, env-based config, src layout, tests, CI
 
-[Unreleased]: https://github.com/openai/alloy-py/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/openai/alloy-py/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/openai/alloy-py/releases/tag/v0.1.1
 [0.1.0]: https://github.com/openai/alloy-py/releases/tag/v0.1.0
