@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import typing as t
+from typing import get_args, get_origin
 from dataclasses import is_dataclass, fields, MISSING
 
 
@@ -27,6 +28,13 @@ def to_json_schema(tp: t.Any) -> t.Optional[dict]:
 
 
 def parse_output(tp: t.Any, raw: str) -> t.Any:
+    """Parse model output into the requested type.
+
+    Supports primitives, dataclasses, dict, list, and common generics such as
+    list[dict], list[int], dict[str, Any], and list[DataClass]. Falls back to
+    returning the raw text when no safe coercion is possible.
+    """
+    # First, try schema-driven parsing (primitives, dataclasses)
     schema = to_json_schema(tp)
     if schema is not None:
         try:
@@ -37,6 +45,38 @@ def parse_output(tp: t.Any, raw: str) -> t.Any:
         if tp in (str, int, float, bool) and isinstance(data, dict) and "value" in data:
             data = data["value"]
         return _coerce(tp, data)
+
+    # Handle common typing generics: list[T], dict[K,V]
+    origin = get_origin(tp)
+    args = get_args(tp)
+    if origin is list or origin is t.List:  # type: ignore[attr-defined]
+        try:
+            data = json.loads(raw)
+        except Exception:
+            data = raw
+        if isinstance(data, list):
+            elem_t = args[0] if args else t.Any
+            return [_coerce(elem_t, v) for v in data]
+        return data
+    if origin is dict or origin is t.Dict:  # type: ignore[attr-defined]
+        try:
+            data = json.loads(raw)
+        except Exception:
+            data = raw
+        if isinstance(data, dict):
+            key_t = args[0] if len(args) >= 1 else t.Any
+            val_t = args[1] if len(args) >= 2 else t.Any
+            out: dict[t.Any, t.Any] = {}
+            for k, v in data.items():
+                try:
+                    ck = _coerce(key_t, k)
+                except Exception:
+                    ck = k
+                out[ck] = _coerce(val_t, v)
+            return out
+        return data
+
+    # Primitive text -> primitive
     if tp in (str, int, float, bool):
         return _coerce(tp, raw)
     return raw
