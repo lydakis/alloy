@@ -1,8 +1,8 @@
 Alloy (Python): Python for logic. English for intelligence.
 
-[![CI](https://github.com/lydakis/alloy-py/actions/workflows/ci.yml/badge.svg)](https://github.com/lydakis/alloy-py/actions/workflows/ci.yml)
-[![Docs](https://github.com/lydakis/alloy-py/actions/workflows/docs.yml/badge.svg)](https://lydakis.github.io/alloy-py/)
-[![Docs Site](https://img.shields.io/badge/docs-website-blue)](https://lydakis.github.io/alloy-py/)
+[![CI](https://github.com/lydakis/alloy/actions/workflows/ci.yml/badge.svg)](https://github.com/lydakis/alloy/actions/workflows/ci.yml)
+[![Docs](https://github.com/lydakis/alloy/actions/workflows/docs.yml/badge.svg)](https://lydakis.github.io/alloy/)
+[![Docs Site](https://img.shields.io/badge/docs-website-blue)](https://lydakis.github.io/alloy/)
 [![PyPI](https://img.shields.io/pypi/v/alloy-ai.svg)](https://pypi.org/project/alloy-ai/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -36,7 +36,7 @@ print(ask("Say hi"))
 
 Enforcing outputs
 - Alloy biases models to return the expected shape and uses provider structured outputs where available. If parsing still fails, you get a clear error.
-- Docs: https://lydakis.github.io/alloy-py/outputs/
+- Docs: https://lydakis.github.io/alloy/outputs/
 
 Notes
 - OpenAI backend is implemented for sync/async/streaming.
@@ -105,7 +105,7 @@ Install options
 - All providers: `pip install 'alloy-ai[providers]'` (OpenAI, Anthropic, Gemini via `google-genai`, Ollama).
 - Specific extras: `pip install 'alloy-ai[anthropic]'`, `pip install 'alloy-ai[gemini]'`, `pip install 'alloy-ai[ollama]'`.
 Documentation
-- Full docs: https://lydakis.github.io/alloy-py/
+- Full docs: https://lydakis.github.io/alloy/
 
 Releases
 - Changelog: CHANGELOG.md

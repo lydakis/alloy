@@ -1,7 +1,7 @@
 site_name: Alloy (Python)
 site_description: Python for logic. English for intelligence.
-site_url: https://lydakis.github.io/alloy-py/
-repo_url: https://github.com/lydakis/alloy-py
+site_url: https://lydakis.github.io/alloy/
+repo_url: https://github.com/lydakis/alloy
 theme:
   name: material
   features:

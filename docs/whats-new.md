@@ -2,8 +2,8 @@
 
 Release notes and highlights. See full changelog for details.
 
-- Changelog: https://github.com/lydakis/alloy-py/blob/main/CHANGELOG.md
-- Releases: https://github.com/lydakis/alloy-py/releases
+- Changelog: https://github.com/lydakis/alloy/blob/main/CHANGELOG.md
+- Releases: https://github.com/lydakis/alloy/releases
 
 ## Unreleased
 - Docs site (MkDocs + mkdocstrings)
