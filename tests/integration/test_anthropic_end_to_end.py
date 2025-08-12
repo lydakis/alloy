@@ -16,7 +16,7 @@ requires_anthropic = pytest.mark.skipif(
 
 @requires_anthropic
 def test_anthropic_simple_command():
-    configure(model=model_env or "claude-3.5-sonnet", temperature=0.2)
+    configure(model=model_env or "claude-sonnet-4-20250514", temperature=0.2)
 
     @command(output=str)
     def Hello() -> str:
@@ -29,7 +29,7 @@ def test_anthropic_simple_command():
 
 @requires_anthropic
 def test_anthropic_tool_calling():
-    configure(model=model_env or "claude-3.5-sonnet", temperature=0.2)
+    configure(model=model_env or "claude-sonnet-4-20250514", temperature=0.2)
 
     @tool
     def add(a: int, b: int) -> int:

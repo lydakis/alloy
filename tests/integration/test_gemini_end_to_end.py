@@ -16,7 +16,7 @@ requires_gemini = pytest.mark.skipif(
 
 @requires_gemini
 def test_gemini_simple_command():
-    configure(model=model_env or "gemini-1.5-pro", temperature=0.2)
+    configure(model=model_env or "gemini-2.5-pro", temperature=0.2)
 
     @command(output=str)
     def Hello() -> str:
