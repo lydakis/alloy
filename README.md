@@ -10,6 +10,25 @@ License: MIT
 
 This repository contains an early scaffold of the Alloy library per `alloy-spec-v1.md`.
 
+## 🚀 Turn CSVs into API calls in 30 seconds
+
+```python
+from alloy import command
+import pandas as pd
+
+@command(output=list[dict])
+def CSVToAPI(df: pd.DataFrame, endpoint_example: str) -> str:
+    """Intelligently map CSV columns to API format."""
+    return f"Map this data {df.head()} to match API: {endpoint_example}"
+
+df = pd.read_csv("messy_customer_data.csv")
+api_calls = CSVToAPI(df, "POST /customers {fullName, emailAddress, subscriptionTier}")
+for payload in api_calls:
+    requests.post("https://api.your-saas.com/customers", json=payload)
+```
+
+Before Alloy: write bespoke scripts for each CSV → API. After Alloy: one command handles any CSV to any API.
+
 Quick start
 - Install (all providers): `pip install 'alloy-ai[providers]'`
 - Or minimal (OpenAI only): `pip install alloy-ai`
