@@ -1,4 +1,10 @@
-Alloy (Python): Python for logic. English for intelligence.
+# Alloy (Python)
+
+Python for logic. English for intelligence.
+
+Alloy helps you integrate intelligence into deterministic programs with typed Python functions.
+Declare a function with `@command(output=...)`, and Alloy routes to an LLM provider, enforces
+structured outputs, and returns typed results you can depend on.
 
 [![CI](https://github.com/lydakis/alloy/actions/workflows/ci.yml/badge.svg)](https://github.com/lydakis/alloy/actions/workflows/ci.yml)
 [![Docs](https://github.com/lydakis/alloy/actions/workflows/docs.yml/badge.svg)](https://lydakis.github.io/alloy/)
@@ -10,7 +16,7 @@ License: MIT
 
 This repository contains an early scaffold of the Alloy library per `alloy-spec-v1.md`.
 
-## CSV to API in a few lines
+### Example: CSV to API
 
 ```python
 from alloy import command
