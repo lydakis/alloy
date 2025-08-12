@@ -49,7 +49,7 @@ def parse_output(tp: t.Any, raw: str) -> t.Any:
     # Handle common typing generics: list[T], dict[K,V]
     origin = get_origin(tp)
     args = get_args(tp)
-    if origin is list or origin is t.List:  # type: ignore[attr-defined]
+    if origin is list or origin is t.List:
         try:
             data = json.loads(raw)
         except Exception:
@@ -58,7 +58,7 @@ def parse_output(tp: t.Any, raw: str) -> t.Any:
             elem_t = args[0] if args else t.Any
             return [_coerce(elem_t, v) for v in data]
         return data
-    if origin is dict or origin is t.Dict:  # type: ignore[attr-defined]
+    if origin is dict or origin is t.Dict:
         try:
             data = json.loads(raw)
         except Exception:
