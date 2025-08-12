@@ -126,6 +126,43 @@ Install options
 Documentation
 - Full docs: https://lydakis.github.io/alloy/
 
+Why Alloy vs X
+
+- Raw SDKs: Minimal glue, no types, more boilerplate. Alloy adds typed outputs, provider routing, and consistent tool loops with near‑zero surface area.
+- LangChain: Powerful graphs, but heavy abstractions and stringy chains. Alloy is “Python functions with types,” so you keep control and composability without a framework.
+- Instructor/Pydantic: Great for strict JSON with OpenAI. Alloy layers that pattern across providers (OpenAI, Anthropic, Gemini), adds tools, retries, and routing, and falls back gracefully.
+- DSPy/Program synthesis: Advanced optimization for research. Alloy is pragmatic: short prompts, typed outputs, simple tools, and production‑ready defaults.
+- Guidance/templating: Fine‑grained prompting. Alloy focuses on typed commands and end‑to‑end workflows with provider structured outputs and clean error handling.
+- Bottom line: Small API, strong defaults, typed results everywhere, provider‑agnostic, and tool support — so your “AI functions” look and feel like normal Python.
+
+Tiny LOC comparison (CSV → API payloads)
+
+Raw SDK (conceptual):
+
+```python
+import pandas as pd
+from openai import OpenAI
+
+client = OpenAI()
+df = pd.read_csv("customers.csv")
+messages = [{"role": "user", "content": f"Map data {df.head()} to {{fullName, emailAddress}}"}]
+resp = client.chat.completions.create(model="gpt-4o", messages=messages)
+payloads = json.loads(resp.choices[0].message.content)
+```
+
+Alloy:
+
+```python
+from alloy import command
+import pandas as pd
+
+@command(output=list[dict])
+def CSVToAPI(df: pd.DataFrame, example: str) -> str:
+    return f"Map data {df.head()} to {example}"
+
+payloads = CSVToAPI(pd.read_csv("customers.csv"), "POST /customers {fullName, emailAddress}")
+```
+
 Releases
 - Changelog: CHANGELOG.md
 - Publishing: Create a tag like `v0.1.1` on main — CI builds and uploads to PyPI (needs Trusted Publishing for `alloy-ai` or a configured token).
