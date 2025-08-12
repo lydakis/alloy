@@ -10,6 +10,9 @@ structured outputs, and returns typed results you can depend on.
 [![Docs](https://github.com/lydakis/alloy/actions/workflows/docs.yml/badge.svg)](https://lydakis.github.io/alloy/)
 [![Docs Site](https://img.shields.io/badge/docs-website-blue)](https://lydakis.github.io/alloy/)
 [![PyPI](https://img.shields.io/pypi/v/alloy-ai.svg)](https://pypi.org/project/alloy-ai/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/alloy-ai.svg)](https://pypi.org/project/alloy-ai/)
+[![Downloads](https://pepy.tech/badge/alloy-ai)](https://pepy.tech/project/alloy-ai)
+[![Coverage](https://codecov.io/gh/lydakis/alloy/branch/main/graph/badge.svg)](https://codecov.io/gh/lydakis/alloy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 License: MIT
