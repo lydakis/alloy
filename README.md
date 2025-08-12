@@ -10,7 +10,7 @@ License: MIT
 
 This repository contains an early scaffold of the Alloy library per `alloy-spec-v1.md`.
 
-## 🚀 Turn CSVs into API calls in 30 seconds
+## CSV to API in a few lines
 
 ```python
 from alloy import command
@@ -27,7 +27,7 @@ for payload in api_calls:
     requests.post("https://api.your-saas.com/customers", json=payload)
 ```
 
-Before Alloy: write bespoke scripts for each CSV → API. After Alloy: one command handles any CSV to any API.
+This example maps rows from a DataFrame into request payloads for an API, returning a typed `list[dict]` you can post.
 
 Quick start
 - Install (all providers): `pip install 'alloy-ai[providers]'`
@@ -128,14 +128,14 @@ Documentation
 
 Why Alloy vs X
 
-- Raw SDKs: Minimal glue, no types, more boilerplate. Alloy adds typed outputs, provider routing, and consistent tool loops with near‑zero surface area.
-- LangChain: Powerful graphs, but heavy abstractions and stringy chains. Alloy is “Python functions with types,” so you keep control and composability without a framework.
-- Instructor/Pydantic: Great for strict JSON with OpenAI. Alloy layers that pattern across providers (OpenAI, Anthropic, Gemini), adds tools, retries, and routing, and falls back gracefully.
-- DSPy/Program synthesis: Advanced optimization for research. Alloy is pragmatic: short prompts, typed outputs, simple tools, and production‑ready defaults.
-- Guidance/templating: Fine‑grained prompting. Alloy focuses on typed commands and end‑to‑end workflows with provider structured outputs and clean error handling.
-- Bottom line: Small API, strong defaults, typed results everywhere, provider‑agnostic, and tool support — so your “AI functions” look and feel like normal Python.
+- Raw SDKs: Minimal glue, limited structure handling. Alloy provides typed outputs, provider routing, and a simple tool loop.
+- LangChain: Rich orchestration features and chains. Alloy stays minimal: Python functions that return typed results without introducing a new framework.
+- Instructor/Pydantic: Strong for OpenAI JSON typing. Alloy generalizes the idea across providers (OpenAI, Anthropic, Gemini), adds tools/retry/routing, and degrades gracefully when structure is not enforced.
+- DSPy/Program synthesis: Optimizes pipelines and prompts. Alloy focuses on straightforward, production‑oriented building blocks: short prompts, typed outputs, and predictable defaults.
+- Guidance/templating: Emphasizes prompt templates. Alloy emphasizes typed commands and provider structured outputs with clear error handling.
+- Summary: Small API surface, provider‑agnostic backends, typed outputs by default, and optional tools — compose with normal Python.
 
-Tiny LOC comparison (CSV → API payloads)
+LOC comparison (CSV → API payloads)
 
 Raw SDK (conceptual):
 
