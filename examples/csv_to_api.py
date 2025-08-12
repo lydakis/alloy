@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import pandas as pd
 
 from alloy import command
@@ -41,4 +40,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

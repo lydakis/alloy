@@ -3,7 +3,6 @@ from __future__ import annotations
 import datetime as dt
 from dataclasses import dataclass
 from typing import TypedDict
-import os
 
 from dotenv import load_dotenv
 from alloy import command, tool, require, ensure, configure
