@@ -15,17 +15,17 @@ from typing import (
 from .errors import CommandError, ToolError, ConfigurationError
 
 P = ParamSpec("P")
-T = TypeVar("T")
+T_co = TypeVar("T_co", covariant=True)
 
-class SyncCommandFn(Protocol, Generic[P, T]):
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T: ...
+class SyncCommandFn(Protocol, Generic[P, T_co]):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T_co: ...
     def stream(self, *args: P.args, **kwargs: P.kwargs) -> Iterable[str]: ...
-    def async_(self, *args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T]: ...
+    def async_(self, *args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T_co]: ...
 
-class AsyncCommandFn(Protocol, Generic[P, T]):
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T]: ...
+class AsyncCommandFn(Protocol, Generic[P, T_co]):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T_co]: ...
     def stream(self, *args: P.args, **kwargs: P.kwargs) -> AsyncIterable[str]: ...
-    def async_(self, *args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T]: ...
+    def async_(self, *args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T_co]: ...
 
 # Decorator overloads for sync/async
 @overload
@@ -33,7 +33,7 @@ def command(
     __func: Callable[P, str],
     /,
     *,
-    output: type[T] | None = ...,
+    output: type[T_co] | None = ...,
     tools: list[Callable[..., Any]] | None = ...,
     model: str | None = ...,
     temperature: float | None = ...,
@@ -41,13 +41,13 @@ def command(
     system: str | None = ...,
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
-) -> SyncCommandFn[P, T]: ...
+) -> SyncCommandFn[P, T_co]: ...
 @overload
 def command(
     __func: Callable[P, Coroutine[Any, Any, str]],
     /,
     *,
-    output: type[T] | None = ...,
+    output: type[T_co] | None = ...,
     tools: list[Callable[..., Any]] | None = ...,
     model: str | None = ...,
     temperature: float | None = ...,
@@ -55,11 +55,11 @@ def command(
     system: str | None = ...,
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
-) -> AsyncCommandFn[P, T]: ...
+) -> AsyncCommandFn[P, T_co]: ...
 @overload
 def command(
     *,
-    output: type[T] | None = ...,
+    output: type[T_co] | None = ...,
     tools: list[Callable[..., Any]] | None = ...,
     model: str | None = ...,
     temperature: float | None = ...,
@@ -67,19 +67,10 @@ def command(
     system: str | None = ...,
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
-) -> Callable[[Callable[P, str]], SyncCommandFn[P, T]]: ...
-@overload
-def command(
-    *,
-    output: type[T] | None = ...,
-    tools: list[Callable[..., Any]] | None = ...,
-    model: str | None = ...,
-    temperature: float | None = ...,
-    max_tokens: int | None = ...,
-    system: str | None = ...,
-    retry: int | None = ...,
-    retry_on: type[BaseException] | None = ...,
-) -> Callable[[Callable[P, Coroutine[Any, Any, str]]], AsyncCommandFn[P, T]]: ...
+) -> Callable[
+    [Callable[P, str] | Callable[P, Coroutine[Any, Any, str]]],
+    SyncCommandFn[P, T_co] | AsyncCommandFn[P, T_co],
+]: ...
 
 class _AskNamespace:
     def __call__(
@@ -98,7 +89,7 @@ class _AskNamespace:
         context: dict[str, Any] | None = ...,
         **overrides: Any,
     ) -> Iterable[str]: ...
-    async def stream_async(
+    def stream_async(
         self,
         prompt: str,
         *,
