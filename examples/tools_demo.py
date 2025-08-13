@@ -74,7 +74,7 @@ class ProductRecommendation:
     output=ProductRecommendation,
     tools=[search_products, calculate_discount, validate_data, save_to_production],
 )
-def RecommendProduct(category: str, budget: float) -> str:
+def recommend_product(category: str, budget: float) -> str:
     """Find and recommend a product within budget."""
     return f"""
     Task: Recommend the best {category} under ${budget}.
@@ -97,7 +97,7 @@ def main():
     # Tip: cap tool iterations with `export ALLOY_MAX_TOOL_TURNS=1` if desired
     configure(model="gpt-5-mini", temperature=0.2)
 
-    rec = RecommendProduct("laptop", 1200)
+    rec = recommend_product("laptop", 1200)
     print("Recommended:", rec.product_name)
     print("Original:", rec.original_price)
     print("Discounted:", rec.discount_price)

@@ -9,13 +9,13 @@ from alloy import command
 import pandas as pd
 
 @command(output=list[dict])
-def CSVToAPI(df: pd.DataFrame, endpoint_example: str) -> str:
+def csv_to_api(df: pd.DataFrame, endpoint_example: str) -> str:
     """Intelligently map CSV columns to API format."""
     return f"Map this data {df.head()} to match API: {endpoint_example}"
 
 # Any CSV → Any API
 df = pd.read_csv("customers.csv")
-payloads = CSVToAPI(df, "POST /customers {fullName, emailAddress, subscriptionTier}")
+payloads = csv_to_api(df, "POST /customers {fullName, emailAddress, subscriptionTier}")
 for p in payloads:
     requests.post("https://api.your-saas.com/customers", json=p)
 ```
@@ -35,7 +35,7 @@ class FeatureSpec:
     risks: list[str]
 
 @command(output=FeatureSpec)
-def InterviewToSpec(transcript: str) -> str:
+def interview_to_spec(transcript: str) -> str:
     return f"Extract feature requirements from: {transcript}"
 ```
 
@@ -51,7 +51,7 @@ def read_file(path: str) -> str:
         return f.read()
 
 @command(output=dict, tools=[read_file])
-def ReviewPR(diff: str, pr_description: str) -> str:
+def review_pr(diff: str, pr_description: str) -> str:
     return f"Review this PR considering our patterns: {pr_description}\nDiff: {diff}"
 ```
 

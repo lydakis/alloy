@@ -50,10 +50,10 @@ async def test_async_command_returns_value(monkeypatch):
         s: str
 
     @command(output=Out)
-    async def Build() -> str:
+    async def build() -> str:
         return "make"
 
-    result = await Build()
+    result = await build()
     assert result.n == 7 and result.s == "hi"
 
 
@@ -63,11 +63,11 @@ async def test_async_command_stream(monkeypatch):
     configure(model="test-model")
 
     @command(output=str)
-    async def Generate() -> str:
+    async def generate() -> str:
         return "stream it"
 
     got = []
-    async for chunk in Generate.stream():
+    async for chunk in generate.stream():
         got.append(chunk)
     assert "".join(got) == "async"
 
@@ -78,9 +78,9 @@ async def test_sync_command_async_convenience(monkeypatch):
     configure(model="test-model")
 
     @command(output=float)
-    def Pi() -> str:
+    def pi() -> str:
         return "pi"
 
-    val = await Pi.async_()
+    val = await pi.async_()
     assert isinstance(val, float)
     assert str(val).startswith("3.14")

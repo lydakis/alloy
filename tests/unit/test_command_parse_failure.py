@@ -15,11 +15,11 @@ def test_command_with_float_output_raises_on_bad_text(monkeypatch):
     monkeypatch.setattr(cmd_mod, "get_backend", lambda model: _StubBackend())
 
     @cmd_mod.command(output=float)
-    def ExtractPrice(text: str) -> str:
+    def extract_price(text: str) -> str:
         return f"Extract the price (number only) from: {text}"
 
     with pytest.raises(CommandError) as ei:
-        _ = ExtractPrice("This item costs $49.99.")
+        _ = extract_price("This item costs $49.99.")
 
     msg = str(ei.value)
     assert "Failed to parse model output as float" in msg or "failed to parse" in msg.lower()

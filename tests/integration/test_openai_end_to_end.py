@@ -16,10 +16,10 @@ def test_openai_command_and_ask():
     configure(model=model, temperature=0.2)
 
     @command(output=float)
-    def ExtractPrice(text: str) -> str:
+    def extract_price(text: str) -> str:
         return f"Extract the numeric price (number only) from: {text}"
 
-    price = ExtractPrice("This item costs $49.99.")
+    price = extract_price("This item costs $49.99.")
     assert isinstance(price, float)
     assert 0 < price < 1000
 
@@ -41,10 +41,10 @@ def test_openai_tools_minimal():
         return x * 2
 
     @command(output=int, tools=[double])
-    def UseDouble() -> str:
+    def use_double() -> str:
         return "Use the provided tool double(x) to compute 21*2. Return only the number."
 
-    out = UseDouble()
+    out = use_double()
     # Do not assert exact path (tool vs model), only that it produces a valid int
     assert isinstance(out, int)
     assert out > 0

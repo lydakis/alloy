@@ -12,11 +12,11 @@ def main():
     # configure(model="gpt-5-mini")
 
     @command(output=float)
-    def ExtractPrice(text: str) -> str:
+    def extract_price(text: str) -> str:
         """Extract price from text."""
         return f"Extract the price (number only) from: {text}"
 
-    price = ExtractPrice("This item costs $49.99 with free shipping.")
+    price = extract_price("This item costs $49.99 with free shipping.")
     print("Price:", price)
 
     # Ask without structure

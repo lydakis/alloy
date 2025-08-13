@@ -73,12 +73,10 @@ class Command:
     # Synchronous call
     def __call__(self, *args, **kwargs):
         if self._is_async:
-            # Return a coroutine to be awaited
             return self.async_(*args, **kwargs)
         prompt = self._func(*args, **kwargs)
         if not isinstance(prompt, str):
             prompt = str(prompt)
-        # Light guardrails to help models output the right shape
         prompt = _augment_prompt(prompt, self._output_type)
         effective = get_config(self._cfg)
         backend = get_backend(effective.model)
@@ -100,7 +98,6 @@ class Command:
                 try:
                     return parse_output(self._output_type, text)
                 except Exception as parse_exc:
-                    # Provide a clearer error that includes the expected type and a snippet
                     expected = getattr(self._output_type, "__name__", str(self._output_type))
                     snippet = (
                         (text[:120] + "…") if isinstance(text, str) and len(text) > 120 else text
@@ -118,7 +115,6 @@ class Command:
             raise last_err
         raise CommandError(str(last_err) if last_err else "Unknown command error")
 
-    # Streaming interface (sync iterator)
     def stream(
         self, *args, **kwargs
     ) -> Iterable[str] | Any:  # may return AsyncIterable for async commands
@@ -140,7 +136,7 @@ class Command:
             except Exception as e:
                 raise CommandError(str(e)) from e
 
-        async def agen():  # async streaming for async commands
+        async def agen():
             prompt_val = await self._func(*args, **kwargs)
             if not isinstance(prompt_val, str):
                 prompt_str = str(prompt_val)
@@ -161,7 +157,6 @@ class Command:
 
         return agen()
 
-    # Async entrypoint placeholder
     async def async_(self, *args, **kwargs):  # pragma: no cover
         if self._is_async:
             prompt_val = await self._func(*args, **kwargs)

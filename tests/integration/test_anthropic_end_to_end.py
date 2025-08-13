@@ -19,10 +19,10 @@ def test_anthropic_simple_command():
     configure(model=model_env or "claude-sonnet-4-20250514", temperature=0.2)
 
     @command(output=str)
-    def Hello() -> str:
+    def hello() -> str:
         return "Say 'ok' in one word."
 
-    out = Hello()
+    out = hello()
     assert isinstance(out, str)
     assert len(out.strip()) > 0
 
@@ -36,9 +36,9 @@ def test_anthropic_tool_calling():
         return a + b
 
     @command(output=int, tools=[add])
-    def UseAdd() -> str:
+    def use_add() -> str:
         return "Use add(a,b) to compute 19+23. Return only the number."
 
-    out = UseAdd()
+    out = use_add()
     assert isinstance(out, int)
     assert out == 42 or out > 0

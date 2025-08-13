@@ -4,14 +4,16 @@
 
 Declare a command with `@command`. The function returns a prompt string. The decorator executes the model and parses output into the declared type.
 
+Style: prefer snake_case names for commands and tools (PEP 8). Use PascalCase for classes/dataclasses.
+
 ```python
 from alloy import command
 
 @command(output=int)
-def Compute() -> str:
+def compute() -> str:
     return "Return 6*7 as a number."
 
-assert Compute() == 42
+assert compute() == 42
 ```
 
 ## Tools
@@ -25,7 +27,7 @@ def add(a: int, b: int) -> int:
     return a + b
 
 @command(output=int, tools=[add])
-def UseAdd() -> str:
+def use_add() -> str:
     return "Use add(a,b) to compute 19+23. Return only the number."
 ```
 
@@ -43,11 +45,11 @@ print(ask("Explain in one sentence."))
 from alloy import command, ask
 
 @command(output=str)
-def Generate() -> str:
+def generate() -> str:
     return "Write a haiku about alloy."
 
 # Iterate chunks (sync). For async commands, use `async for`.
-for chunk in Generate.stream():
+for chunk in generate.stream():
     print(chunk, end="")
 
 for chunk in ask.stream("Explain briefly."):
@@ -64,11 +66,11 @@ from alloy.errors import CommandError
 configure(retry=2)  # retry transient errors twice
 
 @command(output=int)
-def Maybe() -> str:
+def maybe() -> str:
     return "Return an integer between 1 and 10."
 
 try:
-    print(Maybe())
+    print(maybe())
 except CommandError as e:
     print("Model error:", e)
 ```

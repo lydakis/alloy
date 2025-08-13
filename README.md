@@ -24,12 +24,12 @@ from alloy import command
 import pandas as pd
 
 @command(output=list[dict])
-def CSVToAPI(df: pd.DataFrame, endpoint_example: str) -> str:
+def csv_to_api(df: pd.DataFrame, endpoint_example: str) -> str:
     """Intelligently map CSV columns to API format."""
     return f"Map this data {df.head()} to match API: {endpoint_example}"
 
 df = pd.read_csv("messy_customer_data.csv")
-api_calls = CSVToAPI(df, "POST /customers {fullName, emailAddress, subscriptionTier}")
+api_calls = csv_to_api(df, "POST /customers {fullName, emailAddress, subscriptionTier}")
 for payload in api_calls:
     requests.post("https://api.your-saas.com/customers", json=payload)
 ```
@@ -164,10 +164,10 @@ from alloy import command
 import pandas as pd
 
 @command(output=list[dict])
-def CSVToAPI(df: pd.DataFrame, example: str) -> str:
+def csv_to_api(df: pd.DataFrame, example: str) -> str:
     return f"Map data {df.head()} to {example}"
 
-payloads = CSVToAPI(pd.read_csv("customers.csv"), "POST /customers {fullName, emailAddress}")
+payloads = csv_to_api(pd.read_csv("customers.csv"), "POST /customers {fullName, emailAddress}")
 ```
 
 Releases

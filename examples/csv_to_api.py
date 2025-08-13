@@ -8,7 +8,7 @@ from alloy import command
 
 
 @command(output=list[dict])
-def CSVToAPI(df: pd.DataFrame, endpoint_example: str) -> str:
+def csv_to_api(df: pd.DataFrame, endpoint_example: str) -> str:
     """Intelligently map CSV columns to API format.
 
     The model inspects the dataframe shape and a short endpoint example and
@@ -38,7 +38,7 @@ def main():
     }
     df = pd.DataFrame(data)
 
-    payloads = CSVToAPI(df, "POST /customers {fullName, emailAddress, subscriptionTier}")
+    payloads = csv_to_api(df, "POST /customers {fullName, emailAddress, subscriptionTier}")
     print("Generated", len(payloads), "payloads:")
     for p in payloads[:10]:  # print first 10 for brevity
         print(json.dumps(p, indent=2, ensure_ascii=False))

@@ -28,11 +28,7 @@ def _as_text_from_content(content: Any) -> str:
 
 
 class AnthropicBackend(ModelBackend):
-    """Anthropic Claude backend (minimal implementation).
-
-    This implementation requires the `anthropic` SDK. If it isn't installed,
-    calls raise ConfigurationError. Tool-calling support is not implemented in v1.
-    """
+    """Anthropic Claude backend."""
 
     def complete(
         self,
@@ -50,7 +46,6 @@ class AnthropicBackend(ModelBackend):
             ) from e
 
         client: Any = anthropic.Anthropic()
-        # Claude expects system separately; messages are role/content blocks
         system = config.default_system
         messages: list[dict[str, Any]] = [
             {"role": "user", "content": [{"type": "text", "text": prompt}]}
@@ -58,12 +53,12 @@ class AnthropicBackend(ModelBackend):
 
         tool_defs = None
         tool_map: dict[str, Any] = {}
+        synthetic_submit_name = "__alloy_submit__"
         if tools:
             tool_defs = [
                 {
                     "name": t.spec.name,
                     "description": t.spec.description,
-                    # Our as_schema() returns OpenAI-like function schema; map parameters->input_schema
                     "input_schema": (
                         t.spec.as_schema().get("parameters")
                         if hasattr(t, "spec")
@@ -73,10 +68,7 @@ class AnthropicBackend(ModelBackend):
                 for t in tools
             ]
             tool_map = {t.spec.name: t for t in tools}
-
-        # Anthropic supports structured outputs via response_format json_schema
-        response_format = None
-        wrapped_primitive = False
+        # If a structured output schema is provided, add a synthetic submit tool
         if output_schema and isinstance(output_schema, dict):
             schema = output_schema
             if schema.get("type") != "object":
@@ -85,11 +77,30 @@ class AnthropicBackend(ModelBackend):
                     "properties": {"value": output_schema},
                     "required": ["value"],
                 }
-                wrapped_primitive = True
-            response_format = {
-                "type": "json_schema",
-                "json_schema": {"name": "alloy_output", "schema": schema},
-            }
+            tool_defs = (tool_defs or []) + [
+                {
+                    "name": synthetic_submit_name,
+                    "description": "Submit the final structured output matching the schema.",
+                    "input_schema": schema,
+                }
+            ]
+
+        # Assistant prefill to bias JSON structure
+        if output_schema and isinstance(output_schema, dict):
+
+            def _prefill_from_schema(s: dict) -> str:
+                t = s.get("type")
+                if t == "object":
+                    return "{"
+                # For primitives, we wrap as {"value": ...}
+                return '{"value":'
+
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": [{"type": "text", "text": _prefill_from_schema(output_schema)}],
+                }
+            )
 
         turns = 0
         while True:
@@ -104,9 +115,6 @@ class AnthropicBackend(ModelBackend):
                 kwargs["temperature"] = config.temperature
             if tool_defs is not None:
                 kwargs["tools"] = tool_defs
-            if response_format is not None:
-                kwargs["response_format"] = response_format
-
             resp = client.messages.create(**kwargs)
             content = getattr(resp, "content", []) or []
             # Look for any tool_use blocks
@@ -122,18 +130,22 @@ class AnthropicBackend(ModelBackend):
                 if turns > limit:
                     # Return whatever text we have so far
                     return _as_text_from_content(resp)
-                # Append assistant message that requested tool uses
                 messages.append(
                     {
                         "role": "assistant",
                         "content": content,
                     }
                 )
-                # Execute each tool and append tool_result
                 for tc in tool_calls:
                     name = tc.get("name") if isinstance(tc, dict) else getattr(tc, "name", "")
                     args = tc.get("input") if isinstance(tc, dict) else getattr(tc, "input", {})
                     tuid = tc.get("id") if isinstance(tc, dict) else getattr(tc, "id", "")
+                    # Synthetic submit tool: return the structured args immediately
+                    if name == synthetic_submit_name:
+                        try:
+                            return json.dumps(args)
+                        except Exception:
+                            return str(args)
                     tool = tool_map.get(name or "")
                     result: Any
                     if not tool:
@@ -143,7 +155,6 @@ class AnthropicBackend(ModelBackend):
                             result = tool(**args) if isinstance(args, dict) else tool(args)
                         except Exception as e:
                             result = {"type": "tool_error", "error": str(e)}
-                    # Serialize result best-effort
                     try:
                         result_text = json.dumps(result)
                     except Exception:
@@ -161,18 +172,7 @@ class AnthropicBackend(ModelBackend):
                         }
                     )
                 continue
-            # No tools requested; return assistant text
-            text = _as_text_from_content(resp)
-            if response_format is not None and wrapped_primitive and text:
-                try:
-                    import json as _json
-
-                    data = _json.loads(text)
-                    if isinstance(data, dict) and "value" in data:
-                        return str(data["value"])
-                except Exception:
-                    pass
-            return text
+            return _as_text_from_content(resp)
 
     def stream(
         self,
@@ -182,7 +182,6 @@ class AnthropicBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> Iterable[str]:
-        # For v1 keep simple and rely on non-streaming for Anthropic
         raise ConfigurationError("Anthropic streaming not implemented in this scaffold")
 
     async def acomplete(
@@ -207,6 +206,7 @@ class AnthropicBackend(ModelBackend):
         ]
         tool_defs = None
         tool_map: dict[str, Any] = {}
+        synthetic_submit_name = "__alloy_submit__"
         if tools:
             tool_defs = [
                 {
@@ -221,9 +221,6 @@ class AnthropicBackend(ModelBackend):
                 for t in tools
             ]
             tool_map = {t.spec.name: t for t in tools}
-
-        response_format = None
-        wrapped_primitive = False
         if output_schema and isinstance(output_schema, dict):
             schema = output_schema
             if schema.get("type") != "object":
@@ -232,11 +229,30 @@ class AnthropicBackend(ModelBackend):
                     "properties": {"value": output_schema},
                     "required": ["value"],
                 }
-                wrapped_primitive = True
-            response_format = {
-                "type": "json_schema",
-                "json_schema": {"name": "alloy_output", "schema": schema},
-            }
+            tool_defs = (tool_defs or []) + [
+                {
+                    "name": synthetic_submit_name,
+                    "description": "Submit the final structured output matching the schema.",
+                    "input_schema": schema,
+                }
+            ]
+
+        # Do not pass response_format; rely on prompt shaping and parsing.
+        # Optional: assistant prefill to bias JSON structure
+        if output_schema and isinstance(output_schema, dict):
+
+            def _prefill_from_schema(s: dict) -> str:
+                t = s.get("type")
+                if t == "object":
+                    return "{"
+                return '{"value":'
+
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": [{"type": "text", "text": _prefill_from_schema(output_schema)}],
+                }
+            )
 
         turns = 0
         while True:
@@ -251,9 +267,6 @@ class AnthropicBackend(ModelBackend):
                 kwargs["temperature"] = config.temperature
             if tool_defs is not None:
                 kwargs["tools"] = tool_defs
-            if response_format is not None:
-                kwargs["response_format"] = response_format
-
             resp = await client.messages.create(**kwargs)
             content = getattr(resp, "content", []) or []
             tool_calls = [
@@ -272,6 +285,11 @@ class AnthropicBackend(ModelBackend):
                     name = tc.get("name") if isinstance(tc, dict) else getattr(tc, "name", "")
                     args = tc.get("input") if isinstance(tc, dict) else getattr(tc, "input", {})
                     tuid = tc.get("id") if isinstance(tc, dict) else getattr(tc, "id", "")
+                    if name == synthetic_submit_name:
+                        try:
+                            return json.dumps(args)
+                        except Exception:
+                            return str(args)
                     tool = tool_map.get(name or "")
                     if not tool:
                         result = {"type": "tool_error", "error": f"Tool '{name}' not available"}
@@ -297,17 +315,7 @@ class AnthropicBackend(ModelBackend):
                         }
                     )
                 continue
-            text = _as_text_from_content(resp)
-            if response_format is not None and wrapped_primitive and text:
-                try:
-                    import json as _json
-
-                    data = _json.loads(text)
-                    if isinstance(data, dict) and "value" in data:
-                        return str(data["value"])
-                except Exception:
-                    pass
-            return text
+            return _as_text_from_content(resp)
 
     async def astream(
         self,

@@ -19,9 +19,9 @@ def test_gemini_simple_command():
     configure(model=model_env or "gemini-2.5-pro", temperature=0.2)
 
     @command(output=str)
-    def Hello() -> str:
+    def hello() -> str:
         return "Say 'ok' in one word."
 
-    out = Hello()
+    out = hello()
     assert isinstance(out, str)
     assert len(out.strip()) > 0

@@ -44,10 +44,10 @@ def test_command_sync_parsing_and_retry(monkeypatch):
     configure(model="test-model", retry=2, retry_on=CommandError)
 
     @command(output=float)
-    def ExtractPrice(text: str) -> str:
+    def extract_price(text: str) -> str:
         return f"extract price from: {text}"
 
-    result = ExtractPrice("$9.99")
+    result = extract_price("$9.99")
     assert isinstance(result, float)
     assert result == 12.5  # from FakeBackend
 
@@ -62,10 +62,10 @@ def test_command_structured_dataclass(monkeypatch):
         label: str
 
     @command(output=Out)
-    def Make() -> str:
+    def make() -> str:
         return "make output"
 
-    out = Make()
+    out = make()
     assert isinstance(out, Out)
     assert out.value == 42
     assert out.label == "ok"
@@ -76,10 +76,10 @@ def test_streaming_sync(monkeypatch):
     configure(model="test-model")
 
     @command(output=str)
-    def Generate() -> str:
+    def generate() -> str:
         return "say hello"
 
-    chunks = list(Generate.stream())
+    chunks = list(generate.stream())
     assert "".join(chunks) == "hello"
 
 
