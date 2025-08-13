@@ -72,6 +72,11 @@ docs = [
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+  # Avoid noisy plugin deprecation warnings in CI and local runs (older pytest-asyncio)
+  'ignore:The configuration option "asyncio_default_fixture_loop_scope" is unset\.:pytest.PytestDeprecationWarning',
+]
 
 [tool.ruff]
 line-length = 100
