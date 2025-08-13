@@ -12,23 +12,24 @@ if TYPE_CHECKING:
     def expects_iter(x: Iterable[str]) -> None: ...
     def expects_aiter(x: AsyncIterable[str]) -> None: ...
 
-    # Sync command via eager form: .stream -> Iterable[str], .async_ -> Awaitable[T]
-    def _extract_impl() -> str:
+    # Sync command: .stream -> Iterable[str], .async_ -> Awaitable[T]
+    @command(output=int)
+    def Extract() -> str:  # returns a prompt at runtime
         return "extract the number"
 
-    Extract = command(_extract_impl, output=int)
+    # stream typing
     expects_iter(Extract.stream())
+
+    # async_ typing
     a: Awaitable[int] = Extract.async_()
     _ = a
 
-    # Async command via eager form: .stream -> AsyncIterable[str]
-    async def _generate_impl() -> str:
+    # Async command: .stream -> AsyncIterable[str]
+    @command(output=str)
+    async def Generate() -> str:
         return "write something"
 
-    Generate = command(_generate_impl, output=str)
     expects_aiter(Generate.stream())
 
-    # ask.stream_async typing -> Awaitable[AsyncIterable[str]] (must be awaited)
-    def expects_awaitable(x: Awaitable[AsyncIterable[str]]) -> None: ...
-
-    expects_awaitable(ask.stream_async("hello"))
+    # ask.stream_async typing -> AsyncIterable[str]
+    expects_aiter(ask.stream_async("hello"))
