@@ -6,4 +6,3 @@ This repository hosts the high-level roadmap in docs/roadmap.md and on the publi
 - Online: https://lydakis.github.io/alloy/ (see “Roadmap” in the sidebar)
 
 Day-to-day tracking (issues, milestones) should happen in GitHub for transparency and community participation.
-

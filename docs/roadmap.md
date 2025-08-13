@@ -91,4 +91,3 @@ This page outlines the planned work for Alloy. It captures themes and release-si
 - Issues & Milestones: create GitHub milestones for each version above and group issues accordingly.
 - Labels: `provider/openai`, `provider/anthropic`, `provider/gemini`, `provider/ollama`, `type-system`, `tools`, `react`, `performance`, `docs`, `tests`.
 - Release notes: summarize changes by theme and link to issues/PRs.
-
