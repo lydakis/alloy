@@ -1,4 +1,4 @@
-.PHONY: setup test lint format typecheck precommit ci examples itest
+.PHONY: setup test lint format typecheck precommit prepush verify ci examples itest
 
 PY ?= python
 
@@ -30,6 +30,11 @@ typecheck:
 
 precommit:
 	pre-commit run --all-files
+
+prepush:
+	pre-commit run --all-files --hook-stage pre-push --show-diff-on-failure
+
+verify: format typecheck
 
 ci: lint typecheck test
 

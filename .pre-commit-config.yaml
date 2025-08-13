@@ -34,3 +34,9 @@ repos:
         args: ["-lc", "echo 'error: do not commit virtualenvs' >&2; exit 1"]
         language: system
         files: ^(\.venv.*|venv/|env/)
+      - id: mypy-push
+        name: mypy (pre-push)
+        entry: bash
+        args: ["-lc", "mypy ."]
+        language: system
+        stages: [pre-push]
