@@ -40,3 +40,9 @@ repos:
         args: ["-lc", "mypy ."]
         language: system
         stages: [pre-push]
+      - id: pytest-unit-push
+        name: pytest unit (pre-push)
+        entry: bash
+        args: ["-lc", "pytest -q tests -k 'not integration'"]
+        language: system
+        stages: [pre-push]
