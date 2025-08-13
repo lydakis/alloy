@@ -1,10 +1,31 @@
-from typing import Any, Callable, ParamSpec, TypeVar, overload, Coroutine, Iterable
+from typing import (
+    Any,
+    Callable,
+    ParamSpec,
+    TypeVar,
+    overload,
+    Coroutine,
+    Iterable,
+    AsyncIterable,
+    Protocol,
+    Generic,
+)
 
 # Public API re-exports (for type checkers)
 from .errors import CommandError, ToolError, ConfigurationError
 
 P = ParamSpec("P")
 T = TypeVar("T")
+
+class SyncCommandFn(Protocol, Generic[P, T]):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T: ...
+    def stream(self, *args: P.args, **kwargs: P.kwargs) -> Iterable[str]: ...
+    def async_(self, *args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T]: ...
+
+class AsyncCommandFn(Protocol, Generic[P, T]):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T]: ...
+    def stream(self, *args: P.args, **kwargs: P.kwargs) -> AsyncIterable[str]: ...
+    def async_(self, *args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T]: ...
 
 # Decorator overloads for sync/async
 @overload
@@ -20,7 +41,7 @@ def command(
     system: str | None = ...,
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
-) -> Callable[P, T]: ...
+) -> SyncCommandFn[P, T]: ...
 @overload
 def command(
     __func: Callable[P, Coroutine[Any, Any, str]],
@@ -34,7 +55,7 @@ def command(
     system: str | None = ...,
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
-) -> Callable[P, Coroutine[Any, Any, T]]: ...
+) -> AsyncCommandFn[P, T]: ...
 @overload
 def command(
     *,
@@ -46,7 +67,19 @@ def command(
     system: str | None = ...,
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
-) -> Callable[[Callable[P, str]], Callable[P, T]]: ...
+) -> Callable[[Callable[P, str]], SyncCommandFn[P, T]]: ...
+@overload
+def command(
+    *,
+    output: type[T] | None = ...,
+    tools: list[Callable[..., Any]] | None = ...,
+    model: str | None = ...,
+    temperature: float | None = ...,
+    max_tokens: int | None = ...,
+    system: str | None = ...,
+    retry: int | None = ...,
+    retry_on: type[BaseException] | None = ...,
+) -> Callable[[Callable[P, Coroutine[Any, Any, str]]], AsyncCommandFn[P, T]]: ...
 
 class _AskNamespace:
     def __call__(
@@ -72,7 +105,7 @@ class _AskNamespace:
         tools: list[Callable[..., Any]] | None = ...,
         context: dict[str, Any] | None = ...,
         **overrides: Any,
-    ) -> Any: ...
+    ) -> AsyncIterable[str]: ...
 
 # Runtime values provided by the package
 def tool(__func: Callable[..., Any] | None = ..., /, **kwargs: Any) -> Any: ...
