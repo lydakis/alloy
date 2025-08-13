@@ -27,6 +27,15 @@ class AsyncCommandFn(Protocol, Generic[P, T_co]):
     def stream(self, *args: P.args, **kwargs: P.kwargs) -> AsyncIterable[str]: ...
     def async_(self, *args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T_co]: ...
 
+# Decorator protocol returning appropriate wrapper based on function type
+class _CommandDecorator(Protocol, Generic[P, T_co]):
+    @overload
+    def __call__(self, __func: Callable[P, str], /) -> SyncCommandFn[P, T_co]: ...
+    @overload
+    def __call__(
+        self, __func: Callable[P, Coroutine[Any, Any, str]], /
+    ) -> AsyncCommandFn[P, T_co]: ...
+
 # Decorator overloads for sync/async
 @overload
 def command(
@@ -67,10 +76,7 @@ def command(
     system: str | None = ...,
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
-) -> Callable[
-    [Callable[P, str] | Callable[P, Coroutine[Any, Any, str]]],
-    SyncCommandFn[P, T_co] | AsyncCommandFn[P, T_co],
-]: ...
+) -> _CommandDecorator[P, T_co]: ...
 
 class _AskNamespace:
     def __call__(
