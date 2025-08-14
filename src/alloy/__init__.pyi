@@ -28,7 +28,7 @@ class AsyncCommandFn(Protocol, Generic[P, T_co]):
     def async_(self, *args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T_co]: ...
 
 # Decorator protocol returning appropriate wrapper based on function type
-class _CommandDecorator(Protocol, Generic[P, T_co]):
+class _CommandDecorator(Protocol, Generic[T_co]):
     @overload
     def __call__(self, __func: Callable[P, str], /) -> SyncCommandFn[P, T_co]: ...
     @overload
@@ -37,12 +37,13 @@ class _CommandDecorator(Protocol, Generic[P, T_co]):
     ) -> AsyncCommandFn[P, T_co]: ...
 
 # Decorator overloads for sync/async
+# Explicit output type
 @overload
 def command(
     __func: Callable[P, str],
     /,
     *,
-    output: type[T_co] | None = ...,
+    output: type[T_co],
     tools: list[Callable[..., Any]] | None = ...,
     model: str | None = ...,
     temperature: float | None = ...,
@@ -56,7 +57,7 @@ def command(
     __func: Callable[P, Coroutine[Any, Any, str]],
     /,
     *,
-    output: type[T_co] | None = ...,
+    output: type[T_co],
     tools: list[Callable[..., Any]] | None = ...,
     model: str | None = ...,
     temperature: float | None = ...,
@@ -65,10 +66,14 @@ def command(
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
 ) -> AsyncCommandFn[P, T_co]: ...
+
+# Output omitted (defaults to str)
 @overload
 def command(
+    __func: Callable[P, str],
+    /,
     *,
-    output: type[T_co] | None = ...,
+    output: None = ...,
     tools: list[Callable[..., Any]] | None = ...,
     model: str | None = ...,
     temperature: float | None = ...,
@@ -76,7 +81,47 @@ def command(
     system: str | None = ...,
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
-) -> _CommandDecorator[P, T_co]: ...
+) -> SyncCommandFn[P, str]: ...
+@overload
+def command(
+    __func: Callable[P, Coroutine[Any, Any, str]],
+    /,
+    *,
+    output: None = ...,
+    tools: list[Callable[..., Any]] | None = ...,
+    model: str | None = ...,
+    temperature: float | None = ...,
+    max_tokens: int | None = ...,
+    system: str | None = ...,
+    retry: int | None = ...,
+    retry_on: type[BaseException] | None = ...,
+) -> AsyncCommandFn[P, str]: ...
+
+# Decorator factory (called as @command(...))
+@overload
+def command(
+    *,
+    output: type[T_co],
+    tools: list[Callable[..., Any]] | None = ...,
+    model: str | None = ...,
+    temperature: float | None = ...,
+    max_tokens: int | None = ...,
+    system: str | None = ...,
+    retry: int | None = ...,
+    retry_on: type[BaseException] | None = ...,
+) -> _CommandDecorator[T_co]: ...
+@overload
+def command(
+    *,
+    output: None = ...,
+    tools: list[Callable[..., Any]] | None = ...,
+    model: str | None = ...,
+    temperature: float | None = ...,
+    max_tokens: int | None = ...,
+    system: str | None = ...,
+    retry: int | None = ...,
+    retry_on: type[BaseException] | None = ...,
+) -> _CommandDecorator[str]: ...
 
 class _AskNamespace:
     def __call__(
