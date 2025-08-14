@@ -33,6 +33,21 @@ def use_add() -> str:
     return "Use add(a,b) to compute 19+23. Return only the number."
 ```
 
+Built-in tools (minimal)
+
+```python
+from alloy import file_search, web_search, py_eval, py_exec
+
+# Use as tools in commands
+@command(output=list[dict], tools=[file_search])
+def find_in_repo() -> str:
+    return "Search for 'typed AI' under ./docs and ./src, then return hits."
+
+# Or call directly from Python when appropriate
+print(py_eval("2 + 2"))       # -> "4"
+print(py_exec("print(3*3)"))  # -> "9\n"
+```
+
 ## Ask
 
 ```python
