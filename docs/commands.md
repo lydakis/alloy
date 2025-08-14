@@ -4,7 +4,7 @@
 
 Declare a command with `@command`. The function returns a prompt string. The decorator executes the model and parses output into the declared type.
 
-Style: prefer snake_case names for commands and tools (PEP 8). Use PascalCase for classes/dataclasses.
+Style: prefer snake_case names for commands and tools (PEP 8). Use PascalCase for classes/dataclasses. Use bare `@command`/`@tool` when no options; use `@command(...)`/`@tool(...)` when passing options.
 
 Typing: when `output` is omitted, the command returns `str` (or `Awaitable[str]` for async). With `output=T`, calls return `T` (or `Awaitable[T]` for async), `.stream()` yields `str` chunks, and `.async_()` awaits to `T`.
 

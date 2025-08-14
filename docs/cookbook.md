@@ -42,8 +42,7 @@ def interview_to_spec(transcript: str) -> str:
 ## PR review bot with tools
 
 ```python
-from alloy import command
-from alloy.tool import tool
+from alloy import command, tool
 
 @tool
 def read_file(path: str) -> str:
