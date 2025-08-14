@@ -18,7 +18,7 @@ def extract_price(text: str) -> str:
 price: float = extract_price("the price is 5.99")
 
 # No output → str
-@command()
+@command
 def summarize(text: str) -> str:
     return f"Summarize: {text}"
 
