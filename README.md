@@ -52,11 +52,11 @@ load_dotenv()
 # configure(model="gpt-5-mini", temperature=0.7)
 
 @command(output=float)
-def ExtractPrice(text: str) -> str:
+def extract_price(text: str) -> str:
     """Extract price from text."""
     return f"Extract the price (number only) from: {text}"
 
-print(ExtractPrice("This item costs $49.99."))
+print(extract_price("This item costs $49.99."))
 print(ask("Say hi"))
 ```
 

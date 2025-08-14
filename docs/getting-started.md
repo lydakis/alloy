@@ -26,10 +26,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 @command(output=float)
-def ExtractPrice(text: str) -> str:
+def extract_price(text: str) -> str:
     """Extract price from text."""
     return f"Extract the price (number only) from: {text}"
 
-print(ExtractPrice("This item costs $49.99."))
+print(extract_price("This item costs $49.99."))
 print(ask("Say OK in one word."))
 ```

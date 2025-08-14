@@ -30,11 +30,11 @@ CommandError: Failed to parse model output as float: 'Please provide the text…
 from alloy import command
 
 @command(output=float)
-def ExtractPrice(text: str) -> str:
+def extract_price(text: str) -> str:
     """Extract price from text."""
     return f"Extract the price (number only) from: {text}"
 
-print(ExtractPrice("This item costs $49.99."))  # -> 49.99
+print(extract_price("This item costs $49.99."))  # -> 49.99
 ```
 
 This will request structured output where available; otherwise the appended hint instructs the model to return only the number (or a JSON object `{ "value": 49.99 }` for providers like Ollama).
