@@ -94,7 +94,7 @@ def test_sync_infers_output_from_return_annotation_primitive(monkeypatch: Monkey
 
     else:
 
-        @command()
+        @command
         def price() -> float:
             return "extract price"
 
@@ -118,7 +118,7 @@ def test_sync_infers_output_from_return_annotation_dataclass(monkeypatch: Monkey
 
     else:
 
-        @command()
+        @command
         def build() -> Out:
             return "build something"
 
@@ -139,7 +139,7 @@ async def test_async_infers_output_from_return_annotation_primitive(
 
     else:
 
-        @command()
+        @command
         async def pi() -> float:
             return "pi"
 
@@ -166,7 +166,7 @@ async def test_async_infers_output_from_return_annotation_dataclass(
 
     else:
 
-        @command()
+        @command
         async def make() -> Out:
             return "make"
 
