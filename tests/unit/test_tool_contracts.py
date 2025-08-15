@@ -14,7 +14,7 @@ def test_require_precondition_receives_args_and_blocks() -> None:
 
     # Precondition failure raises ToolError
     with pytest.raises(ToolError) as ei:
-        f()  # type: ignore[misc]
+        f()
     assert "missing x" in str(ei.value)
 
     # Success path

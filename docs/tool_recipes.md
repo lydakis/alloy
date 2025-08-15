@@ -170,3 +170,38 @@ def web_search_ddg(query: str, *, max_results: int = 3) -> list[dict]:
         results = ddgs.text(query, max_results=max_results) or []
     return [{"title": r.get("title", ""), "url": r.get("href", ""), "snippet": r.get("body", "")} for r in results]
 ```
+
+## Design by Contract (DBC) for tool sequences
+
+Use `@require` and `@ensure` to guide the model with early feedback.
+
+```python
+from __future__ import annotations
+
+from alloy import tool, require, ensure, command
+
+@tool
+@ensure(lambda d: isinstance(d, dict) and "validated_at" in d, "must add validated_at")
+def validate_data(data: dict) -> dict:
+    # idempotent enrichment
+    data = dict(data)
+    data.setdefault("validated_at", "2025-01-01T00:00:00Z")
+    return data
+
+@tool
+@require(lambda ba: isinstance(ba.arguments.get("data"), dict) and "validated_at" in ba.arguments["data"],
+         "run validate_data first")
+@ensure(lambda ok: ok is True, "save must succeed")
+def save_to_production(data: dict) -> bool:
+    # pretend to save
+    return True
+
+@command(output=str, tools=[validate_data, save_to_production])
+def normalize_then_save(payload: dict) -> str:
+    return f"Normalize the payload using validate_data, then call save_to_production. Payload: {payload}"
+```
+
+Notes
+- On a failed `@require/@ensure`, the tool returns the configured message to the model (not a hard error).
+- The model can then correct course (e.g., call `validate_data` before `save_to_production`).
+- Keep messages short and actionable.
