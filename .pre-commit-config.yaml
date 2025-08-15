@@ -22,6 +22,21 @@ repos:
         args: ["--maxkb=1024"]
   - repo: local
     hooks:
+      - id: no-empty-decorator-parens
+        name: Enforce bare @command/@tool when no options (code + docs)
+        entry: bash
+        args:
+          - -lc
+          - |
+            set -euo pipefail
+            if [ "$#" -gt 0 ]; then
+              if grep -EnH -e '@command\(\s*\)' -e '@tool\(\s*\)' "$@"; then
+                echo "error: use bare @command/@tool when no options (remove empty parens)" >&2
+                exit 1
+              fi
+            fi
+        language: system
+        files: \.(py|md)$
       - id: no-submodule-public-imports
         name: Enforce top-level alloy imports (code + docs)
         entry: bash
