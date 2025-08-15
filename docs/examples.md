@@ -3,12 +3,13 @@
 - Basic: `examples/basic_usage.py`
 - Tools: `examples/tools_demo.py`
 - Tool recipes: see `Tool Recipes` for minimal examples you can paste into your codebase.
-- Agent patterns:
-  - Deterministic workflows: `examples/agent_patterns/deterministic_workflows.py`
-  - Agents as tools: `examples/agent_patterns/agents_as_tools.py`
+- Patterns:
+  - Deterministic workflows: `examples/patterns/deterministic_workflows.py`
+  - Commands as tools: `examples/patterns/commands_as_tools.py`
+  - Triage routing: `examples/patterns/triage_routing.py`
 - Streaming: `examples/basic/streaming_outputs.py`
 - Dynamic system prompts: `examples/basic/dynamic_system_prompts.py`
-- Handoffs: `examples/handoffs/triage_pattern.py`
+  (These map common orchestration ideas to Alloy’s simpler primitives.)
 
 Run with `.env` loaded:
 

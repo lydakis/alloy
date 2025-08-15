@@ -1,8 +1,8 @@
 """
-Alloy equivalent: simple handoff (triage -> specialized commands).
+Patterns: triage routing (handoff to specialized commands).
 
 Run:
-  python examples/handoffs/triage_pattern.py
+  python examples/patterns/triage_routing.py
 
 Notes:
 - Triage picks a target based on the message; we then invoke the specialized command.

@@ -1,8 +1,8 @@
 """
-Alloy equivalent: turn specialist commands into callable tools.
+Patterns: commands as tools
 
 Run:
-  python examples/agent_patterns/agents_as_tools.py
+  python examples/patterns/commands_as_tools.py
 
 Notes:
 - Tools run locally in Python. Here they call ask() to delegate translation back to the model.
@@ -39,7 +39,6 @@ def translate(prompt: str) -> str:
 
 def main() -> None:
     load_dotenv()
-    # configure(model="gpt-5-mini")
     out = translate("Say 'Hello, how are you?' in Spanish and French.")
     print(out)
 

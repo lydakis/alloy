@@ -1,9 +1,9 @@
 """
-Alloy equivalent: deterministic orchestration patterns
+Patterns: deterministic orchestration with commands
 
 Run:
   # Load API keys from .env (e.g., OPENAI_API_KEY)
-  python examples/agent_patterns/deterministic_workflows.py
+  python examples/patterns/deterministic_workflows.py
 
 Notes:
 - Uses @command for typed steps (research -> write -> edit)

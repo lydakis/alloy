@@ -1,8 +1,8 @@
 # Tool Recipes (Minimal)
 
-Alloy ships zero tools by default. Compose your own with `@tool` so you can
-pick the right libraries and guarantees for your stack. Below are minimal,
-copy‑pasteable examples you can drop into your project.
+Alloy emphasizes small, composable primitives. You can wire any capability as a
+`@tool` using the libraries you already trust. Below are minimal, copy‑pasteable
+examples you can drop into your project.
 
 ## HTTP fetch (GET)
 
@@ -122,3 +122,51 @@ Guidance
 - Validate inputs and cap work (timeouts, byte limits).
 - Prefer returning compact, easy‑to‑parse shapes from tools.
 - If a tool grows complex, consider isolating it as a separate package.
+
+## Provider‑backed web search (optional)
+
+Option A: SerpAPI (requires `requests` and `SERPAPI_KEY`)
+
+```python
+from __future__ import annotations
+
+import os, requests
+from alloy import tool
+
+SERPAPI_KEY = os.getenv("SERPAPI_KEY")
+
+@tool
+def web_search_serpapi(query: str, *, max_results: int = 3) -> list[dict]:
+    if not SERPAPI_KEY:
+        raise RuntimeError("Set SERPAPI_KEY to enable web_search_serpapi")
+    r = requests.get(
+        "https://serpapi.com/search",
+        params={"q": query, "engine": "google", "api_key": SERPAPI_KEY},
+        timeout=10,
+    )
+    r.raise_for_status()
+    data = r.json()
+    items = []
+    for item in (data.get("organic_results") or [])[:max_results]:
+        items.append({
+            "title": item.get("title", ""),
+            "url": item.get("link", ""),
+            "snippet": item.get("snippet", ""),
+        })
+    return items
+```
+
+Option B: DuckDuckGo (requires `duckduckgo_search`)
+
+```python
+from __future__ import annotations
+
+from duckduckgo_search import DDGS
+from alloy import tool
+
+@tool
+def web_search_ddg(query: str, *, max_results: int = 3) -> list[dict]:
+    with DDGS() as ddgs:
+        results = ddgs.text(query, max_results=max_results) or []
+    return [{"title": r.get("title", ""), "url": r.get("href", ""), "snippet": r.get("body", "")} for r in results]
+```
