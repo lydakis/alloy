@@ -42,6 +42,11 @@ examples:
 	$(PY) examples/basic_usage.py
 	$(PY) examples/tools_demo.py
 
+examples-patterns:
+	$(PY) examples/patterns/deterministic_workflows.py || true
+	$(PY) examples/patterns/commands_as_tools.py || true
+	$(PY) examples/patterns/triage_routing.py || true
+
 itest:
 	@if command -v dotenv >/dev/null 2>&1; then \
 	  echo "[itest] Using dotenv to load .env"; \

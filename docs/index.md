@@ -12,3 +12,11 @@ Alloy lets you declare typed AI commands in Python, wire up tools, and route to 
 See Getting Started for installation and a 2‑minute tutorial.
 
 > Note: This site is built and deployed via GitHub Actions.
+
+## Philosophy
+
+- Keep primitives small and explicit: typed `@command` and plain‑Python `@tool`.
+- Compose behavior in Python (functions, modules, asyncio), not a new orchestration layer.
+- Prefer predictable defaults; opt into structure via `output=...`.
+- Stay provider‑agnostic; adaptors live under `alloy/models/*`.
+- Offer recipes instead of bundled features so teams can choose libraries and guarantees.
