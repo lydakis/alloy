@@ -205,3 +205,9 @@ Notes
 - On a failed `@require/@ensure`, the tool returns the configured message to the model (not a hard error).
 - The model can then correct course (e.g., call `validate_data` before `save_to_production`).
 - Keep messages short and actionable.
+
+Narrative
+1. The model calls `save_to_production(payload)`.
+2. `@require` fails because `validated_at` is missing → tool returns "run validate_data first".
+3. The model adapts and calls `validate_data(payload)` → gets enriched payload.
+4. The model calls `save_to_production(enriched)`; `@ensure` passes → proceed.

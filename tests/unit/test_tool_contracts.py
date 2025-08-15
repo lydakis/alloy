@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from alloy.tool import tool, require, ensure
-from alloy.errors import ToolError
+from alloy import tool, require, ensure, ToolError
 
 
 def test_require_precondition_receives_args_and_blocks() -> None:
