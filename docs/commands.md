@@ -63,8 +63,7 @@ for chunk in ask.stream("Explain briefly."):
 ## Retries and error handling
 
 ```python
-from alloy import command, configure
-from alloy.errors import CommandError
+from alloy import command, configure, CommandError
 
 # Global defaults
 configure(retry=2)  # retry transient errors twice

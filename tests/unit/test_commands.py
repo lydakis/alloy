@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 
-from alloy import ask, command, configure
+from alloy import ask, command, configure, CommandError
 from alloy.config import Config
-from alloy.errors import CommandError
 from alloy.models.base import ModelBackend
 
 

@@ -2,7 +2,7 @@ import importlib.util
 import pytest
 
 from alloy.config import Config
-from alloy.errors import ConfigurationError
+from alloy import ConfigurationError
 from alloy.models.base import get_backend
 
 

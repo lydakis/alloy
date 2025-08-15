@@ -1,6 +1,6 @@
 import importlib
 import pytest
-from alloy.errors import CommandError
+from alloy import CommandError
 
 
 class _StubBackend:
