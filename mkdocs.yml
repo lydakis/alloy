@@ -40,6 +40,7 @@ nav:
   - Getting Started: getting-started.md
   - Configuration: configuration.md
   - Commands & Tools: commands.md
+  - Tool Recipes: tool_recipes.md
   - Typing: typing.md
   - Backends & Routing: backends.md
   - Cookbook: cookbook.md

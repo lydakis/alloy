@@ -8,7 +8,6 @@ This is an initial scaffold of the v1.0 surface area.
 
 from .command import command
 from .tool import tool
-from .builtins import file_search, web_search, py_eval, py_exec
 from .tool import require, ensure
 from .ask import ask
 from .config import configure
@@ -17,10 +16,6 @@ from .errors import CommandError, ToolError, ConfigurationError
 __all__ = [
     "command",
     "tool",
-    "file_search",
-    "web_search",
-    "py_eval",
-    "py_exec",
     "require",
     "ensure",
     "ask",
