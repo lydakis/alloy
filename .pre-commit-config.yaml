@@ -23,22 +23,23 @@ repos:
   - repo: local
     hooks:
       - id: no-submodule-public-imports
-        name: Enforce top-level alloy imports for public API
+        name: Enforce top-level alloy imports (code + docs)
         entry: bash
         args:
           - -lc
           - |
             set -euo pipefail
-            # Disallow importing public symbols via alloy submodules
-            # Allowed: internal imports inside src/alloy, and built site/
-            if grep -REn --exclude-dir=site --exclude-dir=.git --exclude-dir=src/alloy \
-              -e 'from[ ]+alloy\.(tool|errors|ask|command)[ ]+import' \
-              -e 'import[ ]+alloy\.(tool|ask|command)\b' .; then
-              echo "error: import public API from top-level 'alloy', not submodules" >&2
-              exit 1
+            # Disallow importing public symbols via alloy submodules in changed files (py/md)
+            if [ "$#" -gt 0 ]; then
+              if grep -EnH \
+                -e 'from[ ]+alloy\.(tool|errors|ask|command)[ ]+import' \
+                -e 'import[ ]+alloy\.(tool|ask|command)\b' "$@"; then
+                echo "error: import public API from top-level 'alloy', not submodules" >&2
+                exit 1
+              fi
             fi
         language: system
-        files: \.py$
+        files: \.(py|md)$
       - id: no-built-docs
         name: Do not commit built docs (site/)
         entry: bash

@@ -10,7 +10,7 @@
 - Naming: snake_case for functions/commands/tools; PascalCase for classes/dataclasses.
 - Decorators: use bare `@command`/`@tool` when no options; use `@command(...)`/`@tool(...)` when passing options.
 - Typing: prefer `@command(output=T)` for precise static types; when `output` is omitted, static return is `str` (async → `Awaitable[str]`).
-- Imports: prefer top-level `from alloy import ...` (stubs apply), not submodules like `from alloy.tool import tool`.
+- Imports: use top-level `from alloy import ...` (stubs apply) for public API; avoid submodule imports in examples.
 - Docstrings: concise, imperative summaries; short examples with snake_case.
 
 ## Docstring example (Google style)
