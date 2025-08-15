@@ -1,7 +1,7 @@
 import os
 import pytest
 
-from alloy import command, ask, configure
+from alloy import command, ask, configure, tool, ensure
 
 
 requires_openai = pytest.mark.skipif(
@@ -48,3 +48,27 @@ def test_openai_tools_minimal():
     # Do not assert exact path (tool vs model), only that it produces a valid int
     assert isinstance(out, int)
     assert out > 0
+
+
+@requires_openai
+def test_openai_dbc_tool_message_propagates():
+    model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))
+    configure(model=model, temperature=0.2)
+
+    @tool
+    @ensure(lambda r: isinstance(r, int) and r % 2 == 0, "must be even")
+    def square(n: int | str) -> int:
+        nn = int(n)
+        return nn * nn
+
+    @command(output=str, tools=[square])
+    def check() -> str:
+        # Strongly guide the model to call the tool and then echo the tool's response
+        return (
+            "Use the tool square(n=3) now. If the tool returns a plain message, output that "
+            "message exactly with no extra text."
+        )
+
+    out = check()
+    assert isinstance(out, str)
+    assert "must be even" in out.lower()

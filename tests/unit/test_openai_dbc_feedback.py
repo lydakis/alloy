@@ -8,7 +8,7 @@ from alloy.config import Config
 from alloy import tool, require
 
 
-def test_openai_backend_surfaces_toolerror_message(monkeypatch):
+def test_openai_backend_surfaces_toolerror_message_unit(monkeypatch):
     calls: list[dict] = []
 
     class FakeChatCompletions:
@@ -52,6 +52,5 @@ def test_openai_backend_surfaces_toolerror_message(monkeypatch):
     # Second call should include a tool message with the ToolError text
     assert len(calls) == 2
     msgs = calls[1]["messages"]
-    assert any(
-        m.get("role") == "tool" and m.get("content") == "please validate first" for m in msgs
-    )
+    assert any(m.get("role") == "tool" and m.get("content") == "please validate first" for m in msgs)
+
