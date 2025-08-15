@@ -85,10 +85,31 @@ except CommandError as e:
 from alloy import tool, require, ensure
 
 @tool
-@require(lambda x: x >= 0, "x must be non-negative")
+@require(lambda ba: ba.arguments.get("x", 0) >= 0, "x must be non-negative")
 @ensure(lambda r: r >= 0, "result must be non-negative")
 def sqrt_floor(x: int) -> int:
     """Return floor(sqrt(x))."""
     import math
     return int(math.sqrt(x))
 ```
+
+Design by Contract (DBC)
+- `@require` runs before the tool; it receives bound arguments (`inspect.BoundArguments`).
+- `@ensure` runs after the tool; it receives the tool's result.
+- Predicates may run arbitrary checks; return truthy to allow, falsy to block.
+- On failure, Alloy surfaces the contract message back to the model as the tool output, not a hard exception, so the model can adjust (e.g., call a prerequisite or pass different args).
+
+Decorator order
+- Place `@tool` above `@require/@ensure` so contracts attach to the underlying function first:
+
+```python
+@tool
+@require(...)
+@ensure(...)
+def my_tool(...): ...
+```
+
+Tips
+- Keep messages short and instructive ("x must be non-negative").
+- Validate presence and shape of args in `@require`; validate effects/invariants in `@ensure`.
+- For non-contract runtime failures, raise an exception; Alloy will pass a brief error message back to the model.

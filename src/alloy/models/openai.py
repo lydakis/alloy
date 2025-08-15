@@ -122,7 +122,15 @@ class OpenAIBackend(ModelBackend):
                             except Exception:
                                 content = str(result)
                         except Exception as _tool_exc:
-                            content = json.dumps({"type": "tool_error", "error": str(_tool_exc)})
+                            # Design-by-contract: surface contract/tool messages back to the model
+                            from ..errors import ToolError as _ToolError  # local import
+
+                            if isinstance(_tool_exc, _ToolError):
+                                content = str(_tool_exc)
+                            else:
+                                content = json.dumps(
+                                    {"type": "tool_error", "error": str(_tool_exc)}
+                                )
 
                     messages.append(
                         {

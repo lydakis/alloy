@@ -154,11 +154,19 @@ class AnthropicBackend(ModelBackend):
                         try:
                             result = tool(**args) if isinstance(args, dict) else tool(args)
                         except Exception as e:
-                            result = {"type": "tool_error", "error": str(e)}
-                    try:
-                        result_text = json.dumps(result)
-                    except Exception:
-                        result_text = str(result)
+                            from ..errors import ToolError as _ToolError  # local import
+
+                            if isinstance(e, _ToolError):
+                                result = str(e)
+                            else:
+                                result = {"type": "tool_error", "error": str(e)}
+                    if isinstance(result, str):
+                        result_text = result
+                    else:
+                        try:
+                            result_text = json.dumps(result)
+                        except Exception:
+                            result_text = str(result)
                     messages.append(
                         {
                             "role": "user",
