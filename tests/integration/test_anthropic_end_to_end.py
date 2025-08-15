@@ -1,7 +1,7 @@
 import os
 import pytest
 
-from alloy import command, configure, tool
+from alloy import command, configure, tool, ensure
 
 
 has_key = bool(os.getenv("ANTHROPIC_API_KEY"))
@@ -42,3 +42,25 @@ def test_anthropic_tool_calling():
     out = use_add()
     assert isinstance(out, int)
     assert out == 42 or out > 0
+
+
+@requires_anthropic
+def test_anthropic_dbc_tool_message_propagates():
+    configure(model=model_env or "claude-sonnet-4-20250514", temperature=0.2)
+
+    @tool
+    @ensure(lambda r: isinstance(r, int) and r % 2 == 0, "must be even")
+    def square(n: int | str) -> int:
+        nn = int(n)
+        return nn * nn
+
+    @command(output=str, tools=[square])
+    def check() -> str:
+        return (
+            "Use the tool square(n=3) now. If the tool returns a plain message, output that "
+            "message exactly with no extra text."
+        )
+
+    out = check()
+    assert isinstance(out, str)
+    assert "must be even" in out.lower()

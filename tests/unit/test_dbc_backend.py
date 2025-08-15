@@ -4,7 +4,7 @@ import importlib
 
 from alloy import tool, ensure, command, configure
 from alloy.config import Config
-from alloy.errors import ToolError
+from alloy import ToolError
 from alloy.models.base import ModelBackend
 
 
