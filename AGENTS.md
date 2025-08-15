@@ -11,9 +11,10 @@
 
 ## Build, Test, and Development Commands
 - Create env: `python -m venv .venv && source .venv/bin/activate`
-- Install deps: `pip install openai python-dotenv`
-- Run examples: `python examples/basic_usage.py` or `python examples/tools_demo.py`.
-- Lint/format (optional): `ruff .` and `black .` if you use them.
+- Install dev deps (editable): `pip install -e '.[dev]'`
+- Pre-commit: `pre-commit install` then `make precommit` (enforces imports and decorator style in code + docs)
+- Run examples: `python examples/basic_usage.py` or `python examples/tools_demo.py` (more under `examples/patterns/`)
+- Lint/format: `ruff .` and `black .`
   - Without installing the package, examples/tests add `src/` to `sys.path` for convenience.
 
 Defaults: The global config uses `model="gpt-5-mini"` so you can call `ask(...)` and commands without `configure(...)`. Use `configure(...)` to override.
@@ -22,13 +23,26 @@ Defaults: The global config uses `model="gpt-5-mini"` so you can call `ask(...)`
 - Indentation: 4 spaces; follow PEP 8 + type hints.
 - Naming: `snake_case` for functions/vars, `PascalCase` for classes, `UPPER_SNAKE_CASE` for constants.
 - Docstrings: Use concise, imperative summaries. Include argument/return types when non‑obvious.
-- Public API: Re‑export only stable symbols in `alloy/__init__.py`.
+- Public API: Re‑export only stable symbols in `alloy/__init__.py`; import public symbols via `from alloy import ...` (not submodules) in code and docs.
+- Decorators: use bare `@command`/`@tool` when no options; use `@command(...)`/`@tool(...)` when passing options.
 - Models: Keep provider‑agnostic logic outside `models/`; implement providers under `alloy/models/<provider>.py`.
+
+## Typing & Stubs
+- Default static return type for commands when `output` is omitted: sync → `str`, async → `Awaitable[str]`.
+- With `output=T`, calls return `T` (async → `Awaitable[T]`); `.stream()` yields `str` chunks; `.async_()` awaits to `T`.
+- `ask.stream_async(...)` is typed as `AsyncIterable[str]`.
+- ParamSpec preserves prompt function parameters on the wrapped command.
 
 ## Testing Guidelines
 - Framework: Prefer `pytest`.
 - Layout: `tests/` mirroring package modules; files named `test_*.py`.
 - Running: `pytest -q` (add `-k pattern` to filter).
+- Integration tests: require real API keys and model selection via env.
+  - OpenAI: set `OPENAI_API_KEY` (optional `ALLOY_IT_MODEL`, default `gpt-5-mini`).
+  - Anthropic: set `ANTHROPIC_API_KEY` (and `ALLOY_IT_MODEL=claude-*`).
+  - Gemini: set `GOOGLE_API_KEY` (and `ALLOY_IT_MODEL=gemini-*`).
+  - Ollama: run a local Ollama instance (and `ALLOY_IT_MODEL=ollama:<name>`).
+  - To skip provider integ tests locally: `ALLOY_IT_MODEL=none pytest -q`.
 - Coverage (target): Aim for meaningful tests around prompts/contracts and model adapters; include edge cases for parsing/validation.
 
 ## Commit & Pull Request Guidelines
@@ -41,3 +55,17 @@ Defaults: The global config uses `model="gpt-5-mini"` so you can call `ask(...)`
 - Secrets: Keep `OPENAI_API_KEY` in `.env` locally; never commit secrets.
 - Fail‑safe defaults: Validate config in `config.py`; handle missing keys with clear errors.
 - Environment overrides: You can set process env vars to avoid code changes: `ALLOY_MODEL`, `ALLOY_TEMPERATURE`, `ALLOY_MAX_TOKENS`, `ALLOY_SYSTEM`/`ALLOY_DEFAULT_SYSTEM`, `ALLOY_RETRY`. Example: `export ALLOY_MODEL=gpt-4o`.
+
+## Design by Contract (DBC) for Tools
+- Use `@require(predicate, message)` to validate preconditions (receives `inspect.BoundArguments`).
+- Use `@ensure(predicate, message)` to validate postconditions (receives the tool result).
+- On failure, raise a `ToolError` message back to the model: OpenAI/Anthropic backends surface this as the tool output so the model can adjust (instead of a hard failure).
+- Keep messages short and instructive (e.g., "run validate_data first", "must be even").
+
+## Docs & Examples
+- Docs pages: Typing, Equivalence Guide, Tool Recipes (HTTP fetch, file search, provider‑backed web search, DBC sequence).
+- Examples: see `examples/basic_*.py`, `examples/tools_demo.py`, and `examples/patterns/*` for orchestration patterns expressed via commands/tools.
+
+## Release
+- Version in `pyproject.toml`; bump with changelog entries.
+- Trusted Publishing: tag and push (e.g., `git tag v0.1.4 && git push origin v0.1.4`) to publish to PyPI via CI.
