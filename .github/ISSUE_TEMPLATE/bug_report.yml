@@ -61,4 +61,3 @@ body:
         - label: I tried on latest main or latest release
         - label: I can reproduce with a minimal example
         - label: I searched existing issues
-
