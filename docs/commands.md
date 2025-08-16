@@ -43,22 +43,44 @@ from alloy import ask
 print(ask("Explain in one sentence."))
 ```
 
-## Streaming
+## Sync, async, and streaming
+
+Commands can run synchronously or asynchronously. Define an `async def`
+function to build an async command. Both sync and async commands expose
+`.async_()` for asynchronous invocation and `.stream()` for streaming
+output.
 
 ```python
-from alloy import command, ask
+from alloy import command
 
+# Sync command
 @command(output=str)
 def generate() -> str:
     return "Write a haiku about alloy."
 
-# Iterate chunks (sync). For async commands, use `async for`.
+print(generate())  # sync result
+print(await generate.async_())  # run sync command asynchronously
+
+# Async command
+@command(output=str)
+async def agen() -> str:
+    return "Write a haiku about alloy."
+
+print(await agen())  # async result
+
+# Streaming output
 for chunk in generate.stream():
     print(chunk, end="")
 
-for chunk in ask.stream("Explain briefly."):
+async for chunk in agen.stream():
     print(chunk, end="")
 ```
+
+Sync commands expose `.async_()` so they can participate in `asyncio`
+workflows, for example `await asyncio.gather(generate.async_(), agen())`.
+
+The `ask` helper mirrors these modalities via `ask()`, `await ask.async_(...)`,
+`ask.stream(...)`, and `ask.stream_async(...)`.
 
 ## Retries and error handling
 
