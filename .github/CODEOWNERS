@@ -1,0 +1,10 @@
+# CODEOWNERS
+# Update these handles/teams to match your GitHub org.
+# Lines use the same pattern rules as .gitignore.
+
+# Default owner for everything
+* @lydakis
+
+# Examples (uncomment and edit as needed):
+# docs/*            @your-org/docs
+# src/alloy/models/ @your-org/ml-team

@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/lydakis/alloy/security/advisories/new
+    about: Use GitHub Private Vulnerability Reporting for confidential disclosures.
+  - name: Email security contact
+    url: mailto:george@lydakis.me
+    about: If you cannot access GitHub advisories, contact the maintainer directly.
+
