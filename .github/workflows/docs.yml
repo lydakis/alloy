@@ -30,6 +30,7 @@ jobs:
       - name: Build MkDocs site
         run: |
           mkdocs build --strict --verbose
+          echo docs.alloy.fyi > site/CNAME
       - name: List built site
         run: |
           echo "Listing built site directory:" && ls -la site || true
