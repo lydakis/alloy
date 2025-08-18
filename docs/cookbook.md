@@ -55,3 +55,48 @@ def review_pr(diff: str, pr_description: str) -> str:
 ```
 
 See `examples/` for runnable versions and more demos.
+
+## Deep Agent (planning, subagents, workspace)
+
+Pattern: compose primitives to build a multi‑phase agent that plans, spawns focused subagents, writes artifacts to a shared workspace, and compiles a final report — while keeping Alloy as a library (no framework glue).
+
+Run (real model):
+
+```
+python examples/patterns/deep_agents.py
+```
+
+No API keys? You can preview behavior without network by setting `ALLOY_BACKEND=fake` when running the example.
+
+Building blocks:
+
+- plan_todo: no‑op tool that records a 3–7 bullet plan (contract‑enforced) for traceability.
+- Filesystem tools: `write_file`, `append_file`, `read_file`, `list_files` with path safety and size/limit guards.
+- spawn_subagent: tool that calls `ask(...)` with a focused system + limited tools for narrow subtasks.
+- compile_report: synthesizes `files/notes/*.md` into `files/REPORT.md` with a "writer" system.
+- require_report: DBC check forcing the final artifact before completion.
+
+Orchestrator (sketch):
+
+```python
+from dataclasses import dataclass
+from alloy import command
+
+@dataclass
+class AgentResult:
+    summary: str
+    files: list[str]
+
+@command(output=AgentResult, tools=[...], system="...rules...")
+def deep_research(goal: str) -> str:
+    return """
+      Objective: {goal}
+      - plan_todo to outline 3–7 bullets
+      - write notes to files/notes/*.md; use spawn_subagent for narrow tasks
+      - compile_report(title=...) → files/REPORT.md
+      - require_report() must pass before returning
+      Return JSON {summary, files}
+    """.strip().format(goal=goal)
+```
+
+Full example: `examples/patterns/deep_agents.py`.

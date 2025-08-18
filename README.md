@@ -75,8 +75,8 @@ Notes
 Examples
 - See `examples/basic_usage.py` and `examples/tools_demo.py` (tools + contracts).
 
-Offline mode (dev only)
-- To run examples without network/API keys, set `ALLOY_BACKEND=fake`.
+Optional: offline dev tip
+- For local demos without network/API keys, set `ALLOY_BACKEND=fake` (not for production).
 - Example: `ALLOY_BACKEND=fake python examples/basic_usage.py`
 
 Config precedence
@@ -89,7 +89,7 @@ Make targets
 - `make setup` — install dev deps and package in editable mode.
 - `make test`, `make lint`, `make typecheck` — CI-like checks.
 - `make examples` — runs `examples/basic_usage.py` and `examples/tools_demo.py`.
-  - Tip: `ALLOY_BACKEND=fake make examples` to run offline.
+  - Optional offline: `ALLOY_BACKEND=fake make examples`
 
 Troubleshooting
 - API key: Ensure `OPENAI_API_KEY` is set (process env or `.env`).

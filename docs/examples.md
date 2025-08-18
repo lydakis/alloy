@@ -8,6 +8,7 @@
   - Commands as tools: `examples/patterns/commands_as_tools.py`
   - Triage routing: `examples/patterns/triage_routing.py`
   - DBC tool loop: `examples/patterns/dbc_tool_loop.py`
+  - Advanced: Deep Agent (planning, subagents, filesystem): `examples/patterns/deep_agents.py`
 - Streaming: `examples/basic/streaming_outputs.py`
 - Modalities (sync/async/streaming): `examples/basic/modalities.py`
 - Dynamic system prompts: `examples/basic/dynamic_system_prompts.py`
@@ -19,8 +20,10 @@ Run with `.env` loaded:
 python examples/basic_usage.py
 ```
 
-Offline demo:
+Optional: offline dev tip — set `ALLOY_BACKEND=fake` to run without network/keys.
+
+Deep agent (real run):
 
 ```
-ALLOY_BACKEND=fake python examples/basic_usage.py
+python examples/patterns/deep_agents.py
 ```

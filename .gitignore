@@ -34,3 +34,6 @@ env/
 
 # Env files
 .env
+
+# Example workspaces
+examples/_agent_workspace/
