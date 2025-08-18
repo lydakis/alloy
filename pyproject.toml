@@ -43,12 +43,12 @@ alloy = ["py.typed", "__init__.pyi"]
 
 [project.optional-dependencies]
 openai = ["openai>=1.99.6,<2", "python-dotenv>=1.1.1,<2"]
-anthropic = ["anthropic>=0.62.0,<0.63"]
+anthropic = ["anthropic>=0.62.0,<0.65"]
 gemini = ["google-genai>=1.29.0,<2"]
 providers = [
   "openai>=1.99.6,<2",
   "python-dotenv>=1.1.1,<2",
-  "anthropic>=0.62.0,<0.63",
+  "anthropic>=0.62.0,<0.65",
   "google-genai>=1.29.0,<2",
   "ollama>=0.5.3,<0.6",
 ]
