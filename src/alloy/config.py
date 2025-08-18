@@ -131,6 +131,10 @@ def get_config(overrides: dict[str, Any] | None = None) -> Config:
     env_cfg = _config_from_env()
     cfg = cfg.merged(env_cfg)
     if overrides:
+        # Support alias: `system` -> `default_system` for per-call overrides
+        overrides = dict(overrides)  # shallow copy
+        if "system" in overrides and "default_system" not in overrides:
+            overrides["default_system"] = overrides.pop("system")
         extra = overrides.pop("extra", {})
         cfg = cfg.merged(Config(extra=extra, **overrides))
     return cfg
