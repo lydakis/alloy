@@ -76,14 +76,14 @@ docs-serve:
 	@if command -v mkdocs >/dev/null 2>&1; then \
 	  mkdocs serve -a 127.0.0.1:8000; \
 	else \
-	  echo "[docs] mkdocs not found. Try: pip install 'alloy[docs]'"; \
+	  echo "[docs] mkdocs not found. Try: pip install 'alloy-ai[docs]'"; \
 	fi
 
 docs-build:
 	@if command -v mkdocs >/dev/null 2>&1; then \
 	  mkdocs build --strict; \
 	else \
-	  echo "[docs] mkdocs not found. Try: pip install 'alloy[docs]'"; \
+	  echo "[docs] mkdocs not found. Try: pip install 'alloy-ai[docs]'"; \
 	fi
 dist:
 	@python -m pip install --upgrade build >/dev/null 2>&1 || true

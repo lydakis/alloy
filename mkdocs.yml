@@ -4,6 +4,7 @@ site_url: https://docs.alloy.fyi/
 repo_url: https://github.com/lydakis/alloy
 theme:
   name: material
+  custom_dir: overrides
   features:
     - navigation.instant
     - navigation.sections
@@ -28,6 +29,30 @@ plugins:
             members_order: source
             separate_signature: true
             filters: []
+  - gen-files:
+      scripts:
+        - gen_linkset.py
+  - llmstxt:
+      full_output: llms-full.txt
+      sections:
+        "Overview":
+          - index.md: Intro
+          - getting-started.md: Getting Started
+        "Guides":
+          - configuration.md: Configuration
+          - commands.md: Commands & Tools
+          - equivalence.md: Equivalence Guide
+          - tool_recipes.md: Tool Recipes
+          - typing.md: Typing
+          - backends.md: Backends & Routing
+          - cookbook.md: Cookbook
+          - outputs.md: Enforcing Outputs
+          - examples.md: Examples
+          - contributing-docs.md: Contributing Docs
+          - roadmap.md: Roadmap
+          - whats-new.md: What's New
+        "API":
+          - api/**/*.md
 markdown_extensions:
   - admonition
   - codehilite
@@ -35,6 +60,7 @@ markdown_extensions:
       permalink: true
   - pymdownx.highlight
   - pymdownx.superfences
+# (Removed Copy curl UI assets)
 nav:
   - Overview: index.md
   - Getting Started: getting-started.md

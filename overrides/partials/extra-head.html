@@ -1,0 +1,4 @@
+{% if page and page.url %}
+  <link rel="alternate" type="text/markdown"
+        href="{{ base_url }}{{ page.url }}{% if not page.url.endswith('/') %}/{% endif %}index.md">
+{% endif %}
