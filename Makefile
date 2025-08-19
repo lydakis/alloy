@@ -79,7 +79,7 @@ docs-serve:
 	  echo "[docs] mkdocs not found. Try: pip install 'alloy-ai[docs]'"; \
 	fi
 
-docs-build:
+docs-build: docs-sync-brand
 	@if command -v mkdocs >/dev/null 2>&1; then \
 	  mkdocs build --strict; \
 	else \
@@ -94,3 +94,9 @@ release:
 	@echo "Create and push a tag to publish via GitHub Actions (trusted publishing):"
 	@echo "  git tag v$${VERSION:-0.1.1} && git push origin v$${VERSION:-0.1.1}"
 	@echo "Ensure PyPI trusted publishing is configured for this repo under the 'alloy-ai' project."
+docs-sync-brand:
+	@if command -v $(PY) >/dev/null 2>&1; then \
+	  $(PY) scripts/sync_brand_assets.py || true; \
+	else \
+	  echo "[docs] python not found; skipping brand asset sync"; \
+	fi
