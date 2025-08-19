@@ -1,0 +1,19 @@
+:root {
+  /* Brand colors to align with alloy.fyi */
+  --md-primary-fg-color: #7aa2ff;
+  --md-primary-fg-color--light: #9bb8ff;
+  --md-primary-fg-color--dark: #557fe0;
+  --md-accent-fg-color: #54f0d1;
+
+  /* System fonts, matching apex site */
+  --md-text-font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --md-code-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+/* Slightly tone down strong link color in body text */
+.md-typeset a { text-underline-offset: 2px; }
+
+/* Optional: subtle header backdrop to nod to apex colors without full dark mode */
+.md-header {
+  backdrop-filter: saturate(1.1) blur(0px);
+}

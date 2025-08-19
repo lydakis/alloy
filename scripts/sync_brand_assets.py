@@ -20,7 +20,9 @@ def fetch(url: str) -> bytes:
 
 
 def main() -> int:
-    base = os.environ.get("ALLOY_BRAND_BASE_URL", "https://lydakis.github.io/alloy-brand").rstrip("/")
+    base = os.environ.get("ALLOY_BRAND_BASE_URL", "https://lydakis.github.io/alloy-brand").rstrip(
+        "/"
+    )
     targets = {
         f"{base}/logo-mark.svg": Path("docs/assets/logo.svg"),
         f"{base}/favicon.svg": Path("docs/assets/favicon.svg"),
@@ -48,4 +50,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

@@ -60,6 +60,8 @@ markdown_extensions:
       permalink: true
   - pymdownx.highlight
   - pymdownx.superfences
+extra_css:
+  - assets/theme.css
 # (Removed Copy curl UI assets)
 nav:
   - Overview: index.md

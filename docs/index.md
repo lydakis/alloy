@@ -9,7 +9,15 @@ Alloy lets you declare typed AI commands in Python, wire up tools, and route to 
 - Tool calling with contracts and validation
 - Multi‑provider backends (OpenAI, Anthropic, Gemini, Ollama)
 
+Install with:
+
+```bash
+pip install alloy-ai
+```
+
 See Getting Started for installation and a 2‑minute tutorial.
+
+Looking for recent changes? See the [What’s New](whats-new.md) page.
 
 > Note: This site is built and deployed via GitHub Actions.
 
