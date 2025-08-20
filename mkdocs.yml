@@ -74,6 +74,7 @@ nav:
   - Backends & Routing: backends.md
   - Cookbook: cookbook.md
   - Enforcing Outputs: outputs.md
+  - Stability & Support: stability.md
   - Examples: examples.md
   - Roadmap: roadmap.md
   - What's New: whats-new.md

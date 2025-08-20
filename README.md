@@ -17,6 +17,8 @@ License: MIT
 
 This repository contains an early scaffold of the Alloy library per `alloy-spec-v1.md`.
 
+Stability: OpenAI backend is Stable; Anthropic is Beta; Gemini/Ollama are Experimental. “Stable” isn’t bug‑free — issues are tracked and fixed as prioritized.
+
 ### Example: CSV to API
 
 ```python
