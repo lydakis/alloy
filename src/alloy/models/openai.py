@@ -95,6 +95,14 @@ def _output_as_str(resp: Any) -> str:
     return "".join(parts)
 
 
+def _has_any_output(resp: Any) -> bool:
+    parsed = _get(resp, "output_parsed", None)
+    if parsed is not None:
+        return True
+    text = _output_as_str(resp)
+    return bool(text and text.strip())
+
+
 class _LoopState:
     def __init__(
         self,
@@ -256,6 +264,21 @@ class OpenAIBackend(ModelBackend):
             resp = client.responses.create(**state.build_kwargs())
             done, out = state.after_response(resp)
             if done:
+                if (
+                    state.text_format
+                    and (state.config.auto_finalize_missing_output is not False)
+                    and not _has_any_output(resp)
+                ):
+                    kwargs2 = _prepare_request_kwargs(
+                        "Provide the final answer in the required format.",
+                        config=state.config,
+                        text_format=state.text_format,
+                        tool_defs=None,
+                        pending=None,
+                        prev_id=state.prev_id,
+                    )
+                    resp2 = client.responses.create(**kwargs2)
+                    return _output_as_str(resp2)
                 return out
 
     def stream(
@@ -321,6 +344,21 @@ class OpenAIBackend(ModelBackend):
             resp = await client.responses.create(**state.build_kwargs())
             done, out = state.after_response(resp)
             if done:
+                if (
+                    state.text_format
+                    and (state.config.auto_finalize_missing_output is not False)
+                    and not _has_any_output(resp)
+                ):
+                    kwargs2 = _prepare_request_kwargs(
+                        "Provide the final answer in the required format.",
+                        config=state.config,
+                        text_format=state.text_format,
+                        tool_defs=None,
+                        pending=None,
+                        prev_id=state.prev_id,
+                    )
+                    resp2 = await client.responses.create(**kwargs2)
+                    return _output_as_str(resp2)
                 return out
 
     async def astream(
