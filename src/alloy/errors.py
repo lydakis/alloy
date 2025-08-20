@@ -12,3 +12,7 @@ class ToolError(AlloyError):
 
 class ConfigurationError(AlloyError):
     """Raised when required configuration or provider backends are missing."""
+
+
+class ToolLoopLimitExceeded(CommandError):
+    """Raised when the tool-call turn limit is exceeded without a final answer."""

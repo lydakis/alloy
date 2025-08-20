@@ -5,7 +5,7 @@ from typing import Any
 import json
 
 from ..config import Config
-from ..errors import ConfigurationError, ToolError
+from ..errors import ConfigurationError, ToolError, ToolLoopLimitExceeded
 from .base import ModelBackend
 
 
@@ -121,6 +121,7 @@ class _LoopState:
         self.turns = 0
         self.prev_id: str | None = None
         self.pending: list[dict[str, Any]] | None = None
+        self.exceeded_tool_limit: bool = False
 
     def build_kwargs(self) -> dict[str, object]:
         return _prepare_request_kwargs(
@@ -139,6 +140,7 @@ class _LoopState:
             self.turns += 1
             limit = self.config.max_tool_turns
             if isinstance(limit, int) and limit >= 0 and self.turns > limit:
+                self.exceeded_tool_limit = True
                 return True, _output_as_str(resp)
             self.pending = _process_tool_calls(calls, self.tool_map)
             return False, ""
@@ -265,6 +267,11 @@ class OpenAIBackend(ModelBackend):
             resp = client.responses.create(**state.build_kwargs())
             done, out = state.after_response(resp)
             if done:
+                if state.exceeded_tool_limit:
+                    lim = state.config.max_tool_turns
+                    raise ToolLoopLimitExceeded(
+                        f"Exceeded tool-call turn limit (max_tool_turns={lim}). No final answer produced."
+                    )
                 if (
                     state.text_format
                     and (state.config.auto_finalize_missing_output is not False)
@@ -345,6 +352,11 @@ class OpenAIBackend(ModelBackend):
             resp = await client.responses.create(**state.build_kwargs())
             done, out = state.after_response(resp)
             if done:
+                if state.exceeded_tool_limit:
+                    lim = state.config.max_tool_turns
+                    raise ToolLoopLimitExceeded(
+                        f"Exceeded tool-call turn limit (max_tool_turns={lim}). No final answer produced."
+                    )
                 if (
                     state.text_format
                     and (state.config.auto_finalize_missing_output is not False)
