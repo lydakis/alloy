@@ -14,6 +14,15 @@ theme:
     - scheme: default
       primary: indigo
       accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/white-balance-sunny
+        name: Switch to light mode
   logo: assets/logo.svg
   favicon: assets/favicon.svg
 plugins:
