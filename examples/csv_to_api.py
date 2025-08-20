@@ -4,10 +4,18 @@ import json
 import pandas as pd
 from dotenv import load_dotenv
 
+from dataclasses import dataclass, asdict
 from alloy import command
 
 
-@command(output=list[dict])
+@dataclass
+class CustomerPayload:
+    fullName: str
+    emailAddress: str
+    subscriptionTier: str
+
+
+@command(output=list[CustomerPayload])
 def csv_to_api(df: pd.DataFrame, endpoint_example: str) -> str:
     """Intelligently map CSV columns to API format.
 
@@ -41,7 +49,7 @@ def main():
     payloads = csv_to_api(df, "POST /customers {fullName, emailAddress, subscriptionTier}")
     print("Generated", len(payloads), "payloads:")
     for p in payloads[:10]:  # print first 10 for brevity
-        print(json.dumps(p, indent=2, ensure_ascii=False))
+        print(json.dumps(asdict(p), indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":

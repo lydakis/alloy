@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Iterable
-from typing import Any, Callable
-
-import json as _json
+from typing import Any, Callable, NoReturn
 from .config import get_config
 from .errors import CommandError
 from .models.base import get_backend
@@ -26,9 +24,9 @@ def command(
 ):
     """Decorator to declare an AI-powered command.
 
-    The wrapped function returns an English specification (prompt). This
-    decorator executes the model with optional tools and parses the result
-    into the annotated return type.
+    The wrapped function returns an English prompt specification. This executes
+    the model with optional tools and parses the result into the annotated
+    return type. The `retry` parameter represents total attempts (minimum 1).
     """
 
     def wrap(func: Callable[..., Any]):
@@ -51,7 +49,31 @@ def command(
     return wrap
 
 
-class Command:
+class _CommandHelpers:
+    def _parse_or_return(self, text: Any):
+        if self._output_type is None:
+            return text
+        try:
+            return parse_output(self._output_type, text)
+        except Exception as parse_exc:
+            expected = getattr(self._output_type, "__name__", str(self._output_type))
+            snippet = (text[:120] + "…") if isinstance(text, str) and len(text) > 120 else text
+            raise CommandError(
+                f"Failed to parse model output as {expected}: {snippet!r}"
+            ) from parse_exc
+
+    def _should_break_retry(self, retry_on: type[BaseException] | None, exc: Exception) -> bool:
+        return bool(retry_on and not isinstance(exc, retry_on))
+
+    def _raise_after_retries(self, last_err: Exception | None, attempts: int) -> NoReturn:
+        if isinstance(last_err, CommandError):
+            raise last_err
+        if last_err is not None:
+            raise CommandError(f"Command failed after {attempts} attempts") from last_err
+        raise CommandError("Unknown command error after exhausting retries")
+
+
+class Command(_CommandHelpers):
     def __init__(
         self,
         func: Callable[..., Any],
@@ -70,14 +92,12 @@ class Command:
         self.__doc__ = func.__doc__
         self._is_async = inspect.iscoroutinefunction(func)
 
-    # Synchronous call
     def __call__(self, *args, **kwargs):
         if self._is_async:
             return self.async_(*args, **kwargs)
         prompt = self._func(*args, **kwargs)
         if not isinstance(prompt, str):
             prompt = str(prompt)
-        prompt = _augment_prompt(prompt, self._output_type)
         effective = get_config(self._cfg)
         backend = get_backend(effective.model)
 
@@ -93,31 +113,14 @@ class Command:
                     output_schema=output_schema,
                     config=effective,
                 )
-                if self._output_type is None:
-                    return text
-                try:
-                    return parse_output(self._output_type, text)
-                except Exception as parse_exc:
-                    expected = getattr(self._output_type, "__name__", str(self._output_type))
-                    snippet = (
-                        (text[:120] + "…") if isinstance(text, str) and len(text) > 120 else text
-                    )
-                    raise CommandError(
-                        f"Failed to parse model output as {expected}: {snippet!r}"
-                    ) from parse_exc
+                return self._parse_or_return(text)
             except Exception as e:
                 last_err = e
-                if effective.retry_on and not isinstance(e, effective.retry_on):
+                if self._should_break_retry(effective.retry_on, e):
                     break
-                # else: retry
-        # Exhausted retries
-        if isinstance(last_err, CommandError):
-            raise last_err
-        raise CommandError(str(last_err) if last_err else "Unknown command error")
+        self._raise_after_retries(last_err, attempts)
 
-    def stream(
-        self, *args, **kwargs
-    ) -> Iterable[str] | Any:  # may return AsyncIterable for async commands
+    def stream(self, *args, **kwargs) -> Iterable[str] | Any:
         effective = get_config(self._cfg)
         backend = get_backend(effective.model)
         output_schema = to_json_schema(self._output_type) if self._output_type else None
@@ -142,7 +145,6 @@ class Command:
                 prompt_str = str(prompt_val)
             else:
                 prompt_str = prompt_val
-            prompt_str = _augment_prompt(prompt_str, self._output_type)
             try:
                 aiter = await backend.astream(
                     prompt_str,
@@ -157,7 +159,7 @@ class Command:
 
         return agen()
 
-    async def async_(self, *args, **kwargs):  # pragma: no cover
+    async def async_(self, *args, **kwargs):
         if self._is_async:
             prompt_val = await self._func(*args, **kwargs)
         else:
@@ -166,7 +168,6 @@ class Command:
             prompt = str(prompt_val)
         else:
             prompt = prompt_val
-        prompt = _augment_prompt(prompt, self._output_type)
         effective = get_config(self._cfg)
         backend = get_backend(effective.model)
         output_schema = to_json_schema(self._output_type) if self._output_type else None
@@ -181,33 +182,18 @@ class Command:
                     output_schema=output_schema,
                     config=effective,
                 )
-                if self._output_type is None:
-                    return text
-                try:
-                    return parse_output(self._output_type, text)
-                except Exception as parse_exc:
-                    expected = getattr(self._output_type, "__name__", str(self._output_type))
-                    snippet = (
-                        (text[:120] + "…") if isinstance(text, str) and len(text) > 120 else text
-                    )
-                    raise CommandError(
-                        f"Failed to parse model output as {expected}: {snippet!r}"
-                    ) from parse_exc
+                return self._parse_or_return(text)
             except Exception as e:
                 last_err = e
-                if effective.retry_on and not isinstance(e, effective.retry_on):
+                if self._should_break_retry(effective.retry_on, e):
                     break
-        if isinstance(last_err, CommandError):
-            raise last_err
-        raise CommandError(str(last_err) if last_err else "Unknown command error")
+        self._raise_after_retries(last_err, attempts)
 
 
 def _to_spec(func: Callable[..., Any]) -> ToolSpec:
-    # If already decorated with @tool, it exposes _alloy_tool_spec
     spec = getattr(func, "_alloy_tool_spec", None)
     if spec is not None:
         return spec
-    # Otherwise, create a minimal spec
     from .tool import ToolSpec as TS
     import inspect as _inspect
 
@@ -227,42 +213,3 @@ def _get_return_type(func: Callable[..., Any]):
         )
     except Exception:
         return None
-
-
-def _augment_prompt(prompt: str, output_type: type | None) -> str:
-    """Add minimal, unobtrusive hints to steer models to the expected shape.
-
-    This supplements provider-side structured outputs and helps models that
-    ignore response_format by biasing the completion toward strict outputs.
-    """
-    if output_type is None:
-        return prompt
-    # Primitive guidance
-    if output_type is float:
-        guard = (
-            "\n\nInstructions: Return only the number as a decimal using '.'; "
-            "no currency symbols, units, or extra text."
-        )
-        return f"{prompt}{guard}"
-    if output_type is int:
-        guard = "\n\nInstructions: Return only an integer number; no words or punctuation."
-        return f"{prompt}{guard}"
-    if output_type is bool:
-        guard = "\n\nInstructions: Return only true or false in lowercase; no extra text."
-        return f"{prompt}{guard}"
-    # Dataclass/object guidance: include schema hint for older providers
-    try:
-        schema = to_json_schema(output_type)
-    except Exception:
-        schema = None
-    if isinstance(schema, dict):
-        try:
-            schema_json = _json.dumps(schema)
-        except Exception:
-            schema_json = str(schema)
-        guard = (
-            "\n\nInstructions: Output only valid JSON matching this schema exactly, "
-            "with no commentary, code fences, or extra properties.\n" + schema_json
-        )
-        return f"{prompt}{guard}"
-    return prompt

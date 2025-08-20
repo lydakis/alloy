@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from .errors import ToolError
 from .types import to_json_schema
@@ -13,7 +13,7 @@ Predicate = Callable[[Any], bool]
 
 @dataclass
 class Contract:
-    kind: str  # "require" | "ensure"
+    kind: str
     predicate: Predicate
     message: str
 
@@ -79,25 +79,20 @@ class ToolCallable:
         return self._spec
 
     def __call__(self, *args, **kwargs):
-        # Bind arguments to run preconditions with access to arguments
         bound = inspect.signature(self._spec.func).bind_partial(*args, **kwargs)
         bound.apply_defaults()
-        # REQUIRE checks
         for c in self._spec.requires:
             ok = _run_predicate(c.predicate, bound)
             if not ok:
                 raise ToolError(c.message)
-        # Call tool
         result = self._spec.func(*args, **kwargs)
-        # ENSURE checks
         for c in self._spec.ensures:
             ok = _run_predicate(c.predicate, result)
             if not ok:
                 raise ToolError(c.message)
         return result
 
-    # For provider adapters to introspect
-    def __getattr__(self, item):  # pragma: no cover - passthrough
+    def __getattr__(self, item):
         return getattr(self._spec.func, item)
 
 
@@ -108,7 +103,7 @@ def _run_predicate(pred: Predicate, value: Any) -> bool:
         return False
 
 
-def tool(fn: Optional[Callable[..., Any]] = None):
+def tool(fn: Callable[..., Any] | None = None):
     """Decorator to mark a Python function as an Alloy tool.
 
     The decorated callable still runs locally in Python, but carries
@@ -127,7 +122,6 @@ def tool(fn: Optional[Callable[..., Any]] = None):
             ensures=ensures,
         )
         wrapped = ToolCallable(spec)
-        # Attach spec for adapters
         setattr(wrapped, "_alloy_tool_spec", spec)
         return wrapped
 
