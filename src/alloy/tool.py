@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
 from .errors import ToolError
+from .types import to_json_schema
 
 
 Predicate = Callable[[Any], bool]
@@ -27,10 +28,16 @@ class ToolSpec:
     ensures: list[Contract] = field(default_factory=list)
 
     def as_schema(self) -> dict[str, Any]:
-        # Minimal function tool schema for provider adapters
-        params = inspect.signature(self.func).parameters
-        properties = {name: {"type": "string"} for name in params}  # simple stub
-        required = list(params.keys())
+        sig = inspect.signature(self.func)
+        properties: dict[str, Any] = {}
+        required: list[str] = []
+        for name, p in sig.parameters.items():
+            ann = p.annotation if p.annotation is not inspect._empty else None
+            schema = to_json_schema(ann) if ann is not None else None
+            if not isinstance(schema, dict):
+                schema = {"type": "string"}
+            properties[name] = schema
+            required.append(name)
         return {
             "name": self.name,
             "description": self.description,
@@ -38,6 +45,7 @@ class ToolSpec:
                 "type": "object",
                 "properties": properties,
                 "required": required,
+                "additionalProperties": False,
             },
         }
 

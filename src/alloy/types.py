@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import typing as t
-from typing import get_args, get_origin
+from typing import get_args, get_origin, get_type_hints
 from dataclasses import is_dataclass, fields, MISSING
 
 
@@ -10,13 +10,43 @@ Primitive = t.Union[str, int, float, bool]
 
 
 def to_json_schema(tp: t.Any) -> t.Optional[dict]:
+    """Best-effort JSON Schema generator for output types.
+
+    Supports primitives, dataclasses (with postponed annotations), and nested
+    lists/dicts. Falls back to None for complex generics/Unions so callers can
+    avoid forcing a schema when not strictly necessary.
+    """
+    # Primitives
     if tp in (str, int, float, bool):
         return {"type": _primitive_name(tp)}
+
+    # Generic containers
+    origin = get_origin(tp)
+    args = get_args(tp)
+    if origin in (list, t.List):
+        items_t = args[0] if args else t.Any
+        items_schema = to_json_schema(items_t) or {}
+        return {"type": "array", "items": items_schema}
+    if origin in (dict, t.Dict):
+        # Only support string keys for schema emission; otherwise fall back to None
+        key_t = args[0] if len(args) >= 1 else t.Any
+        val_t = args[1] if len(args) >= 2 else t.Any
+        if key_t not in (str, t.Any):
+            return None
+        val_schema = to_json_schema(val_t) or {}
+        return {"type": "object", "additionalProperties": val_schema}
+
+    # Dataclasses (resolve postponed annotations)
     if is_dataclass_type(tp):
         props: dict[str, dict] = {}
         required: list[str] = []
+        try:
+            hints = get_type_hints(tp)
+        except Exception:
+            hints = {}
         for f in fields(tp):
-            f_schema = to_json_schema(f.type) or {}
+            f_type = hints.get(f.name, f.type)
+            f_schema = to_json_schema(f_type) or {}
             props[f.name] = f_schema
             if f.default is MISSING and getattr(f, "default_factory", MISSING) is MISSING:
                 required.append(f.name)
@@ -24,6 +54,7 @@ def to_json_schema(tp: t.Any) -> t.Optional[dict]:
         if required:
             schema["required"] = required
         return schema
+
     return None
 
 

@@ -8,11 +8,133 @@ from ..errors import ConfigurationError
 from .base import ModelBackend
 
 
-class OpenAIBackend(ModelBackend):
-    """OpenAI backend using Chat Completions.
+def _build_text_format(output_schema: dict | None) -> dict | None:
+    if not output_schema or not isinstance(output_schema, dict):
+        return None
+    schema = dict(output_schema)
+    if schema.get("type") != "object":
+        schema = {
+            "type": "object",
+            "properties": {"value": output_schema},
+            "required": ["value"],
+        }
+    if "additionalProperties" not in schema:
+        schema["additionalProperties"] = False
+    return {"type": "json_schema", "name": "alloy_output", "schema": schema, "strict": True}
 
-    Requires the `openai` SDK. If it is not installed, a ConfigurationError is raised
-    at call time so importing the module does not crash users without the SDK.
+
+def _build_tools(tools: list | None) -> tuple[list[dict] | None, dict[str, Any]]:
+    if not tools:
+        return None, {}
+    tool_defs: list[dict] = []
+    tool_map: dict[str, Any] = {}
+    for t in tools:
+        spec = t.spec.as_schema()
+        params = spec.get("parameters") if isinstance(spec, dict) else None
+        if not isinstance(params, dict):
+            params = {"type": "object"}
+        tool_defs.append(
+            {
+                "type": "function",
+                "name": t.spec.name,
+                "description": t.spec.description,
+                "parameters": params,
+            }
+        )
+        tool_map[t.spec.name] = t
+    return tool_defs, tool_map
+
+
+def _extract_function_calls(resp: Any) -> list[dict[str, str]]:
+    calls: list[dict[str, str]] = []
+    try:
+        for it in getattr(resp, "output", []) or []:
+            item = it
+            t = getattr(item, "type", None) if not isinstance(item, dict) else item.get("type")
+            if t == "function_call":
+                calls.append(
+                    {
+                        "call_id": (
+                            getattr(item, "call_id", "")
+                            if not isinstance(item, dict)
+                            else item.get("call_id", "")
+                        ),
+                        "name": (
+                            getattr(item, "name", "")
+                            if not isinstance(item, dict)
+                            else item.get("name", "")
+                        ),
+                        "arguments": (
+                            getattr(item, "arguments", "{}")
+                            if not isinstance(item, dict)
+                            else item.get("arguments", "{}")
+                        ),
+                    }
+                )
+    except Exception:
+        pass
+    return calls
+
+
+def _output_as_str(resp: Any) -> str:
+    try:
+        parsed = getattr(resp, "output_parsed", None)
+        if parsed is not None:
+            import json as _json
+
+            try:
+                return _json.dumps(parsed)
+            except Exception:
+                return str(parsed)
+    except Exception:
+        pass
+    try:
+        txt = getattr(resp, "output_text", None)
+        if isinstance(txt, str) and txt:
+            return txt
+    except Exception:
+        pass
+    try:
+        parts: list[str] = []
+        for it in getattr(resp, "output", []) or []:
+            item = it
+            t = getattr(item, "type", None) if not isinstance(item, dict) else item.get("type")
+            if t == "message":
+                contents = (
+                    getattr(item, "content", None)
+                    if not isinstance(item, dict)
+                    else item.get("content")
+                )
+                if isinstance(contents, list):
+                    for c in contents:
+                        ct = getattr(c, "type", None) if not isinstance(c, dict) else c.get("type")
+                        if ct == "output_text":
+                            val = (
+                                getattr(c, "text", None)
+                                if not isinstance(c, dict)
+                                else c.get("text")
+                            )
+                            if isinstance(val, str):
+                                parts.append(val)
+            elif t == "output_text":
+                val = (
+                    getattr(item, "text", None) if not isinstance(item, dict) else item.get("text")
+                )
+                if isinstance(val, str):
+                    parts.append(val)
+        return "".join(parts)
+    except Exception:
+        return ""
+
+
+class OpenAIBackend(ModelBackend):
+    """OpenAI backend using the Responses API.
+
+    Implements completion and streaming via `responses.create`/`responses.stream`,
+    supports function tool-calls by looping with `previous_response_id`, and
+    emits structured outputs using `text.format` with a JSON Schema when an
+    `output_schema` is provided. Raises `ConfigurationError` if the SDK is
+    unavailable.
     """
 
     def complete(
@@ -27,133 +149,92 @@ class OpenAIBackend(ModelBackend):
             from openai import OpenAI
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(
-                "OpenAI SDK not installed. Run `pip install openai>=1.0`."
+                "OpenAI SDK not installed. Run `pip install openai>=1.99.6`."
             ) from e
 
         client: Any = OpenAI()
-        messages: list[dict[str, Any]] = []
-        if config.default_system:
-            messages.append({"role": "system", "content": config.default_system})
-        messages.append({"role": "user", "content": prompt})
+        tool_defs, tool_map = _build_tools(tools)
+        text_format = _build_text_format(output_schema)
 
-        tool_schemas = None
-        tool_map: dict[str, Any] = {}
-        if tools:
-            tool_schemas = [{"type": "function", "function": t.spec.as_schema()} for t in tools]
-            tool_map = {t.spec.name: t for t in tools}
+        is_gpt5 = bool(config.model and "gpt-5" in config.model)
+        is_o_family = bool(
+            (config.model or "").lower().startswith("o1")
+            or (config.model or "").lower().startswith("o3")
+        )
 
-        response_format = None
-        # OpenAI structured outputs require an object schema. If primitive, wrap.
-        wrapped_primitive = False
-        if output_schema and isinstance(output_schema, dict):
-            schema = output_schema
-            if schema.get("type") != "object":
-                schema = {
-                    "type": "object",
-                    "properties": {"value": output_schema},
-                    "required": ["value"],
-                }
-                wrapped_primitive = True
-            response_format = {
-                "type": "json_schema",
-                "json_schema": {"name": "alloy_output", "schema": schema},
-            }
-
-        tool_turns = 0
+        turns = 0
+        prev_id: str | None = None
+        pending: list[dict[str, Any]] | None = None
         while True:
-            is_gpt5 = bool(config.model and "gpt-5" in config.model)
-            kwargs: dict[str, object] = {
-                "model": config.model if config.model is not None else "",
-                "messages": messages,
-            }
-            if tool_schemas is not None:
-                kwargs["tools"] = tool_schemas
+            kwargs: dict[str, object] = {"model": config.model or ""}
+            if config.default_system:
+                kwargs["instructions"] = str(config.default_system)
+            if pending is None:
+                kwargs["input"] = prompt
+            else:
+                kwargs["previous_response_id"] = prev_id or ""
+                kwargs["input"] = pending
+            if tool_defs is not None:
+                kwargs["tools"] = tool_defs
                 kwargs["tool_choice"] = "auto"
-            if (config.temperature is not None) and not is_gpt5:
+            if text_format is not None:
+                kwargs["text"] = {"format": text_format}
+            if (config.temperature is not None) and not (is_gpt5 or is_o_family):
                 kwargs["temperature"] = config.temperature
             if config.max_tokens is not None:
-                # Some newer models require max_completion_tokens instead of max_tokens
-                use_completion_tokens = False
-                m = (config.model or "").lower()
-                if "gpt-5" in m or m.startswith("o1") or m.startswith("o3"):
-                    use_completion_tokens = True
-                kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = (
-                    config.max_tokens
-                )
-            if response_format is not None:
-                kwargs["response_format"] = response_format
-            resp = client.chat.completions.create(**kwargs)
+                kwargs["max_output_tokens"] = config.max_tokens
 
-            choice = resp.choices[0]
-            msg = choice.message
-            tool_calls = getattr(msg, "tool_calls", None)
+            resp = client.responses.create(**kwargs)
+            prev_id = getattr(resp, "id", None) or prev_id
 
-            if tool_calls:
-                tool_turns += 1
+            calls = _extract_function_calls(resp)
+            if calls and tool_defs is not None:
+                turns += 1
                 limit = config.max_tool_turns or 2
-                if tool_turns > limit:
-                    # Safety: avoid long loops; return current assistant content
-                    return msg.content or ""
-                # Append assistant message that requested tool calls first
-                messages.append(
-                    {
-                        "role": "assistant",
-                        "content": msg.content or "",
-                        "tool_calls": [tc for tc in tool_calls],
-                    }
-                )
-                for tc in tool_calls:
-                    name = tc.function.name
-                    args = tc.function.arguments or "{}"
+                if turns > limit:
+                    return _output_as_str(resp)
+                import json as _json
+
+                outputs: list[dict[str, str]] = []
+                for call in calls:
+                    name = call.get("name") or ""
+                    args_raw = call.get("arguments") or "{}"
+                    call_id = call.get("call_id") or ""
                     tool = tool_map.get(name)
                     if not tool:
-                        content = f"Tool '{name}' not available."
+                        result_obj: Any = {
+                            "type": "tool_error",
+                            "error": f"Tool '{name}' not available.",
+                        }
                     else:
-                        import json
-
                         try:
-                            parsed = json.loads(args)
+                            parsed = _json.loads(args_raw)
                         except Exception:
                             parsed = {}
                         try:
                             result = tool(**parsed) if isinstance(parsed, dict) else tool(parsed)
-                            try:
-                                content = json.dumps(result)
-                            except Exception:
-                                content = str(result)
-                        except Exception as _tool_exc:
-                            # Design-by-contract: surface contract/tool messages back to the model
+                            result_obj = result
+                        except Exception as exc:
                             from ..errors import ToolError as _ToolError  # local import
 
-                            if isinstance(_tool_exc, _ToolError):
-                                content = str(_tool_exc)
+                            if isinstance(exc, _ToolError):
+                                result_obj = str(exc)
                             else:
-                                content = json.dumps(
-                                    {"type": "tool_error", "error": str(_tool_exc)}
-                                )
-
-                    messages.append(
-                        {
-                            "role": "tool",
-                            "tool_call_id": tc.id,
-                            "name": name,
-                            "content": content,
-                        }
+                                result_obj = {"type": "tool_error", "error": str(exc)}
+                    if isinstance(result_obj, str):
+                        result_json = result_obj
+                    else:
+                        try:
+                            result_json = _json.dumps(result_obj)
+                        except Exception:
+                            result_json = str(result_obj)
+                    outputs.append(
+                        {"type": "function_call_output", "call_id": call_id, "output": result_json}
                     )
+                pending = outputs
                 continue
 
-            content = msg.content or ""
-            if response_format is not None and wrapped_primitive and content:
-                # Try to extract {"value": ...} for primitives
-                try:
-                    import json as _json
-
-                    data = _json.loads(content)
-                    if isinstance(data, dict) and "value" in data:
-                        return str(data["value"])  # let parse_output coerce type
-                except Exception:
-                    pass
-            return content
+            return _output_as_str(resp)
 
     def stream(
         self,
@@ -167,42 +248,43 @@ class OpenAIBackend(ModelBackend):
             from openai import OpenAI
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(
-                "OpenAI SDK not installed. Run `pip install openai>=1.0`."
+                "OpenAI SDK not installed. Run `pip install openai>=1.99.6`."
             ) from e
 
         if tools:
             raise ConfigurationError("Streaming with tools is not supported yet")
 
         client: Any = OpenAI()
-        messages: list[dict[str, Any]] = []
-        if config.default_system:
-            messages.append({"role": "system", "content": config.default_system})
-        messages.append({"role": "user", "content": prompt})
+        text_format = _build_text_format(output_schema)
 
         is_gpt5 = bool(config.model and "gpt-5" in config.model)
-        kwargs: dict[str, object] = {
-            "model": config.model if config.model is not None else "",
-            "messages": messages,
-            "stream": True,
-        }
-        if (config.temperature is not None) and not is_gpt5:
+        is_o_family = bool(
+            (config.model or "").lower().startswith("o1")
+            or (config.model or "").lower().startswith("o3")
+        )
+
+        kwargs: dict[str, object] = {"model": config.model or "", "input": prompt}
+        if config.default_system:
+            kwargs["instructions"] = str(config.default_system)
+        if text_format is not None:
+            kwargs["text"] = {"format": text_format}
+        if (config.temperature is not None) and not (is_gpt5 or is_o_family):
             kwargs["temperature"] = config.temperature
         if config.max_tokens is not None:
-            m = (config.model or "").lower()
-            use_completion_tokens = ("gpt-5" in m) or m.startswith("o1") or m.startswith("o3")
-            kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = (
-                config.max_tokens
-            )
-        stream = client.chat.completions.create(**kwargs)
+            kwargs["max_output_tokens"] = config.max_tokens
+
+        stream = client.responses.stream(**kwargs)
 
         def gen():
-            for event in stream:
-                try:
-                    delta = event.choices[0].delta.content or ""
-                except Exception:
-                    delta = ""
-                if delta:
-                    yield delta
+            with stream as s:
+                for event in s:
+                    et = getattr(event, "type", "")
+                    if et == "response.output_text.delta":
+                        delta = getattr(event, "delta", "") or ""
+                        if delta:
+                            yield delta
+                    elif et == "error":
+                        break
 
         return gen()
 
@@ -218,115 +300,92 @@ class OpenAIBackend(ModelBackend):
             from openai import AsyncOpenAI
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(
-                "OpenAI SDK not installed. Run `pip install openai>=1.0`."
+                "OpenAI SDK not installed. Run `pip install openai>=1.99.6`."
             ) from e
 
         client: Any = AsyncOpenAI()
-        messages: list[dict[str, Any]] = []
-        if config.default_system:
-            messages.append({"role": "system", "content": config.default_system})
-        messages.append({"role": "user", "content": prompt})
+        tool_defs, tool_map = _build_tools(tools)
+        text_format = _build_text_format(output_schema)
 
-        tool_schemas = None
-        tool_map: dict[str, Any] = {}
-        if tools:
-            tool_schemas = [{"type": "function", "function": t.spec.as_schema()} for t in tools]
-            tool_map = {t.spec.name: t for t in tools}
+        is_gpt5 = bool(config.model and "gpt-5" in config.model)
+        is_o_family = bool(
+            (config.model or "").lower().startswith("o1")
+            or (config.model or "").lower().startswith("o3")
+        )
 
-        response_format = None
-        wrapped_primitive = False
-        if output_schema and isinstance(output_schema, dict):
-            schema = output_schema
-            if schema.get("type") != "object":
-                schema = {
-                    "type": "object",
-                    "properties": {"value": output_schema},
-                    "required": ["value"],
-                }
-                wrapped_primitive = True
-            response_format = {
-                "type": "json_schema",
-                "json_schema": {"name": "alloy_output", "schema": schema},
-            }
-
-        tool_turns = 0
+        turns = 0
+        prev_id: str | None = None
+        pending: list[dict[str, Any]] | None = None
         while True:
-            is_gpt5 = bool(config.model and "gpt-5" in config.model)
-            kwargs: dict[str, object] = {
-                "model": config.model if config.model is not None else "",
-                "messages": messages,
-            }
-            if tool_schemas is not None:
-                kwargs["tools"] = tool_schemas
+            kwargs: dict[str, object] = {"model": config.model or ""}
+            if config.default_system:
+                kwargs["instructions"] = str(config.default_system)
+            if pending is None:
+                kwargs["input"] = prompt
+            else:
+                kwargs["previous_response_id"] = prev_id or ""
+                kwargs["input"] = pending
+            if tool_defs is not None:
+                kwargs["tools"] = tool_defs
                 kwargs["tool_choice"] = "auto"
-            if (config.temperature is not None) and not is_gpt5:
+            if text_format is not None:
+                kwargs["text"] = {"format": text_format}
+            if (config.temperature is not None) and not (is_gpt5 or is_o_family):
                 kwargs["temperature"] = config.temperature
             if config.max_tokens is not None:
-                m = (config.model or "").lower()
-                use_completion_tokens = ("gpt-5" in m) or m.startswith("o1") or m.startswith("o3")
-                kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = (
-                    config.max_tokens
-                )
-            if response_format is not None:
-                kwargs["response_format"] = response_format
-            resp = await client.chat.completions.create(**kwargs)
-            choice = resp.choices[0]
-            msg = choice.message
-            tool_calls = getattr(msg, "tool_calls", None)
-            if tool_calls:
-                tool_turns += 1
+                kwargs["max_output_tokens"] = config.max_tokens
+
+            resp = await client.responses.create(**kwargs)
+            prev_id = getattr(resp, "id", None) or prev_id
+
+            calls = _extract_function_calls(resp)
+            if calls and tool_defs is not None:
+                turns += 1
                 limit = config.max_tool_turns or 2
-                if tool_turns > limit:
-                    return msg.content or ""
-                messages.append(
-                    {
-                        "role": "assistant",
-                        "content": msg.content or "",
-                        "tool_calls": [tc for tc in tool_calls],
-                    }
-                )
-                for tc in tool_calls:
-                    name = tc.function.name
-                    args = tc.function.arguments or "{}"
+                if turns > limit:
+                    return _output_as_str(resp)
+                import json as _json
+
+                outputs: list[dict[str, str]] = []
+                for call in calls:
+                    name = call.get("name") or ""
+                    args_raw = call.get("arguments") or "{}"
+                    call_id = call.get("call_id") or ""
                     tool = tool_map.get(name)
                     if not tool:
-                        content = f"Tool '{name}' not available."
+                        result_obj: Any = {
+                            "type": "tool_error",
+                            "error": f"Tool '{name}' not available",
+                        }
                     else:
-                        import json
-
                         try:
-                            parsed = json.loads(args)
+                            parsed = _json.loads(args_raw)
                         except Exception:
                             parsed = {}
                         try:
                             result = tool(**parsed) if isinstance(parsed, dict) else tool(parsed)
-                            try:
-                                content = json.dumps(result)
-                            except Exception:
-                                content = str(result)
-                        except Exception as _tool_exc:
-                            content = json.dumps({"type": "tool_error", "error": str(_tool_exc)})
+                            result_obj = result
+                        except Exception as exc:
+                            from ..errors import ToolError as _ToolError  # local import
 
-                    messages.append(
-                        {
-                            "role": "tool",
-                            "tool_call_id": tc.id,
-                            "name": name,
-                            "content": content,
-                        }
+                            if isinstance(exc, _ToolError):
+                                result_obj = str(exc)
+                            else:
+                                result_obj = {"type": "tool_error", "error": str(exc)}
+                    if isinstance(result_obj, str):
+                        result_json = result_obj
+                    else:
+                        try:
+                            result_json = _json.dumps(result_obj)
+                        except Exception:
+                            result_json = str(result_obj)
+                    outputs.append(
+                        {"type": "function_call_output", "call_id": call_id, "output": result_json}
                     )
+                pending = outputs
                 continue
-            content = msg.content or ""
-            if response_format is not None and wrapped_primitive and content:
-                try:
-                    import json as _json
 
-                    data = _json.loads(content)
-                    if isinstance(data, dict) and "value" in data:
-                        return str(data["value"])
-                except Exception:
-                    pass
-            return content
+            return _output_as_str(resp)
 
     async def astream(
         self,
@@ -340,40 +399,42 @@ class OpenAIBackend(ModelBackend):
             from openai import AsyncOpenAI
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(
-                "OpenAI SDK not installed. Run `pip install openai>=1.0`."
+                "OpenAI SDK not installed. Run `pip install openai>=1.99.6`."
             ) from e
 
         if tools:
             raise ConfigurationError("Streaming with tools is not supported yet")
 
         client: Any = AsyncOpenAI()
-        messages: list[dict[str, Any]] = []
-        if config.default_system:
-            messages.append({"role": "system", "content": config.default_system})
-        messages.append({"role": "user", "content": prompt})
+        text_format = _build_text_format(output_schema)
 
-        kwargs: dict[str, object] = {
-            "model": config.model if config.model is not None else "",
-            "messages": messages,
-            "stream": True,
-        }
-        if config.temperature is not None:
+        is_gpt5 = bool(config.model and "gpt-5" in config.model)
+        is_o_family = bool(
+            (config.model or "").lower().startswith("o1")
+            or (config.model or "").lower().startswith("o3")
+        )
+
+        kwargs: dict[str, object] = {"model": config.model or "", "input": prompt}
+        if config.default_system:
+            kwargs["instructions"] = str(config.default_system)
+        if text_format is not None:
+            kwargs["text"] = {"format": text_format}
+        if (config.temperature is not None) and not (is_gpt5 or is_o_family):
             kwargs["temperature"] = config.temperature
         if config.max_tokens is not None:
-            m = (config.model or "").lower()
-            use_completion_tokens = ("gpt-5" in m) or m.startswith("o1") or m.startswith("o3")
-            kwargs["max_completion_tokens" if use_completion_tokens else "max_tokens"] = (
-                config.max_tokens
-            )
-        stream = await client.chat.completions.create(**kwargs)
+            kwargs["max_output_tokens"] = config.max_tokens
+
+        stream_ctx = client.responses.stream(**kwargs)
 
         async def agen():
-            async for event in stream:
-                try:
-                    delta = event.choices[0].delta.content or ""
-                except Exception:
-                    delta = ""
-                if delta:
-                    yield delta
+            async with stream_ctx as s:
+                async for event in s:
+                    et = getattr(event, "type", "")
+                    if et == "response.output_text.delta":
+                        delta = getattr(event, "delta", "") or ""
+                        if delta:
+                            yield delta
+                    elif et == "error":
+                        break
 
         return agen()
