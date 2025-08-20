@@ -4,7 +4,7 @@ import inspect
 from collections.abc import Iterable
 from typing import Any, Callable, NoReturn
 from .config import get_config
-from .errors import CommandError
+from .errors import CommandError, ConfigurationError
 from .models.base import get_backend
 from .tool import ToolCallable, ToolSpec
 from .types import to_json_schema, parse_output
@@ -50,6 +50,8 @@ def command(
 
 
 class _CommandHelpers:
+    _output_type: type | None
+
     def _parse_or_return(self, text: Any):
         if self._output_type is None:
             return text
@@ -101,7 +103,10 @@ class Command(_CommandHelpers):
         effective = get_config(self._cfg)
         backend = get_backend(effective.model)
 
-        output_schema = to_json_schema(self._output_type) if self._output_type else None
+        try:
+            output_schema = to_json_schema(self._output_type) if self._output_type else None
+        except ValueError as e:
+            raise ConfigurationError(str(e)) from e
 
         attempts = max(int(effective.retry or 1), 1)
         last_err: Exception | None = None
@@ -123,7 +128,10 @@ class Command(_CommandHelpers):
     def stream(self, *args, **kwargs) -> Iterable[str] | Any:
         effective = get_config(self._cfg)
         backend = get_backend(effective.model)
-        output_schema = to_json_schema(self._output_type) if self._output_type else None
+        try:
+            output_schema = to_json_schema(self._output_type) if self._output_type else None
+        except ValueError as e:
+            raise ConfigurationError(str(e)) from e
 
         if not self._is_async:
             prompt = self._func(*args, **kwargs)

@@ -25,10 +25,10 @@ def to_json_schema(tp: Any) -> dict | None:
         items_schema = to_json_schema(items_t) or {"type": "string"}
         return {"type": "array", "items": items_schema}
     if tp is dict or origin is dict:
-        key_t = args[0] if len(args) >= 1 else Any
-        if key_t not in (str, Any):
-            return None
-        return {"type": "object", "properties": {}, "required": [], "additionalProperties": False}
+        raise ValueError(
+            "Strict Structured Outputs do not support open-ended dict outputs. "
+            "Define a concrete object schema (e.g., a dataclass or TypedDict)."
+        )
     if is_dataclass_type(tp):
         props: dict[str, dict] = {}
         required: list[str] = []

@@ -10,3 +10,13 @@ Release notes and highlights. See full changelog for details.
 - DBC: `ToolError` messages surface back to the model (OpenAI/Anthropic) for early corrective feedback; unit + integration tests; docs + examples.
 - Docs: Typing page, Equivalence Guide, Tool Recipes, patterns examples; standardized imports and decorator style.
 - Tooling: pre-commit enforcement for imports and decorator style in code + docs.
+
+## Unreleased
+- OpenAI: migrate to Responses API; shared request builder; centralized tool-call processing; safer output assembly.
+- Structured Outputs (strict mode):
+  - Only provider-enforced JSON Schema; no prompt shaping.
+  - Fail fast for open-ended objects (`dict`, `dict[...]`, `list[dict]`) with a clear `ConfigurationError` directing users to a concrete schema (dataclass/TypedDict).
+  - Dataclasses: all fields required; `additionalProperties: false`.
+- Types: forward-ref dataclass coercion; unified parse path; cached type-hints; native typing.
+- Commands: helper mixin for parse/retry; consistent error chaining; retry docs clarified (total attempts).
+- Docs: updated “Enforcing Outputs” to describe strict-mode behavior and limitations.

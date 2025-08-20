@@ -1,24 +1,33 @@
 # Enforcing Outputs
 
-Alloy helps ensure your model returns the right shape using two layers:
+Alloy enforces outputs using provider Structured Outputs. A JSON Schema is sent to the model, and responses are parsed into your requested type.
 
-- Provider structured outputs (preferred): When supported, Alloy passes a JSON Schema to the provider and unwraps primitives automatically.
-- Prompt shaping (fallback): Alloy appends minimal guardrails to steer models toward strictly formatted outputs, and raises a clear error if parsing fails.
+## How it works (strict mode)
 
-## How it works
+- Primitives (str, int, float, bool):
+  - Providers require an object root. Alloy wraps primitives as `{ "value": <primitive> }` and unwraps `value` before parsing.
+- Dataclasses (objects):
+  - A JSON Schema is generated from the dataclass. All fields are required and `additionalProperties: false` is set.
+- Arrays: `list[T]` is supported when `T` maps to a concrete schema as above.
 
-- Primitives (float/int/bool/str):
-  - OpenAI / Anthropic / Gemini: Alloy wraps primitives as `{ "value": <primitive> }` (providers require an object) and requests structured output. The backend unwraps `value` before parsing.
-  - Others (e.g., Ollama): Alloy adds a short instruction asking for a single JSON object like `{ "value": 49.99 }`. Parsing then extracts `value` and coerces to the requested type.
+There is no prompt shaping. Output shape is enforced only via Structured Outputs.
 
-- Objects / dataclasses:
-  - Alloy derives a JSON Schema from your dataclass and requests the provider produce JSON that matches it. As a fallback, Alloy adds a short prompt instruction to output JSON that matches the schema exactly.
+## Strict-mode limitations
 
-## Error handling
+Some types cannot produce a strict JSON Schema under provider constraints:
 
-If the model returns something that cannot be parsed, Alloy raises a `CommandError` describing the expected type and shows a short snippet of the model output to aid debugging.
+- Open-ended objects (`dict` or `dict[...]`) and `list[dict]` are not supported.
+  - Strict mode requires `additionalProperties: false`. Accepting arbitrary keys would violate this, so Alloy raises a clear configuration error.
+- Optional/Union types are not supported yet.
 
-Example error:
+Use a concrete schema instead, such as a `@dataclass` or `TypedDict` with known fields.
+
+## Errors and diagnostics
+
+- If an unsupported output type is used in strict mode, Alloy raises `ConfigurationError` with guidance to use a concrete schema.
+- If the model returns an unparsable payload, Alloy raises `CommandError` that includes the expected type and a snippet of the model output.
+
+Example parse error:
 
 ```
 CommandError: Failed to parse model output as float: 'Please provide the text…'
@@ -31,17 +40,13 @@ from alloy import command
 
 @command(output=float)
 def extract_price(text: str) -> str:
-    """Extract price from text."""
     return f"Extract the price (number only) from: {text}"
 
 print(extract_price("This item costs $49.99."))  # -> 49.99
 ```
 
-This will request structured output where available; otherwise the appended hint instructs the model to return only the number (or a JSON object `{ "value": 49.99 }` for providers like Ollama).
-
 ## Provider notes
 
-- OpenAI: Uses `response_format={"type": "json_schema"}` and unwraps primitives from `{ "value": ... }`.
-- Anthropic: Uses `response_format` with JSON Schema; primitives are wrapped and unwrapped similarly.
-- Gemini: Uses `generation_config.response_schema` and `response_mime_type=application/json`, with primitive unwrapping.
-- Ollama: No native structured outputs yet; Alloy enforces via prompt instructions and tolerant parsing.
+- OpenAI: Uses Responses `text={"format": {"type": "json_schema", ...}}` and unwraps primitives from `{"value": ...}`.
+- Anthropic/Gemini: Use their respective structured-output mechanisms with a JSON Schema.
+- Ollama: No native structured outputs; strict mode not applied.
