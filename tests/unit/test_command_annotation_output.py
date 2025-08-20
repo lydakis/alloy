@@ -85,7 +85,7 @@ def _use_async_backend(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(_ask_mod, "get_backend", lambda model: _AsyncBackend())
 
 
-def test_sync_infers_output_from_return_annotation_primitive(monkeypatch: MonkeyPatch) -> None:
+def test_sync_explicit_output_for_typed_result_primitive(monkeypatch: MonkeyPatch) -> None:
     _use_sync_backend(monkeypatch)
     configure(model="test-model")
     if t.TYPE_CHECKING:
@@ -94,8 +94,8 @@ def test_sync_infers_output_from_return_annotation_primitive(monkeypatch: Monkey
 
     else:
 
-        @command
-        def price() -> float:
+        @command(output=float)
+        def price() -> str:
             return "extract price"
 
     val = price()
@@ -103,7 +103,7 @@ def test_sync_infers_output_from_return_annotation_primitive(monkeypatch: Monkey
     assert str(val).startswith("12.5")
 
 
-def test_sync_infers_output_from_return_annotation_dataclass(monkeypatch: MonkeyPatch) -> None:
+def test_sync_explicit_output_for_typed_result_dataclass(monkeypatch: MonkeyPatch) -> None:
     _use_sync_backend(monkeypatch)
     configure(model="test-model")
 
@@ -118,8 +118,8 @@ def test_sync_infers_output_from_return_annotation_dataclass(monkeypatch: Monkey
 
     else:
 
-        @command
-        def build() -> Out:
+        @command(output=Out)
+        def build() -> str:
             return "build something"
 
     out = build()
@@ -128,7 +128,7 @@ def test_sync_infers_output_from_return_annotation_dataclass(monkeypatch: Monkey
 
 
 @pytest.mark.asyncio
-async def test_async_infers_output_from_return_annotation_primitive(
+async def test_async_explicit_output_for_typed_result_primitive(
     monkeypatch: MonkeyPatch,
 ) -> None:
     _use_async_backend(monkeypatch)
@@ -139,8 +139,8 @@ async def test_async_infers_output_from_return_annotation_primitive(
 
     else:
 
-        @command
-        async def pi() -> float:
+        @command(output=float)
+        async def pi() -> str:
             return "pi"
 
     val = await pi()
@@ -149,7 +149,7 @@ async def test_async_infers_output_from_return_annotation_primitive(
 
 
 @pytest.mark.asyncio
-async def test_async_infers_output_from_return_annotation_dataclass(
+async def test_async_explicit_output_for_typed_result_dataclass(
     monkeypatch: MonkeyPatch,
 ) -> None:
     _use_async_backend(monkeypatch)
@@ -166,8 +166,8 @@ async def test_async_infers_output_from_return_annotation_dataclass(
 
     else:
 
-        @command
-        async def make() -> Out:
+        @command(output=Out)
+        async def make() -> str:
             return "make"
 
     out = await make()

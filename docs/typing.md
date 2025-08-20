@@ -62,4 +62,4 @@ async_stream: AsyncIterable[str] = ask.stream_async("Explain briefly.")
 
 Notes
 - Import from `alloy`: `from alloy import command, ask`. Importing through submodules bypasses the stubs.
-- Runtime can infer output types from your prompt function’s return annotation if `output` is omitted, but static typing stays predictable: omit → `str`.
+- Alloy does not infer from your function’s return annotation. The decorated function must be annotated `-> str` (it returns a prompt string). The decorator’s `output` parameter controls the command’s return type; when omitted, the return type is `str`.

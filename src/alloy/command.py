@@ -10,10 +10,13 @@ from .tool import ToolCallable, ToolSpec
 from .types import to_json_schema, parse_output
 
 
+_MISSING: Any = object()
+
+
 def command(
     fn: Callable[..., Any] | None = None,
     *,
-    output: type | None = None,
+    output: Any = _MISSING,
     tools: list[Callable[..., Any]] | None = None,
     model: str | None = None,
     temperature: float | None = None,
@@ -30,9 +33,25 @@ def command(
     """
 
     def wrap(func: Callable[..., Any]):
+        try:
+            from typing import get_type_hints as _get_hints
+
+            ra = _get_hints(func).get("return", None)
+        except Exception:
+            ra = None
+        if ra is not None and ra is not str:
+            raise ConfigurationError(
+                "@command functions must be annotated as -> str; the function returns the prompt, and the decorator controls the output type."
+            )
+        if output is _MISSING:
+            out_type = None
+        elif output is None:
+            out_type = type(None)
+        else:
+            out_type = output
         return Command(
             func,
-            output_type=output or _get_return_type(func),
+            output_type=out_type,
             tools=tools or [],
             per_command_cfg={
                 "model": model,
@@ -53,16 +72,31 @@ class _CommandHelpers:
     _output_type: type | None
 
     def _parse_or_return(self, text: Any):
+        if self._output_type is type(None):
+            return None
         if self._output_type is None:
+            if isinstance(text, str) and not text.strip():
+                raise CommandError(
+                    "Model produced no output. Specify output=... in @command or use alloy.ask for open-ended queries."
+                )
             return text
+        if isinstance(text, str) and not text.strip():
+            expected = getattr(self._output_type, "__name__", str(self._output_type))
+            raise CommandError(
+                f"Model produced no output; expected {expected}. Increase max_tool_turns or ensure the model returns a final answer."
+            )
         try:
-            return parse_output(self._output_type, text)
+            value = parse_output(self._output_type, text)
         except Exception as parse_exc:
             expected = getattr(self._output_type, "__name__", str(self._output_type))
             snippet = (text[:120] + "…") if isinstance(text, str) and len(text) > 120 else text
             raise CommandError(
                 f"Failed to parse model output as {expected}: {snippet!r}"
             ) from parse_exc
+        if not _is_instance_of(value, self._output_type):
+            expected = getattr(self._output_type, "__name__", str(self._output_type))
+            raise CommandError(f"Model output type mismatch; expected {expected}.")
+        return value
 
     def _should_break_retry(self, retry_on: type[BaseException] | None, exc: Exception) -> bool:
         return bool(retry_on and not isinstance(exc, retry_on))
@@ -213,11 +247,23 @@ def _to_spec(func: Callable[..., Any]) -> ToolSpec:
     )
 
 
-def _get_return_type(func: Callable[..., Any]):
+def _is_instance_of(value: Any, tp: Any) -> bool:
     try:
-        sig = inspect.signature(func)
-        return (
-            sig.return_annotation if sig.return_annotation is not inspect.Signature.empty else None
-        )
+        from .types import is_dataclass_type
+        from typing import get_origin
     except Exception:
-        return None
+        return isinstance(value, tp)
+    if tp is Any:
+        return True
+    if tp in (str, int, float, bool):
+        return isinstance(value, tp)
+    if is_dataclass_type(tp):
+        return isinstance(value, tp)
+    origin = get_origin(tp)
+    if origin is list:
+        return isinstance(value, list)
+    if origin is dict:
+        return isinstance(value, dict)
+    if tp is type(None):
+        return value is None
+    return isinstance(value, tp)

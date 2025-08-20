@@ -12,6 +12,14 @@ Alloy enforces outputs using provider Structured Outputs. A JSON Schema is sent 
 
 There is no prompt shaping. Output shape is enforced only via Structured Outputs.
 
+## Return Contracts
+
+- Default `@command`: returns `str`. If the model produces no final output, Alloy raises `CommandError`.
+- `@command(output=None)`: side-effect only. The wrapper always returns `None`.
+- `@command(output=T)`: strict typed return. Returns `T` or raises on empty/mismatch.
+
+Authoring guideline: the decorated function always returns a prompt `str`. The actual return type of the command is controlled by the decorator’s `output` parameter.
+
 ## Strict-mode limitations
 
 Some types cannot produce a strict JSON Schema under provider constraints:
@@ -25,7 +33,7 @@ Use a concrete schema instead, such as a `@dataclass` or `TypedDict` with known 
 ## Errors and diagnostics
 
 - If an unsupported output type is used in strict mode, Alloy raises `ConfigurationError` with guidance to use a concrete schema.
-- If the model returns an unparsable payload, Alloy raises `CommandError` that includes the expected type and a snippet of the model output.
+- If the model returns an unparsable payload or no final output, Alloy raises `CommandError` with the expected type and a snippet of the model output.
 
 Example parse error:
 

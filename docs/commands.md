@@ -8,6 +8,14 @@ Style: prefer snake_case names for commands and tools (PEP 8). Use PascalCase fo
 
 Typing: when `output` is omitted, the command returns `str` (or `Awaitable[str]` for async). With `output=T`, calls return `T` (or `Awaitable[T]` for async), `.stream()` yields `str` chunks, and `.async_()` awaits to `T`.
 
+Authoring note
+- Annotate the decorated function as `-> str`. The function returns the prompt string only. The command's actual return type is controlled by the decorator's `output` parameter. Default `@command` returns `str`; `@command(output=None)` returns `None`; `@command(output=T)` returns `T`.
+
+Design rationale
+- Explicit > implicit: The function’s signature reflects what it returns (a prompt string). The decorator’s `output` parameter controls the model’s return type. This avoids confusing overloading of the Python return annotation and keeps static typing predictable.
+- Predictable defaults: Default commands behave like “text generators” (`str`). Side-effects are explicit via `output=None`. Typed results are explicit via `output=T`.
+- Strictness and safety: Early configuration errors (wrong annotation), clear runtime errors for missing output, and post-parse type checks help catch issues close to the source and keep contracts honest.
+
 ```python
 from alloy import command
 

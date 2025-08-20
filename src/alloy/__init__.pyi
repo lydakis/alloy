@@ -81,7 +81,7 @@ def command(
     system: str | None = ...,
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
-) -> SyncCommandFn[P, str]: ...
+) -> SyncCommandFn[P, None]: ...
 @overload
 def command(
     __func: Callable[P, Coroutine[Any, Any, str]],
@@ -95,7 +95,7 @@ def command(
     system: str | None = ...,
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
-) -> AsyncCommandFn[P, str]: ...
+) -> AsyncCommandFn[P, None]: ...
 
 # Decorator factory (called as @command(...))
 @overload
@@ -121,7 +121,7 @@ def command(
     system: str | None = ...,
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
-) -> _CommandDecorator[str]: ...
+) -> _CommandDecorator[None]: ...
 
 class _AskNamespace:
     def __call__(
