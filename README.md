@@ -69,7 +69,7 @@ Notes
 - Streaming with tools is not yet supported.
 - Structured outputs: Alloy uses provider JSON Schema features (OpenAI/Anthropic/Gemini) and prompt guardrails. See Enforcing outputs above.
 - Configuration defaults: Alloy uses `model=gpt-5-mini` if `configure(...)` is not called. You can also set process environment variables instead of a `.env` file:
-  - `ALLOY_MODEL`, `ALLOY_TEMPERATURE`, `ALLOY_MAX_TOKENS`, `ALLOY_SYSTEM`/`ALLOY_DEFAULT_SYSTEM`, `ALLOY_RETRY`.
+  - `ALLOY_MODEL`, `ALLOY_TEMPERATURE`, `ALLOY_MAX_TOKENS`, `ALLOY_SYSTEM`/`ALLOY_DEFAULT_SYSTEM`, `ALLOY_RETRY`, `ALLOY_MAX_TOOL_TURNS`.
   - Example: `export ALLOY_MODEL=gpt-4o` then run your script.
 
 Examples
@@ -80,7 +80,7 @@ Optional: offline dev tip
 - Example: `ALLOY_BACKEND=fake python examples/basic_usage.py`
 
 Config precedence
-- Defaults: `model=gpt-5-mini`, `max_tool_turns=2`.
+- Defaults: `model=gpt-5-mini`, `max_tool_turns=None` (unlimited).
 - Process env (ALLOY_*) overrides defaults.
 - Context/use_config and `configure(...)` override env/defaults.
 - Per-call overrides (e.g., `ask(..., model=...)`) override everything above.
@@ -95,7 +95,7 @@ Troubleshooting
 - API key: Ensure `OPENAI_API_KEY` is set (process env or `.env`).
 - Model choice: Prefer `gpt-5-mini` for fastest latency; switch via `configure(model=...)` or `ALLOY_MODEL`.
 - Timeouts/slow runs: Reduce `max_tokens`, lower `temperature`, prefer smaller models, and cap tool loops.
-- Tool loops: Alloy caps tool iterations by default (`max_tool_turns=2`). Adjust via `configure(max_tool_turns=1)` or env `ALLOY_MAX_TOOL_TURNS`.
+- Tool loops: Unlimited by default. Cap iterations via `configure(max_tool_turns=2)` or env `ALLOY_MAX_TOOL_TURNS`.
 - Rate limits (429): Shorten prompts/outputs, add retries with backoff, or use lower-throughput settings.
 
 Integration tests

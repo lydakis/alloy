@@ -5,7 +5,7 @@ Alloy reads configuration from, in precedence order:
 1. Per-call overrides (e.g., `ask(..., model=...)`)
 2. `configure(...)` and context scopes
 3. Environment variables (`ALLOY_*`)
-4. Built-in defaults (`model="gpt-5-mini"`, `max_tool_turns=2`)
+4. Built-in defaults (`model="gpt-5-mini"`, `max_tool_turns=None` for unlimited)
 
 ## Environment variables
 
