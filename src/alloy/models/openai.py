@@ -137,8 +137,8 @@ class _LoopState:
         calls = _extract_function_calls(resp)
         if calls and self.tool_defs is not None:
             self.turns += 1
-            limit = self.config.max_tool_turns or 2
-            if self.turns > limit:
+            limit = self.config.max_tool_turns
+            if isinstance(limit, int) and limit >= 0 and self.turns > limit:
                 return True, _output_as_str(resp)
             self.pending = _process_tool_calls(calls, self.tool_map)
             return False, ""
@@ -165,8 +165,9 @@ def _prepare_request_kwargs(
     if pending is None:
         kwargs["input"] = prompt
     else:
-        kwargs["previous_response_id"] = prev_id or ""
         kwargs["input"] = pending
+    if prev_id:
+        kwargs["previous_response_id"] = prev_id
     if tool_defs is not None:
         kwargs["tools"] = tool_defs
         kwargs["tool_choice"] = "auto"
@@ -270,7 +271,7 @@ class OpenAIBackend(ModelBackend):
                     and not _has_any_output(resp)
                 ):
                     kwargs2 = _prepare_request_kwargs(
-                        "Provide the final answer in the required format.",
+                        "Continue from the previous response and provide the final answer in the required format only.",
                         config=state.config,
                         text_format=state.text_format,
                         tool_defs=None,
@@ -350,7 +351,7 @@ class OpenAIBackend(ModelBackend):
                     and not _has_any_output(resp)
                 ):
                     kwargs2 = _prepare_request_kwargs(
-                        "Provide the final answer in the required format.",
+                        "Continue from the previous response and provide the final answer in the required format only.",
                         config=state.config,
                         text_format=state.text_format,
                         tool_defs=None,
