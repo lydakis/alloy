@@ -9,8 +9,9 @@ from alloy.models.base import ModelBackend
 
 
 def test_rejects_non_str_function_return_annotation():
-    def bad() -> int:  # wrong annotation; function returns a prompt
-        return "prompt"
+    # Intentionally wrong authoring: command functions must be annotated -> str.
+    def bad() -> int:
+        return 1
 
     with pytest.raises(ConfigurationError):
         _ = command(output=int)(bad)
@@ -39,4 +40,3 @@ def test_type_mismatch_after_parse_raises(monkeypatch):
 
     with pytest.raises(CommandError):
         _ = build()
-

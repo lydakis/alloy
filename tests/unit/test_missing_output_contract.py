@@ -63,6 +63,7 @@ def test_output_none_returns_none(monkeypatch):
 def test_untyped_command_raises_on_missing_output(monkeypatch):
     use_blank_backend(monkeypatch)
 
+
 @command
 def gen() -> str:
     return "generate"

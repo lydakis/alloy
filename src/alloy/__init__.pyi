@@ -81,7 +81,7 @@ def command(
     system: str | None = ...,
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
-) -> SyncCommandFn[P, None]: ...
+) -> SyncCommandFn[P, str]: ...
 @overload
 def command(
     __func: Callable[P, Coroutine[Any, Any, str]],
@@ -95,7 +95,7 @@ def command(
     system: str | None = ...,
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
-) -> AsyncCommandFn[P, None]: ...
+) -> AsyncCommandFn[P, str]: ...
 
 # Decorator factory (called as @command(...))
 @overload
