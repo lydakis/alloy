@@ -17,6 +17,8 @@ class Config:
     retry_on: type[BaseException] | None = None
     # Safety/perf for tool loops
     max_tool_turns: int | None = 2
+    # Providers may attempt a single follow-up to finalize missing structured outputs
+    auto_finalize_missing_output: bool | None = True
     # Opaque provider-specific kwargs
     extra: dict[str, Any] = field(default_factory=dict)
 
@@ -58,6 +60,7 @@ def _config_from_env() -> Config:
     system = os.environ.get("ALLOY_DEFAULT_SYSTEM") or os.environ.get("ALLOY_SYSTEM")
     retry = os.environ.get("ALLOY_RETRY")
     max_tool_turns = os.environ.get("ALLOY_MAX_TOOL_TURNS")
+    auto_finalize = os.environ.get("ALLOY_AUTO_FINALIZE_MISSING_OUTPUT")
     extra_json = os.environ.get("ALLOY_EXTRA_JSON")
 
     cfg_kwargs: dict[str, object] = {}
@@ -83,6 +86,12 @@ def _config_from_env() -> Config:
     if max_tool_turns is not None:
         try:
             cfg_kwargs["max_tool_turns"] = int(max_tool_turns)
+        except Exception:
+            pass
+    if auto_finalize is not None:
+        try:
+            v = auto_finalize.strip().lower()
+            cfg_kwargs["auto_finalize_missing_output"] = v in ("1", "true", "yes", "y", "on")
         except Exception:
             pass
     extra: dict[str, object] = {}

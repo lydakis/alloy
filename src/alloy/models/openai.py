@@ -95,6 +95,48 @@ def _output_as_str(resp: Any) -> str:
     return "".join(parts)
 
 
+class _LoopState:
+    def __init__(
+        self,
+        *,
+        prompt: str,
+        config: Config,
+        text_format: dict | None,
+        tool_defs: list[dict] | None,
+        tool_map: dict[str, Any],
+    ) -> None:
+        self.prompt = prompt
+        self.config = config
+        self.text_format = text_format
+        self.tool_defs = tool_defs
+        self.tool_map = tool_map
+        self.turns = 0
+        self.prev_id: str | None = None
+        self.pending: list[dict[str, Any]] | None = None
+
+    def build_kwargs(self) -> dict[str, object]:
+        return _prepare_request_kwargs(
+            self.prompt,
+            config=self.config,
+            text_format=self.text_format,
+            tool_defs=self.tool_defs,
+            pending=self.pending,
+            prev_id=self.prev_id,
+        )
+
+    def after_response(self, resp: Any) -> tuple[bool, str]:
+        self.prev_id = _get(resp, "id", self.prev_id)
+        calls = _extract_function_calls(resp)
+        if calls and self.tool_defs is not None:
+            self.turns += 1
+            limit = self.config.max_tool_turns or 2
+            if self.turns > limit:
+                return True, _output_as_str(resp)
+            self.pending = _process_tool_calls(calls, self.tool_map)
+            return False, ""
+        return True, _output_as_str(resp)
+
+
 def _is_temp_limited(model: str | None) -> bool:
     m = (model or "").lower()
     return ("gpt-5" in m) or m.startswith("o1") or m.startswith("o3")
@@ -174,6 +216,22 @@ class OpenAIBackend(ModelBackend):
     unavailable.
     """
 
+    def __init__(self) -> None:
+        self._OpenAI: Any | None = None
+        self._AsyncOpenAI: Any | None = None
+        try:
+            from openai import OpenAI as _OpenAIClient
+
+            self._OpenAI = _OpenAIClient
+        except Exception:
+            pass
+        try:
+            from openai import AsyncOpenAI as _AsyncOpenAIClient
+
+            self._AsyncOpenAI = _AsyncOpenAIClient
+        except Exception:
+            pass
+
     def complete(
         self,
         prompt: str,
@@ -182,42 +240,23 @@ class OpenAIBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> str:
-        try:
-            from openai import OpenAI
-        except Exception as e:
-            raise ConfigurationError(
-                "OpenAI SDK not installed. Run `pip install openai>=1.99.6`."
-            ) from e
-
-        client: Any = OpenAI()
+        if self._OpenAI is None:
+            raise ConfigurationError("OpenAI SDK not installed. Run `pip install openai>=1.99.6`.")
+        client: Any = self._OpenAI()
         tool_defs, tool_map = _build_tools(tools)
         text_format = _build_text_format(output_schema)
-
-        turns = 0
-        prev_id: str | None = None
-        pending: list[dict[str, Any]] | None = None
+        state = _LoopState(
+            prompt=prompt,
+            config=config,
+            text_format=text_format,
+            tool_defs=tool_defs,
+            tool_map=tool_map,
+        )
         while True:
-            kwargs = _prepare_request_kwargs(
-                prompt,
-                config=config,
-                text_format=text_format,
-                tool_defs=tool_defs,
-                pending=pending,
-                prev_id=prev_id,
-            )
-            resp = client.responses.create(**kwargs)
-            prev_id = _get(resp, "id", prev_id)
-
-            calls = _extract_function_calls(resp)
-            if calls and tool_defs is not None:
-                turns += 1
-                limit = config.max_tool_turns or 2
-                if turns > limit:
-                    return _output_as_str(resp)
-                pending = _process_tool_calls(calls, tool_map)
-                continue
-
-            return _output_as_str(resp)
+            resp = client.responses.create(**state.build_kwargs())
+            done, out = state.after_response(resp)
+            if done:
+                return out
 
     def stream(
         self,
@@ -227,17 +266,13 @@ class OpenAIBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> Iterable[str]:
-        try:
-            from openai import OpenAI
-        except Exception as e:
-            raise ConfigurationError(
-                "OpenAI SDK not installed. Run `pip install openai>=1.99.6`."
-            ) from e
+        if self._OpenAI is None:
+            raise ConfigurationError("OpenAI SDK not installed. Run `pip install openai>=1.99.6`.")
 
         if tools:
             raise ConfigurationError("Streaming with tools is not supported yet")
 
-        client: Any = OpenAI()
+        client: Any = self._OpenAI()
         text_format = _build_text_format(output_schema)
         kwargs = _prepare_request_kwargs(
             prompt,
@@ -270,41 +305,23 @@ class OpenAIBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> str:
-        try:
-            from openai import AsyncOpenAI
-        except Exception as e:
-            raise ConfigurationError(
-                "OpenAI SDK not installed. Run `pip install openai>=1.99.6`."
-            ) from e
-
-        client: Any = AsyncOpenAI()
+        if self._AsyncOpenAI is None:
+            raise ConfigurationError("OpenAI SDK not installed. Run `pip install openai>=1.99.6`.")
+        client: Any = self._AsyncOpenAI()
         tool_defs, tool_map = _build_tools(tools)
         text_format = _build_text_format(output_schema)
-        turns = 0
-        prev_id: str | None = None
-        pending: list[dict[str, Any]] | None = None
+        state = _LoopState(
+            prompt=prompt,
+            config=config,
+            text_format=text_format,
+            tool_defs=tool_defs,
+            tool_map=tool_map,
+        )
         while True:
-            kwargs = _prepare_request_kwargs(
-                prompt,
-                config=config,
-                text_format=text_format,
-                tool_defs=tool_defs,
-                pending=pending,
-                prev_id=prev_id,
-            )
-            resp = await client.responses.create(**kwargs)
-            prev_id = _get(resp, "id", prev_id)
-
-            calls = _extract_function_calls(resp)
-            if calls and tool_defs is not None:
-                turns += 1
-                limit = config.max_tool_turns or 2
-                if turns > limit:
-                    return _output_as_str(resp)
-                pending = _process_tool_calls(calls, tool_map)
-                continue
-
-            return _output_as_str(resp)
+            resp = await client.responses.create(**state.build_kwargs())
+            done, out = state.after_response(resp)
+            if done:
+                return out
 
     async def astream(
         self,
@@ -314,17 +331,13 @@ class OpenAIBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> AsyncIterable[str]:
-        try:
-            from openai import AsyncOpenAI
-        except Exception as e:
-            raise ConfigurationError(
-                "OpenAI SDK not installed. Run `pip install openai>=1.99.6`."
-            ) from e
+        if self._AsyncOpenAI is None:
+            raise ConfigurationError("OpenAI SDK not installed. Run `pip install openai>=1.99.6`.")
 
         if tools:
             raise ConfigurationError("Streaming with tools is not supported yet")
 
-        client: Any = AsyncOpenAI()
+        client: Any = self._AsyncOpenAI()
         text_format = _build_text_format(output_schema)
         kwargs = _prepare_request_kwargs(
             prompt,
