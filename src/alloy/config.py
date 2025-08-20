@@ -15,8 +15,8 @@ class Config:
     default_system: str | None = None
     retry: int | None = None
     retry_on: type[BaseException] | None = None
-    # Safety/perf for tool loops
-    max_tool_turns: int | None = 2
+    # Safety/perf for tool loops. None means unlimited.
+    max_tool_turns: int | None = None
     # Providers may attempt a single follow-up to finalize missing structured outputs
     auto_finalize_missing_output: bool | None = True
     # Opaque provider-specific kwargs
