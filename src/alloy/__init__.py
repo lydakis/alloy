@@ -11,7 +11,7 @@ from .tool import tool
 from .tool import require, ensure
 from .ask import ask
 from .config import configure
-from .errors import CommandError, ToolError, ConfigurationError
+from .errors import CommandError, ToolError, ConfigurationError, ToolLoopLimitExceeded
 
 __all__ = [
     "command",
@@ -23,4 +23,5 @@ __all__ = [
     "CommandError",
     "ToolError",
     "ConfigurationError",
+    "ToolLoopLimitExceeded",
 ]

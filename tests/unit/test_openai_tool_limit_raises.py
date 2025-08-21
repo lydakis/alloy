@@ -3,8 +3,7 @@ from __future__ import annotations
 import importlib
 import pytest
 
-from alloy import command, tool, configure
-from alloy.errors import ToolLoopLimitExceeded
+from alloy import command, tool, configure, ToolLoopLimitExceeded
 
 
 class _FakeResponses:

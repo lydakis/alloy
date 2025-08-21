@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Iterable, AsyncIterable
 from typing import Any
 import json
+import concurrent.futures
+import asyncio
 
 from ..config import Config
 from ..errors import ConfigurationError, ToolError, ToolLoopLimitExceeded
@@ -146,6 +148,19 @@ class _LoopState:
             return False, ""
         return True, _output_as_str(resp)
 
+    async def after_response_async(self, resp: Any) -> tuple[bool, str]:
+        self.prev_id = _get(resp, "id", self.prev_id)
+        calls = _extract_function_calls(resp)
+        if calls and self.tool_defs is not None:
+            self.turns += 1
+            limit = self.config.max_tool_turns
+            if isinstance(limit, int) and limit >= 0 and self.turns > limit:
+                self.exceeded_tool_limit = True
+                return True, _output_as_str(resp)
+            self.pending = await _aprocess_tool_calls(calls, self.tool_map)
+            return False, ""
+        return True, _output_as_str(resp)
+
 
 def _is_temp_limited(model: str | None) -> bool:
     m = (model or "").lower()
@@ -182,39 +197,55 @@ def _prepare_request_kwargs(
     return kwargs
 
 
+def _exec_tool_call(call: dict[str, str], tool_map: dict[str, Any]) -> dict[str, str]:
+    name = call.get("name") or ""
+    args_raw = call.get("arguments") or "{}"
+    call_id = call.get("call_id") or ""
+    tool = tool_map.get(name)
+    if not tool:
+        result_obj: Any = {"type": "tool_error", "error": f"Tool '{name}' not available."}
+    else:
+        try:
+            parsed = json.loads(args_raw)
+        except json.JSONDecodeError:
+            parsed = {}
+        try:
+            result = tool(**parsed) if isinstance(parsed, dict) else tool(parsed)
+            result_obj = result
+        except Exception as exc:
+            if isinstance(exc, ToolError):
+                result_obj = str(exc)
+            else:
+                result_obj = {"type": "tool_error", "error": str(exc)}
+    if isinstance(result_obj, str):
+        result_json = result_obj
+    else:
+        try:
+            result_json = json.dumps(result_obj)
+        except (TypeError, ValueError):
+            result_json = str(result_obj)
+    return {"type": "function_call_output", "call_id": call_id, "output": result_json}
+
+
 def _process_tool_calls(
     calls: list[dict[str, str]], tool_map: dict[str, Any]
 ) -> list[dict[str, str]]:
-    outputs: list[dict[str, str]] = []
-    for call in calls:
-        name = call.get("name") or ""
-        args_raw = call.get("arguments") or "{}"
-        call_id = call.get("call_id") or ""
-        tool = tool_map.get(name)
-        if not tool:
-            result_obj: Any = {"type": "tool_error", "error": f"Tool '{name}' not available."}
-        else:
-            try:
-                parsed = json.loads(args_raw)
-            except json.JSONDecodeError:
-                parsed = {}
-            try:
-                result = tool(**parsed) if isinstance(parsed, dict) else tool(parsed)
-                result_obj = result
-            except Exception as exc:
-                if isinstance(exc, ToolError):
-                    result_obj = str(exc)
-                else:
-                    result_obj = {"type": "tool_error", "error": str(exc)}
-        if isinstance(result_obj, str):
-            result_json = result_obj
-        else:
-            try:
-                result_json = json.dumps(result_obj)
-            except (TypeError, ValueError):
-                result_json = str(result_obj)
-        outputs.append({"type": "function_call_output", "call_id": call_id, "output": result_json})
-    return outputs
+    if len(calls) <= 1:
+        return [_exec_tool_call(calls[0], tool_map)] if calls else []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(calls)) as ex:
+        futures = [ex.submit(_exec_tool_call, call, tool_map) for call in calls]
+        results = [f.result() for f in futures]
+    return results
+
+
+async def _aprocess_tool_calls(
+    calls: list[dict[str, str]], tool_map: dict[str, Any]
+) -> list[dict[str, str]]:
+    if len(calls) <= 1:
+        return [await asyncio.to_thread(_exec_tool_call, calls[0], tool_map)] if calls else []
+    tasks = [asyncio.to_thread(_exec_tool_call, call, tool_map) for call in calls]
+    results = await asyncio.gather(*tasks)
+    return results
 
 
 class OpenAIBackend(ModelBackend):
@@ -350,7 +381,7 @@ class OpenAIBackend(ModelBackend):
         )
         while True:
             resp = await client.responses.create(**state.build_kwargs())
-            done, out = state.after_response(resp)
+            done, out = await state.after_response_async(resp)
             if done:
                 if state.exceeded_tool_limit:
                     lim = state.config.max_tool_turns
