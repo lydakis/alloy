@@ -75,4 +75,3 @@ async def test_openai_async_parallel_tools(monkeypatch):
     assert isinstance(pending, list)
     assert pending[0].get("call_id") == "c1"
     assert pending[1].get("call_id") == "c2"
-

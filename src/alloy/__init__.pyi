@@ -12,7 +12,7 @@ from typing import (
 )
 
 # Public API re-exports (for type checkers)
-from .errors import CommandError, ToolError, ConfigurationError
+from .errors import CommandError, ToolError, ConfigurationError, ToolLoopLimitExceeded
 
 P = ParamSpec("P")
 T_co = TypeVar("T_co", covariant=True)
@@ -172,4 +172,5 @@ __all__ = [
     "CommandError",
     "ToolError",
     "ConfigurationError",
+    "ToolLoopLimitExceeded",
 ]
