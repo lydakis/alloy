@@ -33,3 +33,34 @@ def extract_price(text: str) -> str:
 print(extract_price("This item costs $49.99."))
 print(ask("Say OK in one word."))
 ```
+
+## Progressive path
+
+Start small and add structure as needed:
+
+1) Explore: `ask("...")`
+
+2) Command returning text:
+```python
+@command
+def draft() -> str:
+    return "Write a short haiku about alloy."
+```
+
+3) Enforce types:
+```python
+@command(output=float)
+def extract_price(text: str) -> str:
+    return f"Extract the price (number only) from: {text}"
+```
+
+4) Add tools + contracts:
+```python
+@tool
+@require(lambda ba: ba.arguments.get("x", 0) >= 0, "x must be non-negative")
+def sqrt_floor(x: int) -> int: ...
+
+@command(output=int, tools=[sqrt_floor])
+def compute() -> str:
+    return "Use sqrt_floor(x) for x=49 and return the number only."
+```

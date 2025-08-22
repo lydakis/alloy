@@ -30,6 +30,9 @@ Some types cannot produce a strict JSON Schema under provider constraints:
 
 Use a concrete schema instead, such as a `@dataclass` or `TypedDict` with known fields.
 
+Planned
+- TypedDict outputs with strict schemas (equivalent to dataclasses).
+
 ## Errors and diagnostics
 
 - If an unsupported output type is used in strict mode, Alloy raises `ConfigurationError` with guidance to use a concrete schema.

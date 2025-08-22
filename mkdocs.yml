@@ -53,6 +53,7 @@ plugins:
           - configuration.md: Configuration
           - commands.md: Commands & Tools
           - equivalence.md: Equivalence Guide
+          - observability.md: Observability
           - tool_recipes.md: Tool Recipes
           - typing.md: Typing
           - backends.md: Backends & Routing
@@ -80,6 +81,7 @@ nav:
   - Configuration: configuration.md
   - Commands & Tools: commands.md
   - Equivalence Guide: equivalence.md
+  - Observability: observability.md
   - Tool Recipes: tool_recipes.md
   - Typing: typing.md
   - Backends & Routing: backends.md

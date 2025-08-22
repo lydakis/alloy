@@ -2,9 +2,10 @@
 
 Python for logic. English for intelligence.
 
-Alloy helps you integrate intelligence into deterministic programs with typed Python functions.
-Declare a function with `@command(output=...)`, and Alloy routes to an LLM provider, enforces
-structured outputs, and returns typed results you can depend on.
+Alloy lets you write typed AI functions. Decorate a Python function with
+`@command(output=MyType)`, call any supported model, and get a `MyType` back —
+enforced via provider‑native structured outputs. Add Python tools with
+design‑by‑contract to keep agent loops reliable.
 
 [![CI](https://github.com/lydakis/alloy/actions/workflows/ci.yml/badge.svg)](https://github.com/lydakis/alloy/actions/workflows/ci.yml)
 [![Docs](https://github.com/lydakis/alloy/actions/workflows/docs.yml/badge.svg)](https://lydakis.github.io/alloy/)
@@ -63,19 +64,39 @@ print(ask("Say hi"))
 ```
 
 Enforcing outputs
-- Alloy biases models to return the expected shape and uses provider structured outputs where available. If parsing still fails, you get a clear error.
+- Alloy uses provider‑native structured outputs (JSON Schema) to enforce the expected shape. If parsing fails, you get a clear, typed error.
 - Docs: https://lydakis.github.io/alloy/outputs/
+
+Design by Contract (tools)
+```python
+from alloy import tool, require, ensure
+
+@tool
+@require(lambda ba: "validated_at" in ba.arguments["data"], "run validate_data first")
+@ensure(lambda ok: ok is True, "save must succeed")
+def save_to_production(data: dict) -> bool:
+    return True
+```
+Contract failures surface as tool output, allowing the model to self‑correct.
+
+Progressive path
+- Start exploratory: `ask("...")`
+- Add a command: `@command` → returns `str`
+- Enforce types: `@command(output=T)`
+- Add tools + DBC: `@command(output=T, tools=[...])` with `@require/@ensure`
 
 Notes
 - OpenAI backend is implemented for sync/async/streaming.
 - Streaming with tools is not yet supported.
-- Structured outputs: Alloy uses provider JSON Schema features (OpenAI/Anthropic/Gemini) and prompt guardrails. See Enforcing outputs above.
+- Structured outputs: Alloy uses provider JSON Schema features (OpenAI/Anthropic/Gemini). See Enforcing outputs above.
 - Configuration defaults: Alloy uses `model=gpt-5-mini` if `configure(...)` is not called. You can also set process environment variables instead of a `.env` file:
   - `ALLOY_MODEL`, `ALLOY_TEMPERATURE`, `ALLOY_MAX_TOKENS`, `ALLOY_SYSTEM`/`ALLOY_DEFAULT_SYSTEM`, `ALLOY_RETRY`, `ALLOY_MAX_TOOL_TURNS`.
   - Example: `export ALLOY_MODEL=gpt-4o` then run your script.
+- Output types today: primitives and dataclasses (strict mode); TypedDict outputs planned.
+- OpenAI strict mode: if a tool loop completes without a final structured output, Alloy issues one follow‑up turn (no tools) to finalize; then raises if still missing.
 
 Examples
-- See `examples/basic_usage.py` and `examples/tools_demo.py` (tools + contracts).
+- See `examples/basic_usage.py`, `examples/tools_demo.py` (tools + contracts), and `examples/csv_to_api.py`.
 
 Optional: offline dev tip
 - For local demos without network/API keys, set `ALLOY_BACKEND=fake` (not for production).
@@ -99,6 +120,9 @@ Troubleshooting
 - Timeouts/slow runs: Reduce `max_tokens`, lower `temperature`, prefer smaller models, and cap tool loops.
 - Tool loops: Unlimited by default. Cap iterations via `configure(max_tool_turns=2)` or env `ALLOY_MAX_TOOL_TURNS`.
 - Rate limits (429): Shorten prompts/outputs, add retries with backoff, or use lower-throughput settings.
+
+Observability
+- See simple patterns in the docs: https://docs.alloy.fyi/observability/
 
 Integration tests
 - OpenAI: Set `OPENAI_API_KEY` (and optionally `ALLOY_IT_MODEL`, default `gpt-5-mini`). Run `pytest -q` — OpenAI integration tests auto-enable.
@@ -139,10 +163,11 @@ Why Alloy vs X
 
 - Raw SDKs: Minimal glue, limited structure handling. Alloy provides typed outputs, provider routing, and a simple tool loop.
 - LangChain: Rich orchestration features and chains. Alloy stays minimal: Python functions that return typed results without introducing a new framework.
-- Instructor/Pydantic: Strong for OpenAI JSON typing. Alloy generalizes the idea across providers (OpenAI, Anthropic, Gemini), adds tools/retry/routing, and degrades gracefully when structure is not enforced.
+- Instructor/Pydantic: Strong for OpenAI JSON typing. Alloy generalizes the idea across providers (OpenAI, Anthropic, Gemini), adds tools/retry/routing, and surfaces clear errors when structure cannot be enforced (with a single auto‑finalize turn on OpenAI when needed).
 - DSPy/Program synthesis: Optimizes pipelines and prompts. Alloy focuses on straightforward, production‑oriented building blocks: short prompts, typed outputs, and predictable defaults.
 - Guidance/templating: Emphasizes prompt templates. Alloy emphasizes typed commands and provider structured outputs with clear error handling.
 - Summary: Small API surface, provider‑agnostic backends, typed outputs by default, and optional tools — compose with normal Python.
+
 
 LOC comparison (CSV → API payloads)
 
