@@ -4,7 +4,6 @@ site_url: https://docs.alloy.fyi/
 repo_url: https://github.com/lydakis/alloy
 theme:
   name: material
-  custom_dir: overrides
   features:
     - navigation.instant
     - navigation.sections
