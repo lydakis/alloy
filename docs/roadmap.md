@@ -30,15 +30,15 @@ This page outlines the planned work for Alloy. It captures themes and release-si
 - Docs
   - Document stub behavior and how `.stream()`/`.async_()` type as part of the decorated command object.
 
-### v0.3 – ReAct Fallback & Streaming Improvements
+### v0.3 – ReAct Fallback & Streaming (Simplified)
 
 - ReAct fallback
   - Implement minimal ReAct loop for models without native tool/function calling.
   - Safety: max turns, clear termination, and error surfacing.
   - Routing: fallback path for providers lacking native tools.
 - Streaming
-  - OpenAI: support streaming with tool calls (stream tool-call events; invoke tools mid-stream).
-  - Anthropic: add streaming (where the SDK supports) for content-only flows.
+  - Align providers on text-only streaming: no tools, no structured outputs.
+  - Keep `.stream()` as a simple text delta iterator; document using provider SDKs directly for complex streaming.
 
 ### v0.4 – Structured Outputs Beyond Dataclasses
 
@@ -49,7 +49,7 @@ This page outlines the planned work for Alloy. It captures themes and release-si
 ### v0.5 – Provider Parity & Performance
 
 - Gemini: implement native tool-calling where supported by the SDK.
-- Streaming parity: explore streaming for Gemini and Ollama (subject to SDK capabilities).
+- Streaming parity: ensure text-only streaming consistency across providers.
 - Client/session reuse: cache SDK clients per backend to reduce per-call overhead while keeping thread/process safety.
 - Reliability: add exponential backoff with jitter on retryable failures (configurable).
 
@@ -63,6 +63,11 @@ This page outlines the planned work for Alloy. It captures themes and release-si
   - Auto-generate/maintain feature support matrix from code/tests.
 - CI
   - Add coverage reporting; keep unit/integration split and gating for provider keys.
+
+### v0.7 – Observability (Planned)
+
+- OpenTelemetry spans for commands, backend calls, tools, and parsing (optional and off by default).
+- Export to common backends (OTLP/HTTP); keep provider-agnostic and minimal overhead.
 
 ### v1.0 – Stability & API Freeze
 
