@@ -34,7 +34,7 @@ class OllamaBackend(ModelBackend):
     ) -> str:
         try:
             import ollama
-        except Exception as e:  # pragma: no cover
+        except Exception as e:
             raise ConfigurationError(
                 "Ollama SDK not installed. Run `pip install alloy[ollama]`."
             ) from e
@@ -127,7 +127,6 @@ class OllamaBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> str:
-        # The SDK is synchronous; bridge via thread if needed in future
         return self.complete(prompt, tools=tools, output_schema=output_schema, config=config)
 
     async def astream(

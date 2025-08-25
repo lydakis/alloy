@@ -15,11 +15,8 @@ class Config:
     default_system: str | None = None
     retry: int | None = None
     retry_on: type[BaseException] | None = None
-    # Safety/perf for tool loops. None means unlimited.
     max_tool_turns: int | None = None
-    # Providers may attempt a single follow-up to finalize missing structured outputs
     auto_finalize_missing_output: bool | None = True
-    # Opaque provider-specific kwargs
     extra: dict[str, Any] = field(default_factory=dict)
 
     def merged(self, other: "Config" | None) -> "Config":
@@ -36,7 +33,6 @@ class Config:
         return Config(**data)
 
 
-# Provide sensible defaults so users can call APIs without configure()
 _global_config: Config = Config(model="gpt-5-mini")
 _context_config: contextvars.ContextVar[Config | None] = contextvars.ContextVar(
     "alloy_context_config", default=None
@@ -63,37 +59,39 @@ def _config_from_env() -> Config:
     auto_finalize = os.environ.get("ALLOY_AUTO_FINALIZE_MISSING_OUTPUT")
     extra_json = os.environ.get("ALLOY_EXTRA_JSON")
 
-    cfg_kwargs: dict[str, object] = {}
-    if model:
-        cfg_kwargs["model"] = model
+    model_val: str | None = model or None
+    temp_val: float | None = None
     if temperature is not None:
         try:
-            cfg_kwargs["temperature"] = float(temperature)
+            temp_val = float(temperature)
         except Exception:
-            pass
+            temp_val = None
+    max_tokens_val: int | None = None
     if max_tokens is not None:
         try:
-            cfg_kwargs["max_tokens"] = int(max_tokens)
+            max_tokens_val = int(max_tokens)
         except Exception:
-            pass
-    if system:
-        cfg_kwargs["default_system"] = system
+            max_tokens_val = None
+    default_system_val: str | None = system or None
+    retry_val: int | None = None
     if retry is not None:
         try:
-            cfg_kwargs["retry"] = int(retry)
+            retry_val = int(retry)
         except Exception:
-            pass
+            retry_val = None
+    max_tool_turns_val: int | None = None
     if max_tool_turns is not None:
         try:
-            cfg_kwargs["max_tool_turns"] = int(max_tool_turns)
+            max_tool_turns_val = int(max_tool_turns)
         except Exception:
-            pass
+            max_tool_turns_val = None
+    auto_finalize_val: bool | None = None
     if auto_finalize is not None:
         try:
             v = auto_finalize.strip().lower()
-            cfg_kwargs["auto_finalize_missing_output"] = v in ("1", "true", "yes", "y", "on")
+            auto_finalize_val = v in ("1", "true", "yes", "y", "on")
         except Exception:
-            pass
+            auto_finalize_val = None
     extra: dict[str, object] = {}
     if extra_json:
         try:
@@ -102,7 +100,17 @@ def _config_from_env() -> Config:
                 extra = parsed
         except Exception:
             pass
-    return Config(extra=extra, **cfg_kwargs)  # type: ignore[arg-type]
+    return Config(
+        model=model_val,
+        temperature=temp_val,
+        max_tokens=max_tokens_val,
+        default_system=default_system_val,
+        retry=retry_val,
+        retry_on=None,
+        max_tool_turns=max_tool_turns_val,
+        auto_finalize_missing_output=auto_finalize_val,
+        extra=extra,
+    )
 
 
 def configure(**kwargs: Any) -> None:

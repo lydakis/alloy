@@ -123,5 +123,4 @@ def get_backend(model: str | None) -> ModelBackend:
 
         return OpenAIBackend()
 
-    # Future: route to Anthropic/Gemini/Local or ReAct fallback
     raise ConfigurationError(f"No backend available for model '{model}'.")
