@@ -20,3 +20,5 @@ Release notes and highlights. See full changelog for details.
 - Types: forward-ref dataclass coercion; unified parse path; cached type-hints; native typing.
 - Commands: helper mixin for parse/retry; consistent error chaining; retry docs clarified (total attempts).
 - Docs: updated “Enforcing Outputs” to describe strict-mode behavior and limitations.
+ - Streaming: simplified policy — text-only across providers; commands with tools or non-string outputs do not stream; use provider SDKs for complex streaming.
+ - Gemini: backend refactor with non-streaming tool loop and strict finalize; streaming remains text-only.

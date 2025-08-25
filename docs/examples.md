@@ -14,6 +14,9 @@
 - Dynamic system prompts: `examples/basic/dynamic_system_prompts.py`
   (These map common orchestration ideas to Alloy’s simpler primitives.)
 
+Note
+- Streaming is text-only. Commands with tools or non-string outputs do not stream; call them normally to get typed results.
+
 Run with `.env` loaded:
 
 ```
