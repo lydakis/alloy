@@ -331,7 +331,9 @@ class OpenAIBackend(ModelBackend):
         if self._OpenAI is None:
             raise ConfigurationError("OpenAI SDK not installed. Run `pip install openai>=1.99.6`.")
         if tools or output_schema is not None:
-            raise ConfigurationError("Streaming supports text only; tools and structured outputs are not supported")
+            raise ConfigurationError(
+                "Streaming supports text only; tools and structured outputs are not supported"
+            )
 
         client: Any = self._OpenAI()
         kwargs = _prepare_request_kwargs(
@@ -414,7 +416,9 @@ class OpenAIBackend(ModelBackend):
         if self._AsyncOpenAI is None:
             raise ConfigurationError("OpenAI SDK not installed. Run `pip install openai>=1.99.6`.")
         if tools or output_schema is not None:
-            raise ConfigurationError("Streaming supports text only; tools and structured outputs are not supported")
+            raise ConfigurationError(
+                "Streaming supports text only; tools and structured outputs are not supported"
+            )
 
         client: Any = self._AsyncOpenAI()
         kwargs = _prepare_request_kwargs(

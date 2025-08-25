@@ -381,15 +381,17 @@ class GeminiBackend(ModelBackend):
     ) -> Iterable[str]:
         if self._GenAIClient is None:  # pragma: no cover
             raise ConfigurationError("Google GenAI SDK not installed. Install `alloy[gemini]`.")
-        if tools:
-            raise ConfigurationError("Gemini tool streaming not supported")
+        if tools or output_schema is not None:
+            raise ConfigurationError(
+                "Streaming supports text only; tools and structured outputs are not supported"
+            )
         client: Any = self._GenAIClient()
         model_name = config.model
         if not model_name:
             raise ConfigurationError(
                 "A model name must be specified in the configuration for the Gemini backend."
             )
-        cfg, _wrapped = _prepare_config(config, output_schema)
+        cfg, _wrapped = _prepare_config(config, None)
 
         try:
             stream = client.models.generate_content_stream(
@@ -501,15 +503,17 @@ class GeminiBackend(ModelBackend):
     ) -> AsyncIterable[str]:
         if self._GenAIClient is None:  # pragma: no cover
             raise ConfigurationError("Google GenAI SDK not installed. Install `alloy[gemini]`.")
-        if tools:
-            raise ConfigurationError("Gemini tool streaming not supported")
+        if tools or output_schema is not None:
+            raise ConfigurationError(
+                "Streaming supports text only; tools and structured outputs are not supported"
+            )
         client: Any = self._GenAIClient()
         model_name = config.model
         if not model_name:
             raise ConfigurationError(
                 "A model name must be specified in the configuration for the Gemini backend."
             )
-        cfg, _wrapped = _prepare_config(config, output_schema)
+        cfg, _wrapped = _prepare_config(config, None)
 
         stream_ctx = await client.aio.models.generate_content_stream(
             model=model_name, contents=prompt, config=cfg or None
