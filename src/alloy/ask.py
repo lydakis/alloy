@@ -45,6 +45,8 @@ class _AskNamespace:
     ) -> Iterable[str]:
         effective = get_config(overrides)
         backend = get_backend(effective.model)
+        if tools:
+            raise CommandError("Streaming supports text only; tools are not supported")
         if context:
             prompt = f"Context: {context}\n\nTask: {prompt}"
         try:
@@ -67,6 +69,8 @@ class _AskNamespace:
     ):
         effective = get_config(overrides)
         backend = get_backend(effective.model)
+        if tools:
+            raise CommandError("Streaming supports text only; tools are not supported")
         if context:
             prompt = f"Context: {context}\n\nTask: {prompt}"
         try:
