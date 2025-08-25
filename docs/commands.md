@@ -90,6 +90,9 @@ workflows, for example `await asyncio.gather(generate.async_(), agen())`.
 The `ask` helper mirrors these modalities via `ask()`, `await ask.async_(...)`,
 `ask.stream(...)`, and `ask.stream_async(...)`.
 
+Streaming constraints
+- Streaming is text-only: commands with tools or non-string outputs do not stream. Call the command normally to get a typed result.
+
 ## Retries and error handling
 
 ```python
