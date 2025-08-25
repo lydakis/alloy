@@ -160,12 +160,14 @@ class Command(_CommandHelpers):
         self._raise_after_retries(last_err, attempts)
 
     def stream(self, *args, **kwargs) -> Iterable[str] | Any:
+        if self._tools or (self._output_type is not None and self._output_type is not str):
+            raise ConfigurationError(
+                "Streaming supports text-only commands; tools and non-string typed outputs are not supported"
+            )
+
         effective = get_config(self._cfg)
         backend = get_backend(effective.model)
-        try:
-            output_schema = to_json_schema(self._output_type) if self._output_type else None
-        except ValueError as e:
-            raise ConfigurationError(str(e)) from e
+        output_schema = None
 
         if not self._is_async:
             prompt = self._func(*args, **kwargs)
@@ -174,7 +176,7 @@ class Command(_CommandHelpers):
             try:
                 return backend.stream(
                     prompt,
-                    tools=self._tools or None,
+                    tools=None,
                     output_schema=output_schema,
                     config=effective,
                 )
@@ -190,8 +192,8 @@ class Command(_CommandHelpers):
             try:
                 aiter = await backend.astream(
                     prompt_str,
-                    tools=self._tools or None,
-                    output_schema=output_schema,
+                    tools=None,
+                    output_schema=None,
                     config=effective,
                 )
             except Exception as e:

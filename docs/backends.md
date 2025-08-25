@@ -14,9 +14,11 @@ Popular models (examples)
 - Anthropic: `claude-3.7-sonnet`, `claude-sonnet-4-20250514`, `claude-4-opus`, `claude-4.1-opus`
 - Gemini: `gemini-2.5-pro`, `gemini-2.5-flash`
 
-## Streaming with Tools
+## Streaming
 
-- Experimental. Alloy streams text and, where supported by providers, detects tool calls mid‑stream, executes tools locally, and continues streaming in a new pass. Structured outputs are not streamed.
+- Text-only. Alloy streams text chunks for simple UX responsiveness.
+- No tools or structured outputs are supported in streaming mode.
+- For complex streaming needs, use provider SDKs directly.
 
 ## OpenAI specifics
 
@@ -27,5 +29,5 @@ Popular models (examples)
 
 ## Gemini
 
-- Supported via `google-genai`. Tools are supported in non‑streaming flows; streaming is text‑only (no tools in stream) in this scaffold.
+- Supported via `google-genai`. Tools are supported in non‑streaming flows; streaming is text‑only.
 - For strict typed outputs requested alongside tools, Alloy may issue a final follow‑up turn to produce a structured response when appropriate.

@@ -330,16 +330,14 @@ class OpenAIBackend(ModelBackend):
     ) -> Iterable[str]:
         if self._OpenAI is None:
             raise ConfigurationError("OpenAI SDK not installed. Run `pip install openai>=1.99.6`.")
-
-        if tools:
-            raise ConfigurationError("Streaming with tools is not supported yet")
+        if tools or output_schema is not None:
+            raise ConfigurationError("Streaming supports text only; tools and structured outputs are not supported")
 
         client: Any = self._OpenAI()
-        text_format = _build_text_format(output_schema)
         kwargs = _prepare_request_kwargs(
             prompt,
             config=config,
-            text_format=text_format,
+            text_format=None,
             tool_defs=None,
             pending=None,
             prev_id=None,
@@ -415,16 +413,14 @@ class OpenAIBackend(ModelBackend):
     ) -> AsyncIterable[str]:
         if self._AsyncOpenAI is None:
             raise ConfigurationError("OpenAI SDK not installed. Run `pip install openai>=1.99.6`.")
-
-        if tools:
-            raise ConfigurationError("Streaming with tools is not supported yet")
+        if tools or output_schema is not None:
+            raise ConfigurationError("Streaming supports text only; tools and structured outputs are not supported")
 
         client: Any = self._AsyncOpenAI()
-        text_format = _build_text_format(output_schema)
         kwargs = _prepare_request_kwargs(
             prompt,
             config=config,
-            text_format=text_format,
+            text_format=None,
             tool_defs=None,
             pending=None,
             prev_id=None,
