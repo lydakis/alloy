@@ -6,6 +6,7 @@ Run:
 
 Notes:
 - Alloy streams text chunks; it does not expose low-level token delta events.
+- Streaming is text-only; commands with tools or non-string outputs do not stream.
 """
 
 from __future__ import annotations

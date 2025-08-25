@@ -64,3 +64,7 @@ def sqrt_floor(x: int) -> int: ...
 def compute() -> str:
     return "Use sqrt_floor(x) for x=49 and return the number only."
 ```
+
+Streaming
+- For responsiveness, text-only commands can stream: `for chunk in draft.stream(): ...`.
+- Commands with tools or non‑string outputs do not stream; call them normally to get a typed result.
