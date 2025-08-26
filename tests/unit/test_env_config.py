@@ -41,7 +41,7 @@ def test_overrides_do_not_reset_max_tool_turns(monkeypatch):
     cfg = get_config({"default_system": "x"})
     assert cfg.max_tool_turns == 8
 
-    # Remove env; per-call overrides still must not reset to 2; should see 8 from configure
+    # Remove env; per-call overrides still must not reset to the dataclass default (10); should see 8 from configure
     monkeypatch.delenv("ALLOY_MAX_TOOL_TURNS", raising=False)
     cfg2 = get_config({"default_system": "x"})
     assert cfg2.max_tool_turns == 8

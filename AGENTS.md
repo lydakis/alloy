@@ -59,7 +59,7 @@ Streaming is text‑only across providers; commands with tools or non‑string o
 - Git ignore: Ensure `.env` and `.venv/` are ignored (they are in this repo). Never publish them.
 - Fail‑safe defaults: Validate config in `config.py`; handle missing keys with clear errors.
 - Environment overrides: You can set process env vars to avoid code changes: `ALLOY_MODEL`, `ALLOY_TEMPERATURE`, `ALLOY_MAX_TOKENS`, `ALLOY_SYSTEM`/`ALLOY_DEFAULT_SYSTEM`, `ALLOY_RETRY`, `ALLOY_MAX_TOOL_TURNS`, `ALLOY_EXTRA_JSON` (provider‑specific extras). Example: `export ALLOY_MODEL=gpt-4o`.
-  - Default `max_tool_turns` is 2; increase if your workflows require more tool rounds.
+  - Default `max_tool_turns` is 10; increase if your workflows require more tool rounds.
   - Anthropic extras: `anthropic_tool_choice` (e.g., `{ "type": "auto"|"any"|"tool"|"none" }`), `anthropic_disable_parallel_tool_use` (bool).
  - Local runs: Use the `dotenv` CLI to load `.env` (e.g., `dotenv -f .env run -- pytest`). In CI, configure provider API keys as encrypted secrets and pass via environment variables (do not store keys in the repo).
 

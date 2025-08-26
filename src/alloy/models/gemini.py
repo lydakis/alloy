@@ -70,7 +70,7 @@ class _LoopState:
         self.T = types_mod
         self.cfg = dict(cfg)
         self.turns = 0
-        self.max_turns = max_turns if isinstance(max_turns, int) else 2
+        self.max_turns = max_turns
         decls = []
         self.tool_map: dict[str, Any] = {}
         self.exceeded_tool_limit: bool = False
@@ -262,7 +262,7 @@ class GeminiBackend(ModelBackend):
                 tools=tools,
                 cfg=cfg_tools,
                 prompt=prompt,
-                max_turns=config.max_tool_turns if isinstance(config.max_tool_turns, int) else 2,
+                max_turns=config.max_tool_turns,
             )
             while True:
                 try:
@@ -440,7 +440,7 @@ class GeminiBackend(ModelBackend):
                 tools=tools,
                 cfg=cfg_tools,
                 prompt=prompt,
-                max_turns=config.max_tool_turns if isinstance(config.max_tool_turns, int) else 2,
+                max_turns=config.max_tool_turns,
             )
             while True:
                 try:

@@ -88,7 +88,8 @@ Progressive path
 Notes
 - OpenAI backend is implemented for sync/async/streaming.
 - Streaming with tools is not yet supported.
-- Structured outputs: Alloy uses provider JSON Schema features (OpenAI/Anthropic/Gemini). See Enforcing outputs above.
+- Structured outputs: Alloy uses provider JSON Schema features (OpenAI/Anthropic/Gemini) and JSON‑mode guidance for Ollama. See Enforcing outputs above.
+ - Ollama extras: set `extra.ollama_options` (e.g., `{"num_ctx":4096, "stop":["\n\n"]}`) and `extra.ollama_format` to control `format`.
 - Configuration defaults: Alloy uses `model=gpt-5-mini` if `configure(...)` is not called. You can also set process environment variables instead of a `.env` file:
   - `ALLOY_MODEL`, `ALLOY_TEMPERATURE`, `ALLOY_MAX_TOKENS`, `ALLOY_SYSTEM`/`ALLOY_DEFAULT_SYSTEM`, `ALLOY_RETRY`, `ALLOY_MAX_TOOL_TURNS`.
   - Example: `export ALLOY_MODEL=gpt-4o` then run your script.
@@ -103,7 +104,7 @@ Optional: offline dev tip
 - Example: `ALLOY_BACKEND=fake python examples/basic_usage.py`
 
 Config precedence
-- Defaults: `model=gpt-5-mini`, `max_tool_turns=2` (safe default).
+- Defaults: `model=gpt-5-mini`, `max_tool_turns=10` (safe default).
 - Process env (ALLOY_*) overrides defaults.
 - Context/use_config and `configure(...)` override env/defaults.
 - Per-call overrides (e.g., `ask(..., model=...)`) override everything above.
@@ -118,7 +119,7 @@ Troubleshooting
 - API key: Ensure `OPENAI_API_KEY` is set (process env or `.env`).
 - Model choice: Prefer `gpt-5-mini` for fastest latency; switch via `configure(model=...)` or `ALLOY_MODEL`.
 - Timeouts/slow runs: Reduce `max_tokens`, lower `temperature`, prefer smaller models, and cap tool loops.
-- Tool loops: Default limit is 2. Adjust via `configure(max_tool_turns=...)` or env `ALLOY_MAX_TOOL_TURNS`.
+- Tool loops: Default limit is 10. Adjust via `configure(max_tool_turns=...)` or env `ALLOY_MAX_TOOL_TURNS`.
 - Rate limits (429): Shorten prompts/outputs, add retries with backoff, or use lower-throughput settings.
 
 Observability
@@ -149,8 +150,8 @@ Support matrix (v1)
 - OpenAI (GPT-4/5 and o-series): completions, typed commands, ask, streaming (no tools in stream), tool-calling, structured JSON for object schemas, tool-loop cap.
 - Anthropic (Claude 3.7 / Sonnet 4 / Opus 4/4.1): completions and tool-calling loop (no streaming yet).
 - Google (Gemini 2.5 Pro/Flash): basic completions (no tools/streaming in scaffold). Uses `google-genai` by default.
-- Ollama (local): basic completions via `model="ollama:<name>"` (no tools/streaming in scaffold).
-- ReAct fallback: not implemented yet (planned for local models/LLMs without native tools).
+- Ollama (local): completions, text streaming, tools via ReAct-style JSON loop, and JSON-mode guidance for typed outputs. Use `model="ollama:<name>"`.
+- ReAct fallback: implemented for Ollama tools (JSON protocol); broader generic fallback TBD.
 
 Install options
 - Base: `pip install alloy-ai` (includes OpenAI + python-dotenv).

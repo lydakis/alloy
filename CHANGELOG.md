@@ -15,13 +15,13 @@ Semantic Versioning.
 - config refactor: cache env parsing with lru_cache, add concise warnings for malformed env; simplify merging via dataclasses.replace and remove explicit key tracking.
 
 ### Docs/Tests
-- README: clarify default `max_tool_turns=2` and precedence.
+- README: clarify default `max_tool_turns=10` and precedence.
 - Unit tests: add coverage to ensure overrides don’t clobber `max_tool_turns` and that configure beats env where both are set.
 
 ## [0.2.0] - 2025-08-26
 ### Cross‑provider
 - Streaming policy unified: text‑only streaming across providers; commands with tools or non‑string outputs do not stream (enforced in code and docs).
-- Default `max_tool_turns=2` (override via `configure` or `ALLOY_MAX_TOOL_TURNS`).
+- Default `max_tool_turns=10` (override via `configure` or `ALLOY_MAX_TOOL_TURNS`).
 
 ### OpenAI
 - Migrate to Responses API; shared request builder and centralized function‑calling loop via `_LoopState`.

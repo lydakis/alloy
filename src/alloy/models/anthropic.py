@@ -26,7 +26,7 @@ def _as_text_from_content(content: Any) -> str:
         return ""
 
 
-_ANTHROPIC_REQUIRED_MAX_TOKENS = 512
+_ANTHROPIC_REQUIRED_MAX_TOKENS = 512  # Anthropic requires max_tokens; use this if unspecified
 
 
 class _LoopState:
@@ -60,12 +60,14 @@ class _LoopState:
             "model": self.config.model,
             "messages": self.messages,
         }
+        # Anthropic API requires max_tokens on every call. If not provided in
+        # Config, use a conservative fallback. Prefer setting ALLOY_MAX_TOKENS.
         mt = (
-            self.config.max_tokens
+            int(self.config.max_tokens)
             if self.config.max_tokens is not None
             else _ANTHROPIC_REQUIRED_MAX_TOKENS
         )
-        kwargs["max_tokens"] = int(mt)
+        kwargs["max_tokens"] = mt
         if self.system:
             kwargs["system"] = self.system
         if self.config.temperature is not None:

@@ -33,7 +33,14 @@ class ToolSpec:
         required: list[str] = []
         for name, p in sig.parameters.items():
             ann = p.annotation if p.annotation is not inspect._empty else None
-            schema = to_json_schema(ann) if ann is not None else None
+            schema = None
+            if ann is not None:
+                try:
+                    schema = to_json_schema(ann)
+                except ValueError:
+                    # For tool parameters, allow open-ended objects when a dict is annotated
+                    # even though strict structured OUTPUTS disallow them.
+                    schema = {"type": "object"}
             if not isinstance(schema, dict):
                 schema = {"type": "string"}
             properties[name] = schema

@@ -20,7 +20,7 @@ class Config:
     default_system: str | None = None
     retry: int | None = None
     retry_on: type[BaseException] | None = None
-    max_tool_turns: int | None = 2
+    max_tool_turns: int | None = 10
     auto_finalize_missing_output: bool | None = True
     extra: dict[str, Any] = field(default_factory=dict)
 

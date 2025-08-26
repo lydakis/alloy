@@ -31,7 +31,7 @@ Release notes and highlights. See full changelog for details.
   - Clearer parse errors and refined type stubs for default returns and async variants.
 
 - Safety & configuration
-  - Default `max_tool_turns=2` (override via `configure` or `ALLOY_MAX_TOOL_TURNS`).
+  - Default `max_tool_turns=10` (override via `configure` or `ALLOY_MAX_TOOL_TURNS`).
 
 - Tests & docs
   - New Anthropic integration tests: structured float/object, text‑only streaming, and parallel tool calls.
