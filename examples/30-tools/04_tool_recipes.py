@@ -60,7 +60,7 @@ def sql_query(query: str) -> list[dict]:
 
 @command(tools=[http_get_json, read_text_file, sql_query])
 def demo_recipes(tmp_file: str) -> str:
-    return f"""
+    return """
     Use the tools to:
     1) Read a local file snippet using read_text_file(tmp_file)
     2) Query an in-memory DB: select name from people where id in (1,3)
@@ -84,4 +84,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

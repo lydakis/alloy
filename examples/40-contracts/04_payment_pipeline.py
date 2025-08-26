@@ -26,7 +26,9 @@ def validate_payment(payment: dict) -> dict:
 
 
 @tool
-@require(lambda ba: ba.arguments.get("payment", {}).get("is_valid") is True, "run validate_payment first")
+@require(
+    lambda ba: ba.arguments.get("payment", {}).get("is_valid") is True, "run validate_payment first"
+)
 @ensure(lambda res: res is True, "charge must succeed")
 def charge_card(payment: dict) -> bool:
     """Charge the card (mock)."""
@@ -74,4 +76,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

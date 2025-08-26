@@ -15,8 +15,11 @@ from dotenv import load_dotenv
 
 
 @tool
-@require(lambda ba: isinstance(ba.arguments.get("email", ""), str) and ba.arguments.get("email", "").count("@") == 1,
-         "provide a single valid email")
+@require(
+    lambda ba: isinstance(ba.arguments.get("email", ""), str)
+    and ba.arguments.get("email", "").count("@") == 1,
+    "provide a single valid email",
+)
 def extract_domain(email: str) -> str:
     """Return the domain part of an email address."""
     return email.split("@", 1)[1].lower()

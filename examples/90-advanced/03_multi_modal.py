@@ -55,12 +55,7 @@ def main():
     text = ocr_image(img_path) if img_path else ""
     if text.startswith("ERROR:") or not text.strip():
         # Fallback sample if OCR is unavailable
-        text = (
-            "Item, Price, Qty\n"
-            "Widget A, 19.99, 3\n"
-            "Widget B, 9.50, 5\n"
-            "Total, 69.47, -\n"
-        )
+        text = "Item, Price, Qty\n" "Widget A, 19.99, 3\n" "Widget B, 9.50, 5\n" "Total, 69.47, -\n"
     print(describe_table(text))
 
 

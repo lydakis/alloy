@@ -53,9 +53,7 @@ def main():
     )
 
     # Map to API format
-    payloads = csv_to_api(
-        df, "POST /customers {fullName, emailAddress, subscriptionTier}"
-    )
+    payloads = csv_to_api(df, "POST /customers {fullName, emailAddress, subscriptionTier}")
 
     for payload in payloads:
         print("Ready to POST:")
@@ -65,4 +63,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
