@@ -5,7 +5,7 @@ Run:
   # Load API keys from .env (e.g., OPENAI_API_KEY)
   # Optional: raise tool loop limit via env or configure(max_tool_turns=...)
   #   export ALLOY_MAX_TOOL_TURNS=8
-  python examples/patterns/deep_agents.py
+  python examples/90-advanced/01_deep_agents.py
 
 Notes:
 - Implements a lightweight “deep agent” pattern inspired by Claude Code:
@@ -25,8 +25,8 @@ from dotenv import load_dotenv
 from alloy import command, tool, ask, configure, require, ensure
 
 
-# Workspace root for this example (kept under examples/)
-WS_ROOT = Path(__file__).parent.parent / "_agent_workspace"
+# Workspace root for this example (local to this folder)
+WS_ROOT = Path(__file__).with_name("_workspace_deep_agents")
 WS_ROOT.mkdir(parents=True, exist_ok=True)
 
 

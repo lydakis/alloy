@@ -37,3 +37,5 @@ env/
 
 # Example workspaces
 examples/_agent_workspace/
+examples/**/_workspace/
+examples/**/_workspace*/

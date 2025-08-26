@@ -1,0 +1,7 @@
+# Optional dependencies used by various examples.
+# You do not need all of these to run every script.
+python-dotenv>=1.0.0
+pandas>=2.0.0
+flask>=3.0.0
+pillow>=10.0.0
+pytesseract>=0.3.10
