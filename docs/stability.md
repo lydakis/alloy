@@ -21,7 +21,7 @@ This project is pre‑1.0. We aim to keep stable areas reliable while iterating 
 ## Providers
 
 - OpenAI: Stable — completions, tools, structured outputs, streaming (no tools‑in‑stream). Note: “Stable” isn’t bug‑free; known issues are tracked and fixes prioritized.
-- Anthropic: Beta — completions + tools; streaming not yet supported in this scaffold.
+- Anthropic: Beta — completions + tools; streaming (text‑only; no tools/structured outputs in stream).
 - Gemini: Experimental — basic completions.
 - Ollama: Experimental — basic completions; no structured outputs/tools.
 
@@ -29,7 +29,7 @@ This project is pre‑1.0. We aim to keep stable areas reliable while iterating 
 
 - Structured outputs: Stable for OpenAI; Beta for Anthropic/Gemini; not applied for Ollama.
 - Tools loop: Stable for OpenAI; Beta for Anthropic; Experimental elsewhere.
-- Streaming with tools: Planned; not supported.
+- Streaming with tools: Not supported (text‑only streaming across providers).
 
 ## Support
 

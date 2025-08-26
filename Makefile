@@ -42,6 +42,28 @@ examples:
 	$(PY) examples/basic_usage.py
 	$(PY) examples/tools_demo.py
 
+examples-gemini:
+	@if command -v dotenv >/dev/null 2>&1; then \
+	  ALLOY_MODEL?=gemini-2.5-pro; \
+	  dotenv -f .env run -- env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/basic_usage.py; \
+	  dotenv -f .env run -- env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/tools_demo.py; \
+	else \
+	  ALLOY_MODEL?=gemini-2.5-pro; \
+	  env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/basic_usage.py; \
+	  env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/tools_demo.py; \
+	fi
+
+examples-claude:
+	@if command -v dotenv >/dev/null 2>&1; then \
+	  ALLOY_MODEL?=claude-3.5-sonnet; \
+	  dotenv -f .env run -- env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/basic_usage.py; \
+	  dotenv -f .env run -- env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/tools_demo.py; \
+	else \
+	  ALLOY_MODEL?=claude-3.5-sonnet; \
+	  env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/basic_usage.py; \
+	  env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/tools_demo.py; \
+	fi
+
 examples-patterns:
 	$(PY) examples/patterns/deterministic_workflows.py || true
 	$(PY) examples/patterns/commands_as_tools.py || true
