@@ -159,3 +159,85 @@ def answer_with_sources(question: str) -> str:
 
 Further
 - See the full suite under `examples/` for composition, integrations, providers, patterns, and advanced flows (deep agents, OCR, observability, evals).
+
+## Stateful assistant: file-backed memory
+
+Path: `examples/80-patterns/06_stateful_assistant.py`
+
+```python
+from __future__ import annotations
+import json, datetime as dt
+from pathlib import Path
+from dataclasses import dataclass
+from alloy import command, tool
+
+ROOT = Path(__file__).with_name("_memory_stateful"); ROOT.mkdir(exist_ok=True)
+def _path(uid: str) -> Path: return ROOT / f"{uid}.json"
+def _now() -> str: return dt.datetime.utcnow().isoformat()
+
+@tool
+def load_profile(user_id: str) -> dict:
+    p = _path(user_id)
+    if not p.exists(): return {"facts": [], "summary": "", "updated_at": _now()}
+    try: return json.loads(p.read_text(encoding="utf-8"))
+    except Exception: return {"facts": [], "summary": "", "updated_at": _now()}
+
+@tool
+def save_profile(user_id: str, profile: dict) -> bool:
+    data = dict(profile); data["updated_at"] = _now(); _path(user_id).write_text(json.dumps(data))
+    return True
+
+@tool
+def remember(user_id: str, fact: str) -> bool:
+    prof = load_profile(user_id); facts = list(prof.get("facts", []))
+    if fact and fact not in facts: facts.append(fact); prof["facts"] = facts; save_profile(user_id, prof)
+    return True
+
+@tool
+def recall(user_id: str, query: str, k: int = 5) -> list[str]:
+    prof = load_profile(user_id); q = query.lower()
+    return [f for f in prof.get("facts", []) if any(w and w in f.lower() for w in q.split())][:k]
+
+@dataclass
+class AssistantTurn: reply: str; new_facts: list[str]
+
+@command(output=AssistantTurn, tools=[load_profile, save_profile, recall, remember], system="Be concise.")
+def assistant_turn(user_id: str, message: str) -> str:
+    return f"""
+    Read profile and relevant facts; reply concisely.
+    If suitable, include up to two durable facts in new_facts and store them.
+    user_id={user_id}
+    message={message}
+    """
+```
+
+## Conversation history: rolling transcript
+
+Path: `examples/80-patterns/07_conversation_history.py`
+
+```python
+from __future__ import annotations
+import json
+from pathlib import Path
+from alloy import command
+
+ROOT = Path(__file__).with_name("_conversations"); ROOT.mkdir(exist_ok=True)
+def _path(sid: str) -> Path: return ROOT / f"{sid}.json"
+def _load(sid: str) -> list[dict]:
+    p = _path(sid)
+    try: return json.loads(p.read_text()) if p.exists() else []
+    except Exception: return []
+def _save(sid: str, items: list[dict]) -> None: _path(sid).write_text(json.dumps(items))
+
+class ConversationStore:
+    def append(self, sid: str, role: str, text: str):
+        items = _load(sid); items.append({"role": role, "text": text}); _save(sid, items)
+    def transcript(self, sid: str, last: int = 8) -> str:
+        return "\n".join(f"{it['role'].capitalize()}: {it['text']}" for it in _load(sid)[-last:])
+
+@command(output=str)
+def chat_reply(message: str, transcript: str) -> str:
+    return f"""
+    Continue the conversation based on recent turns:\n{transcript}\n\nUser: {message}
+    """
+```

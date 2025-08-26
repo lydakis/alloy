@@ -16,7 +16,14 @@ Python for logic. English for intelligence.
 ## Structure (progressive path)
 - `00-explore/` — Explore with `ask()` (no structure needed)
 - `10-commands/` — First commands, sync and async
-- Next categories add typing, tools, contracts, composition, integrations, providers, patterns, and advanced topics.
+- `20-typed/` — Provider-enforced typed outputs (primitives, dataclasses, lists)
+- `30-tools/` — `@tool` basics, tools with commands, parallel calls, recipes (HTTP/file/SQL)
+- `40-contracts/` — Design by Contract (`@require/@ensure`) and workflows
+- `50-composition/` — Compose commands (routing, recursive analysis, translator network)
+- `60-integration/` — Pandas, Flask endpoint, batch processing, pytest generator
+- `70-providers/` — Same task across OpenAI / Anthropic / Gemini / Ollama + setup
+- `80-patterns/` — RAG, self-refine, PII guardrail, streaming, retry, memory, conversation history
+- `90-advanced/` — Deep-agents (dynamic + minimal), OCR via tool, observability, evals
 
 ## Offline Mode
 - For quick demos without provider keys: `ALLOY_BACKEND=fake` will return deterministic canned responses for typed outputs.
