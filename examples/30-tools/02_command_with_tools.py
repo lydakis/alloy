@@ -10,11 +10,19 @@ Notes:
 """
 
 from dataclasses import dataclass
+from typing import TypedDict
 from alloy import tool, command, configure
 from dotenv import load_dotenv
 
 
-CATALOG = [
+class Product(TypedDict):
+    name: str
+    category: str
+    price: float
+    discount: int
+
+
+CATALOG: list[Product] = [
     {"name": "ProBook 14", "category": "laptop", "price": 999.0, "discount": 10},
     {"name": "ZenPhone X", "category": "phone", "price": 799.0, "discount": 5},
     {"name": "UltraPad 11", "category": "tablet", "price": 649.0, "discount": 0},
@@ -23,7 +31,7 @@ CATALOG = [
 
 
 @tool
-def search_products(category: str, max_price: float) -> list[dict]:
+def search_products(category: str, max_price: float) -> list[Product]:
     """Return products in category under max_price."""
     return [p for p in CATALOG if p["category"] == category and p["price"] <= float(max_price)]
 

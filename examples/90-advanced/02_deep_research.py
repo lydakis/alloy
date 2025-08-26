@@ -32,7 +32,7 @@ def execute_step(goal: str, step: str, context: str) -> str:
 def deep_agent(goal: str) -> str:
     WORKSPACE.mkdir(exist_ok=True)
     steps = [s.strip("- • ") for s in plan(goal).splitlines() if s.strip()]
-    context = []
+    context: list[str] = []
     for i, step in enumerate(steps[:6], start=1):
         out = execute_step(goal, step, "\n".join(context[-3:]))
         (WORKSPACE / f"step_{i:02d}.txt").write_text(out)

@@ -19,7 +19,7 @@ import datetime
 def validate_data(data: dict) -> dict:
     """Add validation timestamp to data."""
     data = dict(data)
-    data["validated_at"] = datetime.datetime.now(datetime.UTC).isoformat()
+    data["validated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
     return data
 
 

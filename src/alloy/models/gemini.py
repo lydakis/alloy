@@ -257,12 +257,15 @@ class GeminiBackend(ModelBackend):
             tool_config = self._prepare_tool_config(T, config)
             if tool_config is not None:
                 cfg_tools["tool_config"] = tool_config
+            mt = config.max_tool_turns
+            if not isinstance(mt, int):
+                raise ConfigurationError("max_tool_turns must be provided by configuration")
             state = _LoopState(
                 types_mod=T,
                 tools=tools,
                 cfg=cfg_tools,
                 prompt=prompt,
-                max_turns=config.max_tool_turns,
+                max_turns=mt,
             )
             while True:
                 try:
@@ -435,12 +438,15 @@ class GeminiBackend(ModelBackend):
             tool_config = self._prepare_tool_config(T, config)
             if tool_config is not None:
                 cfg_tools["tool_config"] = tool_config
+            mt = config.max_tool_turns
+            if not isinstance(mt, int):
+                raise ConfigurationError("max_tool_turns must be provided by configuration")
             state = _LoopState(
                 types_mod=T,
                 tools=tools,
                 cfg=cfg_tools,
                 prompt=prompt,
-                max_turns=config.max_tool_turns,
+                max_turns=mt,
             )
             while True:
                 try:

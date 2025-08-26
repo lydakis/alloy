@@ -39,3 +39,7 @@ env/
 examples/_agent_workspace/
 examples/**/_workspace/
 examples/**/_workspace*/
+examples/**/_memory/
+examples/**/_memory*/
+examples/**/_conversations/
+examples/**/_conversations*/
