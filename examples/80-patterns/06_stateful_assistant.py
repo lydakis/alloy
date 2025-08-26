@@ -109,8 +109,19 @@ def main():
     load_dotenv()
     configure(temperature=0.2)
     uid = "alice"
-    print(assistant_turn(uid, "Hi, I prefer emails in the morning."))
-    print(assistant_turn(uid, "Schedule a follow-up tomorrow."))
+    msg1 = "Hi, I prefer emails in the morning."
+    res1 = assistant_turn(uid, msg1)
+    print("User:", msg1)
+    print("Assistant:", res1.reply)
+    if res1.new_facts:
+        print("New facts:", res1.new_facts)
+
+    msg2 = "Schedule a follow-up tomorrow."
+    res2 = assistant_turn(uid, msg2)
+    print("User:", msg2)
+    print("Assistant:", res2.reply)
+    if res2.new_facts:
+        print("New facts:", res2.new_facts)
 
 
 if __name__ == "__main__":

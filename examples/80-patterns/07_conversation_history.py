@@ -78,14 +78,18 @@ def demo_conversation():
     store = ConversationStore()
     sid = "demo"
     # Turn 1
-    store.append(sid, "user", "Hello, I'm Sam — no emojis please.")
-    r1 = chat_reply("Nice to meet you.", store.transcript(sid, last=6))
+    user1 = "Hello, I'm Sam — no emojis please."
+    print("User:", user1)
+    r1 = chat_reply(user1, store.transcript(sid, last=6))
     print("Assistant:", r1)
+    store.append(sid, "user", user1)
     store.append(sid, "assistant", r1)
     # Turn 2
-    store.append(sid, "user", "What did I say about emojis?")
-    r2 = chat_reply("Answer briefly.", store.transcript(sid, last=6))
+    user2 = "What did I say about emojis?"
+    print("User:", user2)
+    r2 = chat_reply(user2, store.transcript(sid, last=6))
     print("Assistant:", r2)
+    store.append(sid, "user", user2)
     store.append(sid, "assistant", r2)
 
 
