@@ -1,10 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, replace, fields
 import os
 import json
 from typing import Any
 import contextvars
+import functools
+import logging
+
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -22,93 +27,64 @@ class Config:
     def merged(self, other: "Config" | None) -> "Config":
         if other is None:
             return self
-        # Merge with right precedence: other overrides self
-        data = asdict(self)
-        other_data = asdict(other)
-        merged_extra = {**data.pop("extra"), **other_data.pop("extra")}
-        for k, v in other_data.items():
-            if v is not None:
-                data[k] = v
-        data["extra"] = merged_extra
-        return Config(**data)
+        updates: dict[str, Any] = {}
+        for f in fields(self):
+            ov = getattr(other, f.name)
+            if ov is None:
+                continue
+            if f.name == "extra":
+                updates["extra"] = {**(self.extra or {}), **(ov or {})}
+            else:
+                updates[f.name] = ov
+        return replace(self, **updates)
 
 
-_global_config: Config = Config(model="gpt-5-mini")
+_BUILTIN_DEFAULTS: Config = Config(model="gpt-5-mini")
+_global_config: Config = Config()  # explicit-only (all None until set via configure)
 _context_config: contextvars.ContextVar[Config | None] = contextvars.ContextVar(
     "alloy_context_config", default=None
 )
 
 
+def _parse_env_var(name: str, target_type: type) -> Any | None:
+    val = os.environ.get(name)
+    if val is None:
+        return None
+    try:
+        if target_type is bool:
+            return val.strip().lower() in ("1", "true", "yes", "y", "on")
+        return target_type(val)
+    except (ValueError, TypeError):
+        log.warning(
+            "Could not parse %s='%s' as %s; ignoring.",
+            name,
+            val,
+            getattr(target_type, "__name__", str(target_type)),
+        )
+        return None
+
+
+@functools.lru_cache(maxsize=1)
 def _config_from_env() -> Config:
-    """Build a Config from process environment variables (optional).
-
-    Supported variables:
-      - ALLOY_MODEL (str)
-      - ALLOY_TEMPERATURE (float)
-      - ALLOY_MAX_TOKENS (int)
-      - ALLOY_SYSTEM or ALLOY_DEFAULT_SYSTEM (str)
-      - ALLOY_RETRY (int)
-      - ALLOY_EXTRA_JSON (JSON object for provider-specific extras)
-    """
-    model = os.environ.get("ALLOY_MODEL")
-    temperature = os.environ.get("ALLOY_TEMPERATURE")
-    max_tokens = os.environ.get("ALLOY_MAX_TOKENS")
-    system = os.environ.get("ALLOY_DEFAULT_SYSTEM") or os.environ.get("ALLOY_SYSTEM")
-    retry = os.environ.get("ALLOY_RETRY")
-    max_tool_turns = os.environ.get("ALLOY_MAX_TOOL_TURNS")
-    auto_finalize = os.environ.get("ALLOY_AUTO_FINALIZE_MISSING_OUTPUT")
+    """Build a Config from process environment variables (cached)."""
+    extra: dict[str, Any] = {}
     extra_json = os.environ.get("ALLOY_EXTRA_JSON")
-
-    model_val: str | None = model or None
-    temp_val: float | None = None
-    if temperature is not None:
-        try:
-            temp_val = float(temperature)
-        except Exception:
-            temp_val = None
-    max_tokens_val: int | None = None
-    if max_tokens is not None:
-        try:
-            max_tokens_val = int(max_tokens)
-        except Exception:
-            max_tokens_val = None
-    default_system_val: str | None = system or None
-    retry_val: int | None = None
-    if retry is not None:
-        try:
-            retry_val = int(retry)
-        except Exception:
-            retry_val = None
-    max_tool_turns_val: int | None = None
-    if max_tool_turns is not None:
-        try:
-            max_tool_turns_val = int(max_tool_turns)
-        except Exception:
-            max_tool_turns_val = None
-    auto_finalize_val: bool | None = None
-    if auto_finalize is not None:
-        try:
-            v = auto_finalize.strip().lower()
-            auto_finalize_val = v in ("1", "true", "yes", "y", "on")
-        except Exception:
-            auto_finalize_val = None
-    extra: dict[str, object] = {}
     if extra_json:
         try:
             parsed = json.loads(extra_json)
             if isinstance(parsed, dict):
                 extra = parsed
-        except Exception:
-            pass
+        except json.JSONDecodeError:
+            log.warning("Could not parse ALLOY_EXTRA_JSON; must be a JSON object.")
     return Config(
-        model=model_val,
-        temperature=temp_val,
-        max_tokens=max_tokens_val,
-        default_system=default_system_val,
-        retry=retry_val,
+        model=os.environ.get("ALLOY_MODEL") or None,
+        temperature=_parse_env_var("ALLOY_TEMPERATURE", float),
+        max_tokens=_parse_env_var("ALLOY_MAX_TOKENS", int),
+        default_system=(os.environ.get("ALLOY_DEFAULT_SYSTEM") or os.environ.get("ALLOY_SYSTEM")),
+        retry=_parse_env_var("ALLOY_RETRY", int),
         retry_on=None,
-        max_tool_turns=max_tool_turns_val,
-        auto_finalize_missing_output=auto_finalize_val,
+        max_tool_turns=_parse_env_var("ALLOY_MAX_TOOL_TURNS", int),
+        auto_finalize_missing_output=_parse_env_var("ALLOY_AUTO_FINALIZE_MISSING_OUTPUT", bool),
         extra=extra,
     )
 
@@ -122,6 +98,20 @@ def configure(**kwargs: Any) -> None:
     global _global_config
     extra = kwargs.pop("extra", {})
     _global_config = _global_config.merged(Config(extra=extra, **kwargs))
+
+
+def _reset_config_for_tests() -> None:
+    """Internal: reset global/config state for tests.
+
+    Not part of the public API. Avoid using outside tests.
+    """
+    global _global_config
+    _global_config = Config()
+    _context_config.set(None)
+    try:
+        _config_from_env.cache_clear()
+    except Exception:
+        pass
 
 
 def use_config(temp_config: Config):
@@ -139,19 +129,23 @@ def use_config(temp_config: Config):
 
 
 def get_config(overrides: dict[str, Any] | None = None) -> Config:
-    """Return the effective config (global -> context -> overrides)."""
-    cfg = _global_config
-    ctx_cfg = _context_config.get()
-    if ctx_cfg is not None:
-        cfg = cfg.merged(ctx_cfg)
-    # Merge process env defaults next, so explicit context/configure override them
-    env_cfg = _config_from_env()
-    cfg = cfg.merged(env_cfg)
-    if overrides:
-        # Support alias: `system` -> `default_system` for per-call overrides
-        overrides = dict(overrides)  # shallow copy
-        if "system" in overrides and "default_system" not in overrides:
-            overrides["default_system"] = overrides.pop("system")
-        extra = overrides.pop("extra", {})
-        cfg = cfg.merged(Config(extra=extra, **overrides))
-    return cfg
+    """Return the effective config with precedence:
+
+    per-call overrides > context > global (configure) > env > built-in defaults
+    """
+    cfg = (
+        _BUILTIN_DEFAULTS.merged(_config_from_env())
+        .merged(_global_config)
+        .merged(_context_config.get())
+    )
+    if not overrides:
+        return cfg
+    overrides = dict(overrides)
+    if "system" in overrides and "default_system" not in overrides:
+        overrides["default_system"] = overrides.pop("system")
+    extra = overrides.pop("extra", {})
+    if isinstance(extra, dict) and extra:
+        cfg = cfg.merged(Config(extra=extra))
+    allowed = {f.name for f in fields(Config)}
+    valid = {k: v for k, v in overrides.items() if k in allowed and v is not None}
+    return replace(cfg, **valid)

@@ -103,7 +103,7 @@ Optional: offline dev tip
 - Example: `ALLOY_BACKEND=fake python examples/basic_usage.py`
 
 Config precedence
-- Defaults: `model=gpt-5-mini`, `max_tool_turns=None` (unlimited).
+- Defaults: `model=gpt-5-mini`, `max_tool_turns=2` (safe default).
 - Process env (ALLOY_*) overrides defaults.
 - Context/use_config and `configure(...)` override env/defaults.
 - Per-call overrides (e.g., `ask(..., model=...)`) override everything above.
@@ -118,7 +118,7 @@ Troubleshooting
 - API key: Ensure `OPENAI_API_KEY` is set (process env or `.env`).
 - Model choice: Prefer `gpt-5-mini` for fastest latency; switch via `configure(model=...)` or `ALLOY_MODEL`.
 - Timeouts/slow runs: Reduce `max_tokens`, lower `temperature`, prefer smaller models, and cap tool loops.
-- Tool loops: Unlimited by default. Cap iterations via `configure(max_tool_turns=2)` or env `ALLOY_MAX_TOOL_TURNS`.
+- Tool loops: Default limit is 2. Adjust via `configure(max_tool_turns=...)` or env `ALLOY_MAX_TOOL_TURNS`.
 - Rate limits (429): Shorten prompts/outputs, add retries with backoff, or use lower-throughput settings.
 
 Observability

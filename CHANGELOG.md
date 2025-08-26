@@ -7,6 +7,17 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [0.2.1] - 2025-08-26
+### Fixes
+- config: Prevent per-call overrides from resetting unspecified fields (e.g., `max_tool_turns`) to dataclass defaults. This fixes env/config values being ignored when commands passed only `default_system`.
+- precedence: Apply per-call > configure/context > env > defaults as documented; env now acts as defaults and does not override explicit `configure(...)`.
+### Internal
+- config refactor: cache env parsing with lru_cache, add concise warnings for malformed env; simplify merging via dataclasses.replace and remove explicit key tracking.
+
+### Docs/Tests
+- README: clarify default `max_tool_turns=2` and precedence.
+- Unit tests: add coverage to ensure overrides don’t clobber `max_tool_turns` and that configure beats env where both are set.
+
 ## [0.2.0] - 2025-08-26
 ### Cross‑provider
 - Streaming policy unified: text‑only streaming across providers; commands with tools or non‑string outputs do not stream (enforced in code and docs).
@@ -71,7 +82,8 @@ Semantic Versioning.
 - OpenAI backend (structured outputs, tools), Anthropic, Gemini, Ollama
 - Retries, streaming, env-based config, src layout, tests, CI
 
-[Unreleased]: https://github.com/lydakis/alloy-py/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/lydakis/alloy-py/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/lydakis/alloy-py/releases/tag/v0.2.1
 [0.2.0]: https://github.com/lydakis/alloy-py/releases/tag/v0.2.0
 [0.1.4]: https://github.com/lydakis/alloy-py/releases/tag/v0.1.4
 [0.1.3]: https://github.com/lydakis/alloy-py/releases/tag/v0.1.3
