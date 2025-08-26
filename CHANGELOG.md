@@ -7,6 +7,35 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-08-26
+### Cross‑provider
+- Streaming policy unified: text‑only streaming across providers; commands with tools or non‑string outputs do not stream (enforced in code and docs).
+- Default `max_tool_turns=2` (override via `configure` or `ALLOY_MAX_TOOL_TURNS`).
+
+### OpenAI
+- Migrate to Responses API; shared request builder and centralized function‑calling loop via `_LoopState`.
+- Safer output assembly; always thread `previous_response_id`.
+- Single follow‑up finalize (no tools) for missing structured outputs; raise `ToolLoopLimitExceeded` when turn cap exceeded.
+- Async parallel tool execution using `asyncio.to_thread`.
+
+### Gemini
+- Backend refactor for non‑streaming flows: capped tool loop and strict finalize with schema.
+- Text‑only streaming preserved; no tools/structured outputs in stream.
+
+### Anthropic
+- Parity with OpenAI/Gemini: robust tool loop with single user message for parallel tool results.
+- Respect configured `tool_choice` (default `{type:"auto"}`) and `anthropic_disable_parallel_tool_use`.
+- Structured outputs: prefill only for non‑string primitives and object schemas; no prefill for strings; JSON‑only finalization step after tools when needed.
+- Text‑only streaming supported; no tools/structured outputs in stream.
+
+### Commands & typing
+- Enforce command prompt functions `-> str`; decorator controls output type.
+- Clearer parse errors and refined type stubs for default returns and async.
+
+### Tests & docs
+- Anthropic integration tests for structured float/object, streaming, and parallel tool calls.
+- Docs: stability, configuration defaults, and streaming policy clarified; theme/brand updates.
+
 ## [0.1.4] - 2025-08-14
 - Typing: default static return type to `str` when `output` is omitted (sync → `str`, async → `Awaitable[str]`); refined decorator overloads and preserved ParamSpec. `ask.stream_async` typed as `AsyncIterable[str]`.
 - DBC (Design by Contract): `ToolError` messages from `@require/@ensure` now surface back to the model as tool outputs (OpenAI/Anthropic), enabling early corrective feedback instead of hard failures. Added unit + integration tests and docs.
@@ -42,7 +71,8 @@ Semantic Versioning.
 - OpenAI backend (structured outputs, tools), Anthropic, Gemini, Ollama
 - Retries, streaming, env-based config, src layout, tests, CI
 
-[Unreleased]: https://github.com/lydakis/alloy-py/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/lydakis/alloy-py/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/lydakis/alloy-py/releases/tag/v0.2.0
 [0.1.4]: https://github.com/lydakis/alloy-py/releases/tag/v0.1.4
 [0.1.3]: https://github.com/lydakis/alloy-py/releases/tag/v0.1.3
 [0.1.2]: https://github.com/lydakis/alloy-py/releases/tag/v0.1.2
