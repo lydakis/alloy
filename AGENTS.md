@@ -4,20 +4,23 @@
 - `src/alloy/`: Core library.
   - `ask.py`, `command.py`, `tool.py`: Prompt, command, and tool orchestration.
   - `config.py`, `types.py`, `errors.py`: Configuration, shared types, errors.
-  - `models/`: Model adapters (`base.py`, `openai.py`). Put provider‑specific code here.
+  - `models/`: Model adapters (`base.py`, `openai.py`, `anthropic.py`, `gemini.py`, `ollama.py`). Put provider‑specific code here.
 - `examples/`: Runnable scripts (`basic_usage.py`, `tools_demo.py`).
 - `alloy-spec-v1.md`: Reference spec for behaviors and interfaces.
 - `.env`: Local secrets (e.g., `OPENAI_API_KEY`). Do not commit.
+- `.venv/`: Local virtual environment (git‑ignored). Do not commit.
 
 ## Build, Test, and Development Commands
 - Create env: `python -m venv .venv && source .venv/bin/activate`
 - Install dev deps (editable): `pip install -e '.[dev]'`
 - Pre-commit: `pre-commit install` then `make precommit` (enforces imports and decorator style in code + docs)
 - Run examples: `python examples/basic_usage.py` or `python examples/tools_demo.py` (more under `examples/patterns/`)
+  - Streaming (text‑only): `python examples/basic/streaming_outputs.py`
 - Lint/format: `ruff .` and `black .`
   - Without installing the package, examples/tests add `src/` to `sys.path` for convenience.
 
 Defaults: The global config uses `model="gpt-5-mini"` so you can call `ask(...)` and commands without `configure(...)`. Use `configure(...)` to override.
+Streaming is text‑only across providers; commands with tools or non‑string outputs do not stream.
 
 ## Coding Style & Naming Conventions
 - Indentation: 4 spaces; follow PEP 8 + type hints.
@@ -53,8 +56,12 @@ Defaults: The global config uses `model="gpt-5-mini"` so you can call `ask(...)`
 
 ## Security & Configuration Tips
 - Secrets: Keep `OPENAI_API_KEY` in `.env` locally; never commit secrets.
+- Git ignore: Ensure `.env` and `.venv/` are ignored (they are in this repo). Never publish them.
 - Fail‑safe defaults: Validate config in `config.py`; handle missing keys with clear errors.
-- Environment overrides: You can set process env vars to avoid code changes: `ALLOY_MODEL`, `ALLOY_TEMPERATURE`, `ALLOY_MAX_TOKENS`, `ALLOY_SYSTEM`/`ALLOY_DEFAULT_SYSTEM`, `ALLOY_RETRY`. Example: `export ALLOY_MODEL=gpt-4o`.
+- Environment overrides: You can set process env vars to avoid code changes: `ALLOY_MODEL`, `ALLOY_TEMPERATURE`, `ALLOY_MAX_TOKENS`, `ALLOY_SYSTEM`/`ALLOY_DEFAULT_SYSTEM`, `ALLOY_RETRY`, `ALLOY_MAX_TOOL_TURNS`, `ALLOY_EXTRA_JSON` (provider‑specific extras). Example: `export ALLOY_MODEL=gpt-4o`.
+  - Default `max_tool_turns` is 2; increase if your workflows require more tool rounds.
+  - Anthropic extras: `anthropic_tool_choice` (e.g., `{ "type": "auto"|"any"|"tool"|"none" }`), `anthropic_disable_parallel_tool_use` (bool).
+ - Local runs: Use the `dotenv` CLI to load `.env` (e.g., `dotenv -f .env run -- pytest`). In CI, configure provider API keys as encrypted secrets and pass via environment variables (do not store keys in the repo).
 
 ## Design by Contract (DBC) for Tools
 - Use `@require(predicate, message)` to validate preconditions (receives `inspect.BoundArguments`).
@@ -62,10 +69,14 @@ Defaults: The global config uses `model="gpt-5-mini"` so you can call `ask(...)`
 - On failure, raise a `ToolError` message back to the model: OpenAI/Anthropic backends surface this as the tool output so the model can adjust (instead of a hard failure).
 - Keep messages short and instructive (e.g., "run validate_data first", "must be even").
 
+## Streaming Policy
+- Streaming is text‑only for all providers.
+- Commands with tools or non‑string outputs do not stream; call them normally to get a typed result.
+
 ## Docs & Examples
 - Docs pages: Typing, Equivalence Guide, Tool Recipes (HTTP fetch, file search, provider‑backed web search, DBC sequence).
-- Examples: see `examples/basic_*.py`, `examples/tools_demo.py`, and `examples/patterns/*` for orchestration patterns expressed via commands/tools.
+- Examples: see `examples/basic_*.py`, `examples/tools_demo.py`, `examples/basic/streaming_outputs.py`, and `examples/patterns/*` for orchestration patterns expressed via commands/tools.
 
 ## Release
 - Version in `pyproject.toml`; bump with changelog entries.
-- Trusted Publishing: tag and push (e.g., `git tag v0.1.4 && git push origin v0.1.4`) to publish to PyPI via CI.
+- Trusted Publishing: tag and push (e.g., `git tag v0.2.0 && git push origin v0.2.0`) to publish to PyPI via CI.
