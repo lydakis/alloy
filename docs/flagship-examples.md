@@ -11,6 +11,8 @@ Tip
 
 Path: `examples/00-explore/01_ask_basic.py`
 
+When to use: quick exploration, ad‑hoc questions, ideation before adding structure.
+
 ```python
 from alloy import ask
 from dotenv import load_dotenv
@@ -27,6 +29,8 @@ if __name__ == "__main__":
 ## First command: text output
 
 Path: `examples/10-commands/01_first_command.py`
+
+When to use: you want a reusable function that returns text; lightweight helpers, prompts you call from normal Python.
 
 ```python
 from alloy import command, configure
@@ -48,6 +52,8 @@ if __name__ == "__main__":
 ## Typed output: dataclass
 
 Path: `examples/20-typed/02_dataclass_output.py`
+
+When to use: you need a structured result (provider‑enforced) without manual parsing; great for API payloads, forms, and summaries.
 
 ```python
 from dataclasses import dataclass
@@ -86,6 +92,8 @@ if __name__ == "__main__":
 
 Path: `examples/40-contracts/02_workflow_contracts.py`
 
+When to use: workflows with explicit preconditions and postconditions; enforce tool order (validate → save) and surface failures for self‑correction.
+
 ```python
 from alloy import command, tool, require, ensure, configure
 from dotenv import load_dotenv
@@ -121,6 +129,8 @@ def process_order(order: dict) -> str:
 ## RAG: answer with citations
 
 Path: `examples/80-patterns/01_rag_citations.py`
+
+When to use: questions that must cite sources; domain Q&A, compliance, and documentation lookups where provenance matters.
 
 ```python
 from dataclasses import dataclass
@@ -163,6 +173,8 @@ Further
 ## Stateful assistant: file-backed memory
 
 Path: `examples/80-patterns/06_stateful_assistant.py`
+
+When to use: durable, per‑user memory across sessions (preferences, profile facts); keep Alloy stateless and store memory in Python.
 
 ```python
 from __future__ import annotations
@@ -214,6 +226,8 @@ def assistant_turn(user_id: str, message: str) -> str:
 ## Conversation history: rolling transcript
 
 Path: `examples/80-patterns/07_conversation_history.py`
+
+When to use: short‑term conversational continuity within a session; feed the recent transcript into each turn to keep context.
 
 ```python
 from __future__ import annotations
