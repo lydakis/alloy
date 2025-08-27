@@ -18,6 +18,18 @@ License: MIT
 
 Status: see Backends & Routing for current support details: https://docs.alloy.fyi/backends/
 
+```python
+from alloy import command
+
+@command(output=float)
+def extract_price(text: str) -> str:
+    return f"Extract the price from: {text}"
+
+print(extract_price("This costs $49.99"))  # 49.99
+```
+
+[Quick Start](#quick-start) | [Examples](examples/) | [Docs](https://docs.alloy.fyi) | [Why Alloy?](#why-alloy)
+
 ## Why Alloy
 
 - Provider‑enforced types: return real Python types (dataclasses, primitives) without brittle string parsing.
