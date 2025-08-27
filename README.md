@@ -171,7 +171,7 @@ Make targets
 - `make examples-anthropic` — run Anthropic example (requires `ANTHROPIC_API_KEY`, sets `ALLOY_MAX_TOKENS=512` if unset)
 - `make examples-gemini` — run Gemini example (requires `GOOGLE_API_KEY`)
 - `make examples-ollama` — run Ollama example (ensure a local model is running)
-- `make docs-serve` — run docs locally at http://127.0.0.1:8000
+- `make docs-serve` — run docs locally (default: 127.0.0.1:8000)
 - `make docs-build` — build the docs site
 
  Troubleshooting
