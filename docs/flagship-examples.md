@@ -103,7 +103,7 @@ import datetime
 @ensure(lambda d: isinstance(d, dict) and "validated_at" in d, "Must add validated_at timestamp")
 def validate_data(data: dict) -> dict:
     data = dict(data)
-    data["validated_at"] = datetime.datetime.utcnow().isoformat()
+    data["validated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
     return data
 
 @tool

@@ -12,8 +12,8 @@ All examples live under the `examples/` folder and are runnable scripts. Each is
 
 ## Streaming Policy
 
-- Streaming is text-only across providers.
-- Commands with tools or non-string outputs do not stream; call them normally to get typed results.
+Streaming is text-only. For details and constraints, see:
+- Commands → Streaming constraints: https://docs.alloy.fyi/commands/#sync-async-and-streaming
 
 ## 00 — Explore
 

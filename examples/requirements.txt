@@ -5,3 +5,4 @@ pandas>=2.0.0
 flask>=3.0.0
 pillow>=10.0.0
 pytesseract>=0.3.10
+pytest>=8.0.0

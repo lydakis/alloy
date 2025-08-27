@@ -131,7 +131,7 @@ See more: Flagship Examples and the full Examples index in the docs.
 
 ## Streaming policy
 
-- Streaming is text‑only across providers. Commands with tools or non‑string outputs do not stream; call them normally to get typed results.
+- Streaming is text‑only across providers. Commands with tools or non‑string outputs do not stream; call them normally to get typed results. Details: https://docs.alloy.fyi/commands/#sync-async-and-streaming
 
 ## Enforcing outputs
 - Alloy uses provider‑native structured outputs (JSON Schema) to enforce the expected shape. If parsing fails, you get a clear, typed error.

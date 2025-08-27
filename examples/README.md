@@ -11,7 +11,7 @@ Python for logic. English for intelligence.
 ## Running
 - Each example is a standalone script: `python examples/<category>/<file>.py`
 - Default model is `gpt-5-mini`; you can override with `configure(...)` or `ALLOY_MODEL`.
-- Streaming is text-only across providers; commands with tools or non-string outputs do not stream.
+- Streaming policy: Commands → Streaming constraints: https://docs.alloy.fyi/commands/#sync-async-and-streaming
 
 ## Structure (progressive path)
 - `00-explore/` — Explore with `ask()` (no structure needed)
