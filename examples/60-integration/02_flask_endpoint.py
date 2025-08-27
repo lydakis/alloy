@@ -21,7 +21,7 @@ from dataclasses import dataclass, asdict
 
 try:
     from flask import Flask, request, jsonify
-except Exception:  # pragma: no cover
+except ImportError:
     import sys
 
     print("This example needs Flask: pip install -r examples/requirements.txt")

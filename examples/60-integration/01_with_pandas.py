@@ -16,7 +16,7 @@ from __future__ import annotations
 
 try:
     import pandas as pd
-except Exception:  # pragma: no cover
+except ImportError:
     import sys
 
     print("This example needs pandas: pip install -r examples/requirements.txt")
