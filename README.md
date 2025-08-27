@@ -69,6 +69,8 @@ print(ask("Say hi succinctly."))
 print(summarize("Alloy lets you write typed AI functions in Python."))
 ```
 
+Pro tip: run a quick, offline demo set with `make examples-quick` (uses `ALLOY_BACKEND=fake`).
+
 ## Provider Setup (quick)
 
 Set one of the following before running examples. Full configuration knobs: https://docs.alloy.fyi/configuration/
@@ -131,7 +133,7 @@ import datetime
 @ensure(lambda d: isinstance(d, dict) and "validated_at" in d, "Must add validated_at")
 def validate_data(data: dict) -> dict:
     d = dict(data)
-    d["validated_at"] = datetime.datetime.utcnow().isoformat()
+    d["validated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
     return d
 
 @tool

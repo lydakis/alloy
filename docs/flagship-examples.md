@@ -185,7 +185,7 @@ from alloy import command, tool
 
 ROOT = Path(__file__).with_name("_memory_stateful"); ROOT.mkdir(exist_ok=True)
 def _path(uid: str) -> Path: return ROOT / f"{uid}.json"
-def _now() -> str: return dt.datetime.utcnow().isoformat()
+def _now() -> str: return dt.datetime.now(dt.timezone.utc).isoformat()
 
 @tool
 def load_profile(user_id: str) -> dict:
