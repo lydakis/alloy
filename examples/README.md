@@ -31,6 +31,17 @@ Set one of the following before running examples. Full configuration knobs: http
   - Ensure a model is running: `ollama run <model>`
   - `export ALLOY_MODEL=ollama:<model>`
 
+## Quick Navigation
+
+| Pattern        | Example                                   | When to Use               |
+|----------------|-------------------------------------------|---------------------------|
+| First command  | 10-commands/01_first_command.py           | Reusable text functions   |
+| Typed output   | 20-typed/02_dataclass_output.py           | Need structured data      |
+| With tools     | 30-tools/01_simple_tool.py                | External capabilities     |
+| DBC workflow   | 40-contracts/02_workflow_contracts.py     | Enforce order/validation  |
+| Streaming      | 80-patterns/04_streaming_updates.py       | Text-only streaming       |
+| Providers      | 70-providers/00_switch_providers.py       | Provider portability      |
+
 ## Structure (progressive path)
 - `00-explore/` — Explore with `ask()` (no structure needed)
 - `10-commands/` — First commands, sync and async

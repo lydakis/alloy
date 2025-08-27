@@ -63,3 +63,24 @@ async_stream: AsyncIterable[str] = ask.stream_async("Explain briefly.")
 Notes
 - Import from `alloy`: `from alloy import command, ask`. Importing through submodules bypasses the stubs.
 - Alloy does not infer from your function’s return annotation. The decorated function must be annotated `-> str` (it returns a prompt string). The decorator’s `output` parameter controls the command’s return type; when omitted, the return type is `str`.
+
+
+## IDE Experience
+
+```python
+from dataclasses import dataclass
+from alloy import command
+
+@dataclass
+class ArticleSummary:
+    title: str
+    key_points: list[str]
+    reading_time_minutes: int
+
+@command(output=ArticleSummary)
+def summarize(text: str) -> str:  # returns a prompt string
+    return f"Summarize: {text}"
+
+result = summarize("...")
+result.  # IDE autocompletes: title, key_points, reading_time_minutes
+```

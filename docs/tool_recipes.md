@@ -72,8 +72,10 @@ def file_search(query: str, *, paths: list[str], max_files: int = 5, max_chars: 
 
 ## Python execution (dev‑only; dangerous)
 
-These are for sandboxed demos only. Do not enable in production. You can gate
-them behind an env var like `ALLOY_ENABLE_PY_EXEC=1`.
+!!! danger "NEVER enable in production"
+    These examples execute arbitrary Python code. Even with guards, this is **not safe** for untrusted input. For sandboxed demos only.
+
+You can gate them behind an env var like `ALLOY_ENABLE_PY_EXEC=1`.
 
 ```python
 from __future__ import annotations

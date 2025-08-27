@@ -54,12 +54,31 @@ def capture(fn):
     return wrapped
 ```
 
-## Demo logging
+## JSON logging (redaction hint)
 
-`examples/tools_demo.py` shows a `DEMO_LOG` environment switch that prints timing for tools:
+```python
+import json, time
 
-```bash
-DEMO_LOG=1 python examples/tools_demo.py
+def log_json(event: str, **fields):
+    # Redact sensitive fields before logging
+    safe = {k: ('[REDACTED]' if k in {'api_key', 'email'} else v) for k, v in fields.items()}
+    safe['ts'] = time.time()
+    safe['event'] = event
+    print(json.dumps(safe))
+
+def run_with_logging(fn):
+    def wrapped(*a, **k):
+        log_json('start', fn=fn.__name__)
+        try:
+            out = fn(*a, **k)
+            log_json('success', fn=fn.__name__)
+            return out
+        except Exception as e:
+            log_json('error', fn=fn.__name__, error=str(e))
+            raise
+    return wrapped
 ```
 
 For production, prefer your existing logging/metrics system around Alloy calls.
+
+See also: `examples/90-advanced/04_observability.py` for a minimal timing wrapper.

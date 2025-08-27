@@ -18,7 +18,14 @@ Example:
 """
 
 from dataclasses import dataclass, asdict
-from flask import Flask, request, jsonify
+
+try:
+    from flask import Flask, request, jsonify
+except Exception:  # pragma: no cover
+    import sys
+
+    print("This example needs Flask: pip install -r examples/requirements.txt")
+    sys.exit(1)
 from alloy import command, configure
 from dotenv import load_dotenv
 

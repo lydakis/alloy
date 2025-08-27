@@ -14,7 +14,13 @@ Notes:
 
 from __future__ import annotations
 
-import pandas as pd
+try:
+    import pandas as pd
+except Exception:  # pragma: no cover
+    import sys
+
+    print("This example needs pandas: pip install -r examples/requirements.txt")
+    sys.exit(1)
 from dataclasses import dataclass
 from alloy import command, configure
 from dotenv import load_dotenv
