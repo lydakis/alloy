@@ -17,6 +17,7 @@ Streaming is text-only. For details and constraints, see:
 
 ## 00 — Explore
 
+- `examples/00-explore/00_hello.py` — the simplest `ask()`
 - `examples/00-explore/01_ask_basic.py` — simplest `ask()`
 - `examples/00-explore/02_ask_with_context.py` — ask() with context dict
 - `examples/00-explore/03_ask_with_tools.py` — ask() with ad-hoc tools
@@ -26,6 +27,7 @@ Streaming is text-only. For details and constraints, see:
 - `examples/10-commands/01_first_command.py` — basic `@command`
 - `examples/10-commands/02_command_with_params.py` — parameters + guidance
 - `examples/10-commands/03_async_command.py` — async command + `.async_()`
+- `examples/10-commands/04_error_handling.py` — handling CommandError gracefully
 
 ## 20 — Typed Outputs
 
@@ -66,6 +68,7 @@ Streaming is text-only. For details and constraints, see:
 
 - Same invoice task across OpenAI, Anthropic, Gemini, and Ollama
 - Setup guide: `examples/70-providers/README.md`
+- `examples/70-providers/00_switch_providers.py` — switch providers via ALLOY_MODEL
 
 ## 80 — Patterns
 
@@ -73,6 +76,7 @@ Streaming is text-only. For details and constraints, see:
 - `examples/80-patterns/02_self_refine.py` — iterative improvement loop
 - `examples/80-patterns/03_pii_sanitize.py` — PII guardrail via tool
 - `examples/80-patterns/04_streaming_updates.py` — streaming text-only
+- `examples/80-patterns/08_streaming_limits.py` — what can and cannot stream
 - `examples/80-patterns/05_retry_strategies.py` — retry patterns
 - `examples/80-patterns/06_stateful_assistant.py` — file-backed memory (facts + summary)
 - `examples/80-patterns/07_conversation_history.py` — rolling chat history between turns

@@ -69,6 +69,24 @@ print(ask("Say hi succinctly."))
 print(summarize("Alloy lets you write typed AI functions in Python."))
 ```
 
+## Provider Setup (quick)
+
+Set one of the following before running examples. Full configuration knobs: https://docs.alloy.fyi/configuration/
+
+- OpenAI
+  - `export OPENAI_API_KEY=...`
+  - `export ALLOY_MODEL=gpt-5-mini`
+- Anthropic (Claude)
+  - `export ANTHROPIC_API_KEY=...`
+  - `export ALLOY_MODEL=claude-sonnet-4-20250514`
+  - If required: `export ALLOY_MAX_TOKENS=512`
+- Google Gemini
+  - `export GOOGLE_API_KEY=...`
+  - `export ALLOY_MODEL=gemini-2.5-flash`
+- Ollama (local)
+  - Ensure a model is running: `ollama run <model>`
+  - `export ALLOY_MODEL=ollama:<model>`
+
 ## Flagship Examples
 
 Typed dataclass output (provider‑enforced)
@@ -101,24 +119,6 @@ def main():
 if __name__ == "__main__":
     main()
 ```
-
-## Provider Setup (quick)
-
-Set one of the following before running examples. Full configuration knobs: https://docs.alloy.fyi/configuration/
-
-- OpenAI
-  - `export OPENAI_API_KEY=...`
-  - `export ALLOY_MODEL=gpt-5-mini`
-- Anthropic (Claude)
-  - `export ANTHROPIC_API_KEY=...`
-  - `export ALLOY_MODEL=claude-sonnet-4-20250514`
-  - If required: `export ALLOY_MAX_TOKENS=512`
-- Google Gemini
-  - `export GOOGLE_API_KEY=...`
-  - `export ALLOY_MODEL=gemini-2.5-flash`
-- Ollama (local)
-  - Ensure a model is running: `ollama run <model>`
-  - `export ALLOY_MODEL=ollama:<model>`
 
 Tools + DBC (validate → save workflow)
 

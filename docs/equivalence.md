@@ -8,42 +8,42 @@ goal is the same functionality with less surface area and clearer types.
 - SDK: Define an agent and attach tools the model can call.
 - Alloy: Write Python tools with `@tool`, then declare a `@command(..., tools=[...])`.
 
-See: `examples/patterns/commands_as_tools.py`.
+See: `examples/30-tools/02_command_with_tools.py`.
 
 ## Deterministic workflows → Chain commands
 
 - SDK: Orchestrate multiple agents (research → draft → edit).
 - Alloy: Chain typed commands; pass outputs as inputs.
 
-See: `examples/patterns/deterministic_workflows.py`.
+See: `examples/50-composition/03_recursive_analysis.py`.
 
 ## Parallel agents → asyncio.gather on .async_()
 
 - SDK: Run agents in parallel.
 - Alloy: Call `.async_()` on commands and `await asyncio.gather(...)`.
 
-See: `examples/patterns/deterministic_workflows.py` (parallel section).
+Tip: call `.async_()` and use `await asyncio.gather(...)` to run commands concurrently.
 
 ## Handoffs → Routing command
 
 - SDK: Agent handoffs/transfer.
 - Alloy: A small routing command decides and you call the specialized command.
 
-See: `examples/patterns/triage_routing.py`.
+See: `examples/50-composition/02_routing_triage.py`.
 
 ## Dynamic system prompts → ask(..., system=...) or configure(...)
 
 - SDK: Dynamic system messages.
 - Alloy: Set `system` per call (`ask(..., system=...)`) or as a default via `configure(default_system=...)`.
 
-See: `examples/basic/dynamic_system_prompts.py`.
+Tip: pass a `system` per call or set a default via `configure(default_system=...)`.
 
 ## Streaming outputs → .stream() / ask.stream_async()
 
 - SDK: Stream token deltas or high‑level events.
 - Alloy: Stream text chunks (`Iterable[str]` or `AsyncIterable[str]`).
 
-See: `examples/basic/streaming_outputs.py`.
+See: `examples/80-patterns/04_streaming_updates.py` and `examples/80-patterns/08_streaming_limits.py`.
 
 ## Lifecycle hooks → Wrap calls (optional)
 
