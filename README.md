@@ -164,7 +164,15 @@ Config precedence (summary)
 - Per‑call overrides (e.g., `ask(..., model=...)`) override everything above
 
 Make targets
+- `make setup` — install dev deps and package in editable mode
+- `make test` / `make lint` / `make typecheck` — CI-like checks
+- `make examples-quick` — run a few fast examples with `ALLOY_BACKEND=fake`
+- `make examples-openai` — run OpenAI provider example (requires `OPENAI_API_KEY`)
+- `make examples-anthropic` — run Anthropic example (requires `ANTHROPIC_API_KEY`, sets `ALLOY_MAX_TOKENS=512` if unset)
+- `make examples-gemini` — run Gemini example (requires `GOOGLE_API_KEY`)
+- `make examples-ollama` — run Ollama example (ensure a local model is running)
 - `make docs-serve` — run docs locally at http://127.0.0.1:8000
+- `make docs-build` — build the docs site
 
  Troubleshooting
 - API key: ensure `OPENAI_API_KEY` (or other provider key) is set (env or `.env`)
