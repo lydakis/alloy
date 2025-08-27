@@ -1,5 +1,6 @@
 .PHONY: setup test lint format typecheck precommit prepush verify ci \
         examples-quick examples-openai examples-anthropic examples-gemini examples-ollama \
+        smoke-examples \
         itest docs-serve docs-build dist release docs-sync-brand
 
 PY ?= python
@@ -84,6 +85,10 @@ examples-ollama:
 	else \
 	  $(PY) examples/70-providers/04_same_task_ollama.py; \
 	fi
+
+# CI-friendly smoketest (fake backend; no provider keys)
+smoke-examples:
+	ALLOY_BACKEND=fake $(PY) scripts/smoke_examples.py
 
 itest:
 	@if command -v dotenv >/dev/null 2>&1; then \

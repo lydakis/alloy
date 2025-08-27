@@ -13,6 +13,24 @@ Python for logic. English for intelligence.
 - Default model is `gpt-5-mini`; you can override with `configure(...)` or `ALLOY_MODEL`.
 - Streaming policy: Commands → Streaming constraints: https://docs.alloy.fyi/commands/#sync-async-and-streaming
 
+## Provider Setup (quick)
+
+Set one of the following before running examples. Full configuration knobs: https://docs.alloy.fyi/configuration/
+
+- OpenAI
+  - `export OPENAI_API_KEY=...`
+  - `export ALLOY_MODEL=gpt-5-mini`
+- Anthropic (Claude)
+  - `export ANTHROPIC_API_KEY=...`
+  - `export ALLOY_MODEL=claude-sonnet-4-20250514`
+  - If required: `export ALLOY_MAX_TOKENS=512`
+- Google Gemini
+  - `export GOOGLE_API_KEY=...`
+  - `export ALLOY_MODEL=gemini-2.5-flash`
+- Ollama (local)
+  - Ensure a model is running: `ollama run <model>`
+  - `export ALLOY_MODEL=ollama:<model>`
+
 ## Structure (progressive path)
 - `00-explore/` — Explore with `ask()` (no structure needed)
 - `10-commands/` — First commands, sync and async
