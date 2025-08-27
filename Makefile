@@ -1,4 +1,6 @@
-.PHONY: setup test lint format typecheck precommit prepush verify ci examples itest
+.PHONY: setup test lint format typecheck precommit prepush verify ci \
+        examples-quick examples-openai examples-anthropic examples-gemini examples-ollama \
+        itest docs-serve docs-build dist release docs-sync-brand
 
 PY ?= python
 
@@ -38,36 +40,50 @@ verify: format typecheck
 
 ci: lint typecheck test
 
-examples:
-	$(PY) examples/basic_usage.py
-	$(PY) examples/tools_demo.py
+# Run a few fast, provider-agnostic examples with the fake backend
+examples-quick:
+	@echo "[examples] Running quick smoke tests with ALLOY_BACKEND=fake"
+	ALLOY_BACKEND=fake $(PY) examples/10-commands/01_first_command.py
+	ALLOY_BACKEND=fake $(PY) examples/20-typed/02_dataclass_output.py
+	ALLOY_BACKEND=fake $(PY) examples/30-tools/01_simple_tool.py
+
+# Provider-specific invoice extraction examples (require API keys)
+examples-openai:
+	@if command -v dotenv >/dev/null 2>&1; then \
+	  ALLOY_MODEL?=gpt-5-mini; \
+	  dotenv -f .env run -- env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/70-providers/01_same_task_openai.py; \
+	else \
+	  ALLOY_MODEL?=gpt-5-mini; \
+	  env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/70-providers/01_same_task_openai.py; \
+	fi
+
+examples-anthropic:
+	@if command -v dotenv >/dev/null 2>&1; then \
+	  ALLOY_MODEL?=claude-sonnet-4-20250514; \
+	  ALLOY_MAX_TOKENS?=512; \
+	  dotenv -f .env run -- env ALLOY_MODEL=$$ALLOY_MODEL ALLOY_MAX_TOKENS=$$ALLOY_MAX_TOKENS $(PY) examples/70-providers/02_same_task_anthropic.py; \
+	else \
+	  ALLOY_MODEL?=claude-sonnet-4-20250514; \
+	  ALLOY_MAX_TOKENS?=512; \
+	  env ALLOY_MODEL=$$ALLOY_MODEL ALLOY_MAX_TOKENS=$$ALLOY_MAX_TOKENS $(PY) examples/70-providers/02_same_task_anthropic.py; \
+	fi
 
 examples-gemini:
 	@if command -v dotenv >/dev/null 2>&1; then \
-	  ALLOY_MODEL?=gemini-2.5-pro; \
-	  dotenv -f .env run -- env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/basic_usage.py; \
-	  dotenv -f .env run -- env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/tools_demo.py; \
+	  ALLOY_MODEL?=gemini-2.5-flash; \
+	  dotenv -f .env run -- env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/70-providers/03_same_task_gemini.py; \
 	else \
-	  ALLOY_MODEL?=gemini-2.5-pro; \
-	  env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/basic_usage.py; \
-	  env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/tools_demo.py; \
+	  ALLOY_MODEL?=gemini-2.5-flash; \
+	  env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/70-providers/03_same_task_gemini.py; \
 	fi
 
-examples-claude:
+examples-ollama:
+	@echo "[examples] Ensure a local model is running: e.g., 'ollama run <model>'"
 	@if command -v dotenv >/dev/null 2>&1; then \
-	  ALLOY_MODEL?=claude-3.5-sonnet; \
-	  dotenv -f .env run -- env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/basic_usage.py; \
-	  dotenv -f .env run -- env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/tools_demo.py; \
+	  dotenv -f .env run -- $(PY) examples/70-providers/04_same_task_ollama.py; \
 	else \
-	  ALLOY_MODEL?=claude-3.5-sonnet; \
-	  env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/basic_usage.py; \
-	  env ALLOY_MODEL=$$ALLOY_MODEL $(PY) examples/tools_demo.py; \
+	  $(PY) examples/70-providers/04_same_task_ollama.py; \
 	fi
-
-examples-patterns:
-	$(PY) examples/patterns/deterministic_workflows.py || true
-	$(PY) examples/patterns/commands_as_tools.py || true
-	$(PY) examples/patterns/triage_routing.py || true
 
 itest:
 	@if command -v dotenv >/dev/null 2>&1; then \
