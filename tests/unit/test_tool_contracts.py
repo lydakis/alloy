@@ -13,12 +13,10 @@ def test_require_precondition_receives_args_and_blocks() -> None:
     def f(x: int) -> int:
         return x * 2
 
-    # Precondition failure raises ToolError
     with pytest.raises(ToolError) as ei:
         f()
     assert "missing x" in str(ei.value)
 
-    # Success path
     assert f(3) == 6
 
 
@@ -26,7 +24,7 @@ def test_ensure_postcondition_checks_result() -> None:
     @tool
     @ensure(lambda r: isinstance(r, int) and r % 2 == 0, "must be even")
     def g(n: int) -> int:
-        return n * n  # odd when n is odd
+        return n * n
 
     with pytest.raises(ToolError) as ei:
         g(3)

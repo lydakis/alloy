@@ -23,19 +23,11 @@ def _reset_alloy_config_state():
 
 
 class ScriptedFakeBackend:
-    """Simple controllable backend for unit/contract tests.
-
-    Push scripted events onto `.next` before invoking .complete/.stream.
-
-    Events:
-      {"type":"text","data":"..."}
-      {"type":"text_chunk","data":"..."}
-    """
+    """Simple controllable backend for unit/contract tests."""
 
     def __init__(self) -> None:
         self.next: list[dict[str, Any]] = []
 
-    # Sync
     def complete(
         self,
         prompt: str,
@@ -61,7 +53,6 @@ class ScriptedFakeBackend:
             if ev.get("type") == "text_chunk":
                 yield str(ev.get("data", ""))
 
-    # Async
     async def acomplete(
         self,
         prompt: str,

@@ -23,14 +23,12 @@ def test_anthropic_raises_on_tool_limit(monkeypatch):
 
         def create(self, **kwargs):
             calls.append(kwargs)
-            # First call: model requests a tool use
             if len(calls) == 1:
                 return type(
                     "Resp",
                     (),
                     {"content": [{"type": "tool_use", "id": "c1", "name": "foo", "input": {}}]},
                 )()
-            # Second call: still asks for a tool -> exceeds limit
             return type(
                 "Resp",
                 (),
@@ -56,5 +54,4 @@ def test_anthropic_raises_on_tool_limit(monkeypatch):
             config=Config(model="claude-sonnet-4-20250514", max_tool_turns=0),
         )
 
-    # Ensure only one call was made (blocked immediately)
     assert len(calls) == 1

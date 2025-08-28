@@ -9,7 +9,6 @@ pytestmark = pytest.mark.providers
 def test_gemini_serializes_schema_without_tools(monkeypatch):
     from alloy.models.gemini import GeminiBackend
 
-    # capture last call
     calls: list[tuple[str, dict]] = []
 
     class _FakeAio:
@@ -40,7 +39,6 @@ def test_gemini_serializes_schema_without_tools(monkeypatch):
     be = GeminiBackend()
     be._GenAIClient = lambda: _FakeClient()
 
-    # Minimal stub types used by backend for config/schema building
     class _Types:
         class Schema:
             def __init__(self, **kwargs):

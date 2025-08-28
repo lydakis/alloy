@@ -17,7 +17,6 @@ def test_anthropic_serializes_tools_and_system(monkeypatch):
             @staticmethod
             def create(**kwargs):
                 calls.append(kwargs)
-                # mimic a minimal Claude response with text content
                 return {"content": [{"type": "text", "text": "ok"}]}
 
     be = AnthropicBackend()
@@ -44,8 +43,6 @@ def test_anthropic_serializes_tools_and_system(monkeypatch):
     kw = calls[0]
     assert kw["model"].startswith("claude")
     assert isinstance(kw.get("max_tokens"), int) and kw["max_tokens"] > 0
-    # System includes provided system string plus any hint when structured outputs are present
     assert isinstance(kw.get("system"), str)
-    # Tools are serialized into messages.create tools field
     tools = kw.get("tools")
     assert isinstance(tools, list) and tools and tools[0].get("name") == "foo"

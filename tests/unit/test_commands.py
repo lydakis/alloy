@@ -12,11 +12,9 @@ class FakeBackend(ModelBackend):
         self.calls = 0
 
     def complete(self, prompt: str, *, tools=None, output_schema=None, config: Config) -> str:
-        # Simulate a failure on first call if retry configured
         self.calls += 1
         if config.retry and self.calls < config.retry:
             raise CommandError("transient")
-        # Return JSON only for object schemas; else a simple number string
         if (
             output_schema
             and isinstance(output_schema, dict)
@@ -31,7 +29,6 @@ class FakeBackend(ModelBackend):
 
 
 def use_fake_backend(monkeypatch):
-    # Patch the bound references used inside modules; avoid package attribute shadowing
     import importlib
 
     _cmd_mod = importlib.import_module("alloy.command")

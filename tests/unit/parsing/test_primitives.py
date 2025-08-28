@@ -14,7 +14,5 @@ def test_parse_primitive_numbers_and_bool():
 
 
 def test_parse_string_from_json_scalar_and_plain():
-    # JSON string
     assert parse_output(str, '"hello"') == "hello"
-    # Plain string
     assert parse_output(str, "hello") == "hello"

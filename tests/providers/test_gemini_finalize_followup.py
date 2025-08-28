@@ -43,7 +43,6 @@ def test_gemini_finalize_followup_after_tools(monkeypatch):
         class models:
             @staticmethod
             def generate_content(*, model, contents, config=None):
-                # 1st: ask tool, 2nd: done w/o text, 3rd: finalize JSON
                 idx = sum(1 for name, _ in calls if name == "generate") + 1
                 calls.append(("generate", {"model": model, "config": config}))
                 return _RespCalls(stage=idx)

@@ -29,7 +29,6 @@ def test_command_stream_disallowed_with_tools():
 
 
 def test_ask_stream_allows_plain_text(fake_backend):
-    # Script a few chunks
     fake_backend.next.extend(
         [
             {"type": "text_chunk", "data": "hel"},

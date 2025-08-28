@@ -47,7 +47,6 @@ def test_openai_tools_minimal():
         return "Use the provided tool double(x) to compute 21*2. Return only the number."
 
     out = use_double()
-    # Do not assert exact path (tool vs model), only that it produces a valid int
     assert isinstance(out, int)
     assert out > 0
 
@@ -65,7 +64,6 @@ def test_openai_dbc_tool_message_propagates():
 
     @command(output=str, tools=[square])
     def check() -> str:
-        # Strongly guide the model to call the tool and then echo the tool's response
         return (
             "Use the tool square(n=3) now. If the tool returns a plain message, output that "
             "message exactly with no extra text."

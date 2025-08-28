@@ -41,7 +41,6 @@ def test_gemini_raises_on_tool_limit(monkeypatch):
         class models:
             @staticmethod
             def generate_content(*, model, contents, config=None):
-                # 1st call: asks for tool; 2nd call: asks again -> exceeds
                 idx = sum(1 for name, _ in calls if name == "generate") + 1
                 calls.append(("generate", {"model": model, "config": config}))
                 return _RespCalls(with_call=True if idx <= 2 else False)
@@ -49,7 +48,6 @@ def test_gemini_raises_on_tool_limit(monkeypatch):
     be = GeminiBackend()
     be._GenAIClient = lambda: _FakeClient()
 
-    # Minimal types for the adapter
     class _Types:
         class Schema:
             def __init__(self, **kwargs):
@@ -94,6 +92,5 @@ def test_gemini_raises_on_tool_limit(monkeypatch):
             config=Config(model="gemini-1.5-pro", max_tool_turns=1),
         )
 
-    # Only two calls (no finalize)
     gen_calls = [c for c in calls if c[0] == "generate"]
     assert len(gen_calls) == 2

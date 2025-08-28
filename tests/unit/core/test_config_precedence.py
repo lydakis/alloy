@@ -11,17 +11,14 @@ pytestmark = pytest.mark.unit
 def test_get_config_precedence_env_global_overrides(monkeypatch):
     _reset_config_for_tests()
     monkeypatch.setenv("ALLOY_MODEL", "env-model")
-    # env only
     cfg = get_config()
     assert cfg.model == "env-model"
 
-    # global overrides env
     configure(model="global-model", temperature=0.1)
     cfg2 = get_config()
     assert cfg2.model == "global-model"
     assert cfg2.temperature == 0.1
 
-    # call-site overrides take top precedence when provided to get_config
     cfg3 = get_config({"model": "call-model", "temperature": 0.0})
     assert cfg3.model == "call-model"
     assert cfg3.temperature == 0.0
@@ -59,7 +56,6 @@ def test_ask_callsite_overrides(monkeypatch):
 
     class _CapBackend:
         def complete(self, prompt: str, *, tools=None, output_schema=None, config=None) -> str:
-            # assert the override applied
             assert config.default_system == "You are helpful"
             return "ok"
 

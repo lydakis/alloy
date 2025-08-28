@@ -16,7 +16,6 @@ def test_openai_serializes_tools_and_schema(monkeypatch):
     class _FakeResponses:
         def create(self, **kwargs):
             calls.append(kwargs)
-            # Return a simple text output to finish the loop
             return {"id": "r1", "output_text": "ok"}
 
         def stream(self, **kwargs):
@@ -46,14 +45,11 @@ def test_openai_serializes_tools_and_schema(monkeypatch):
 
     assert calls, "expected responses.create to be called"
     kwargs = calls[0]
-    # Tools
     assert isinstance(kwargs.get("tools"), list) and kwargs["tools"][0]["type"] == "function"
     assert kwargs["tools"][0]["name"] == "t"
-    # Schema is passed via text.format json_schema
     tf = (kwargs.get("text") or {}).get("format") or {}
     assert tf.get("type") == "json_schema"
     assert isinstance(tf.get("schema"), dict)
-    # Model/temperature/tokens
     assert kwargs["model"] == "gpt-5-mini"
     assert kwargs.get("max_output_tokens") == 64
 

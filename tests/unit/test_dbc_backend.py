@@ -13,11 +13,9 @@ pytestmark = [pytest.mark.unit, pytest.mark.contracts]
 
 class DbcFakeBackend(ModelBackend):
     def complete(self, prompt: str, *, tools=None, output_schema=None, config: Config) -> str:
-        # Simulate a model that decides to call the first tool with a failing input
         if tools:
             t = tools[0]
             try:
-                # Call with an odd number to trigger ensure failure in tests
                 return str(t(n=3))
             except ToolError as e:
                 return str(e)
@@ -27,7 +25,6 @@ class DbcFakeBackend(ModelBackend):
 
 
 def test_backend_surfaces_contract_message_via_fake(monkeypatch):
-    # Monkeypatch get_backend to our local fake
     _cmd_mod = importlib.import_module("alloy.command")
     _ask_mod = importlib.import_module("alloy.ask")
     monkeypatch.setattr(_cmd_mod, "get_backend", lambda model: DbcFakeBackend())

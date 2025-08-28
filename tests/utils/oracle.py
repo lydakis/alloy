@@ -21,7 +21,6 @@ def extract_price_oracle(text: str) -> PriceDC:
         cur = map_symbol_to_iso(m.group(1))
         amt = _normalize_amount_text(m.group(2), currency=cur)
         return PriceDC(amt, cur)
-    # trailing symbol (e.g., "3.000,50 €")
     m = re.search(r"([0-9][\d.,]*)\s*([€£¥$])", s)
     if m:
         cur = map_symbol_to_iso(m.group(2))

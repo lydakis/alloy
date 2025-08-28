@@ -17,7 +17,6 @@ class _FakeAsyncResponses:
         self.calls += 1
         self.history.append(kwargs)
         if self.calls == 1:
-            # First turn: model asks to call two tools
             return {
                 "id": "r1",
                 "output": [
@@ -25,7 +24,6 @@ class _FakeAsyncResponses:
                     {"type": "function_call", "call_id": "c2", "name": "bar", "arguments": "{}"},
                 ],
             }
-        # Second turn: after tool outputs provided, model returns final output
         return {"id": "r2", "output_text": "ok"}
 
 
@@ -72,7 +70,6 @@ async def test_openai_async_parallel_tools(monkeypatch):
     assert fc is not None
     hist = fc.responses.history
     assert len(hist) == 2
-    # Ensure we sent back two tool outputs in the same order as calls
     pending = hist[1]["input"]
     assert isinstance(pending, list)
     assert pending[0].get("call_id") == "c1"

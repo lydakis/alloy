@@ -7,12 +7,10 @@ pytestmark = [pytest.mark.unit, pytest.mark.errors]
 
 class _StubBackend:
     def complete(self, prompt: str, *, tools=None, output_schema=None, config=None) -> str:
-        # Simulate an LLM reply that is not a number
         return "Please provide the text from which you want to extract the price, so I can help you accurately."
 
 
 def test_command_with_float_output_raises_on_bad_text(monkeypatch):
-    # Import the actual submodule to patch its symbol
     cmd_mod = importlib.import_module("alloy.command")
     monkeypatch.setattr(cmd_mod, "get_backend", lambda model: _StubBackend())
 

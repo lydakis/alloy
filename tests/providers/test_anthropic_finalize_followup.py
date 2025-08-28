@@ -25,16 +25,13 @@ def test_anthropic_finalize_followup_after_tools(monkeypatch):
             calls.append(kwargs)
             idx = len(calls)
             if idx == 1:
-                # Ask to call a tool
                 return type(
                     "Resp",
                     (),
                     {"content": [{"type": "tool_use", "id": "c1", "name": "foo", "input": {}}]},
                 )()
             if idx == 2:
-                # After tool results provided, model gives no final text
                 return type("Resp", (), {"content": [{"type": "text", "text": ""}]})()
-            # Finalize call should be made without tools
             return type("Resp", (), {"content": [{"type": "text", "text": '{"x":"ok"}'}]})()
 
     class _FakeClient:
@@ -56,7 +53,6 @@ def test_anthropic_finalize_followup_after_tools(monkeypatch):
     )
     assert isinstance(out, str)
     assert len(calls) >= 2
-    # If a finalize request was made, it should not include tools/tool_choice
     if len(calls) >= 3:
         last = calls[-1]
         assert "tools" not in last and "tool_choice" not in last

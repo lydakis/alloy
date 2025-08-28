@@ -28,7 +28,6 @@ class _FakeResponses:
                     }
                 ],
             }
-        # Second call still asks to call a tool — this should exceed the limit
         return {
             "id": "r2",
             "output": [
@@ -77,5 +76,4 @@ def test_openai_raises_on_tool_limit(monkeypatch):
 
     fc = _FakeOpenAI.last
     assert fc is not None
-    # Only two calls should be made; no finalize follow-up
     assert len(fc.responses.calls) == 2

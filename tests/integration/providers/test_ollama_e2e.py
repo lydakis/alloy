@@ -25,6 +25,16 @@ def test_ollama_simple_command():
     def hello() -> str:
         return "Say 'ok' in one word."
 
-    out = hello()
+    try:
+        out = hello()
+    except Exception as e:
+        msg = str(e).lower()
+        cause = getattr(e, "__cause__", None)
+        cmsg = str(cause).lower() if cause else ""
+        if ("ollama" in msg or "ollama" in cmsg) and (
+            "connect" in msg or "failed" in msg or "connect" in cmsg or "failed" in cmsg
+        ):
+            pytest.skip(f"Ollama not reachable: {e}")
+        raise
     assert isinstance(out, str)
     assert len(out.strip()) > 0
