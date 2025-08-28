@@ -3,7 +3,6 @@
 - Purpose: First-class, typed AI functions via `@command`.
 - When to use: You want reusable functions returning text or typed results.
 - Notes: Annotate as `-> str`; the decorator controls the actual return type.
-- Offline: `export ALLOY_BACKEND=fake`.
 
 Files:
 - `01_first_command.py` — basic text command

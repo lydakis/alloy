@@ -3,7 +3,6 @@
 - Purpose: Call local Python functions from the model (`@tool`).
 - When to use: Retrieval, calculations, validation, external I/O.
 - Notes: Add DBC with `@require/@ensure` for safer behavior.
-- Offline: `export ALLOY_BACKEND=fake` (tools still run locally).
 
 Files:
 - `01_simple_tool.py` — basic tool + command

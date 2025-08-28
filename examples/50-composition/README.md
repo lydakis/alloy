@@ -3,7 +3,6 @@
 - Purpose: Compose commands without an orchestration framework.
 - When to use: Routing, multi-stage flows, recursive analysis.
 - Notes: Commands are just functions; call them from Python as needed.
-- Offline: `export ALLOY_BACKEND=fake`.
 
 Files:
 - `01_command_as_tool.py` — command calling another

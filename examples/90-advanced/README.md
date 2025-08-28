@@ -3,7 +3,6 @@
 - Purpose: Larger flows and operational concerns.
 - When to use: Planning + execution, observability, simple evals.
 - Notes: Start simple; scale only when needed.
-- Offline: `export ALLOY_BACKEND=fake`.
 
 Files:
 - `01_deep_agents.py` — dynamic deep-agents pattern (planning, subagents, filesystem)

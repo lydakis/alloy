@@ -3,7 +3,6 @@
 - Purpose: Reusable orchestration patterns expressed with commands/tools.
 - When to use: RAG, self-refine, guardrails, streaming, retry.
 - Notes: Python remains the control layer; models provide intelligence.
-- Offline: `export ALLOY_BACKEND=fake`.
 
 Files:
 - `01_rag_citations.py` — RAG with citations

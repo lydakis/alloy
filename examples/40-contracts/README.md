@@ -3,7 +3,6 @@
 - Purpose: Guard tool behavior with `@require` and `@ensure`.
 - When to use: Enforce preconditions, postconditions, and workflows.
 - Notes: Failures raise `ToolError` visible to the model for self-correction.
-- Offline: `export ALLOY_BACKEND=fake`.
 
 Files:
 - `01_require_ensure.py` — minimal contracts

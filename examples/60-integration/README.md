@@ -3,7 +3,6 @@
 - Purpose: Show Alloy inside normal apps and workflows.
 - When to use: Pandas pipelines, web endpoints, batch jobs, codegen.
 - Notes: Keep Python-first; Alloy should “disappear”.
-- Offline: `export ALLOY_BACKEND=fake`.
 
 Files:
 - `01_with_pandas.py` — pandas + one command
