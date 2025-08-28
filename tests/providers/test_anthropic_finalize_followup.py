@@ -26,7 +26,11 @@ def test_anthropic_finalize_followup_after_tools(monkeypatch):
             idx = len(calls)
             if idx == 1:
                 # Ask to call a tool
-                return type("Resp", (), {"content": [{"type": "tool_use", "id": "c1", "name": "foo", "input": {}}]})()
+                return type(
+                    "Resp",
+                    (),
+                    {"content": [{"type": "tool_use", "id": "c1", "name": "foo", "input": {}}]},
+                )()
             if idx == 2:
                 # After tool results provided, model gives no final text
                 return type("Resp", (), {"content": [{"type": "text", "text": ""}]})()
@@ -43,7 +47,11 @@ def test_anthropic_finalize_followup_after_tools(monkeypatch):
     out = be.complete(
         "prompt",
         tools=[foo],
-        output_schema={"type": "object", "properties": {"x": {"type": "string"}}, "required": ["x"]},
+        output_schema={
+            "type": "object",
+            "properties": {"x": {"type": "string"}},
+            "required": ["x"],
+        },
         config=Config(model="claude-sonnet-4-20250514"),
     )
     assert isinstance(out, str)

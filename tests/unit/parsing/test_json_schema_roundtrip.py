@@ -22,4 +22,3 @@ def test_roundtrip_dataclass():
     raw = json.dumps(obj)
     p = parse_output(Product, raw)
     assert p.name == "T" and isinstance(p.price, float) and p.in_stock is True
-

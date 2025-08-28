@@ -18,4 +18,3 @@ def test_parse_string_from_json_scalar_and_plain():
     assert parse_output(str, '"hello"') == "hello"
     # Plain string
     assert parse_output(str, "hello") == "hello"
-

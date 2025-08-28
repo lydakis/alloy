@@ -34,4 +34,3 @@ def test_structured_output_dataclass():
     assert isinstance(p, Product)
     assert isinstance(p.price, float)
     assert isinstance(p.in_stock, bool)
-

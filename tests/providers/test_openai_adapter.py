@@ -9,7 +9,7 @@ pytestmark = pytest.mark.providers
 
 def test_openai_serializes_tools_and_schema(monkeypatch):
     from alloy.models.openai import OpenAIBackend
-    from alloy.tool import tool
+    from alloy import tool
 
     calls: list[dict] = []
 
@@ -36,7 +36,11 @@ def test_openai_serializes_tools_and_schema(monkeypatch):
     be.complete(
         "prompt",
         tools=[t],
-        output_schema={"type": "object", "properties": {"x": {"type": "string"}}, "required": ["x"]},
+        output_schema={
+            "type": "object",
+            "properties": {"x": {"type": "string"}},
+            "required": ["x"],
+        },
         config=Config(model="gpt-5-mini", temperature=0, max_tokens=64),
     )
 
@@ -56,6 +60,7 @@ def test_openai_serializes_tools_and_schema(monkeypatch):
 
 def test_openai_streaming_gating(monkeypatch):
     from alloy.models.openai import OpenAIBackend
+
     be = OpenAIBackend()
     be._OpenAI = lambda: Mock(responses=Mock(stream=lambda **k: []))
 

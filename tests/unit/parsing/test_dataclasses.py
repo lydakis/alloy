@@ -21,9 +21,7 @@ class Outer:
 
 
 def test_parse_dataclass_nested_and_unknown_fields_ignored():
-    raw = (
-        '{"name":"A","items":["1","2"],"meta":{"n":"7","s":"x","junk":1},"extra":"drop"}'
-    )
+    raw = '{"name":"A","items":["1","2"],"meta":{"n":"7","s":"x","junk":1},"extra":"drop"}'
     out = parse_output(Outer, raw)
     assert isinstance(out, Outer)
     assert out.name == "A"

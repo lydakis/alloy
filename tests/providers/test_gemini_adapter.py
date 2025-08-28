@@ -17,40 +17,51 @@ def test_gemini_serializes_schema_without_tools(monkeypatch):
             @staticmethod
             async def generate_content(*, model, contents, config=None):
                 calls.append(("generate_content", {"model": model, "config": config}))
+
                 class _Resp:
                     text = "ok"
+
                 return _Resp()
 
     class _FakeClient:
         def __init__(self) -> None:
             self.aio = _FakeAio()
+
         class models:
             @staticmethod
             def generate_content(*, model, contents, config=None):
                 calls.append(("generate_content_sync", {"model": model, "config": config}))
+
                 class _Resp:
                     text = "ok"
+
                 return _Resp()
 
     be = GeminiBackend()
     be._GenAIClient = lambda: _FakeClient()
+
     # Minimal stub types used by backend for config/schema building
     class _Types:
         class Schema:
             def __init__(self, **kwargs):
                 self.kw = kwargs
+
         class FunctionDeclaration:
             def __init__(self, **kwargs):
                 self.kw = kwargs
+
         class Tool:
             def __init__(self, **kwargs):
                 self.kw = kwargs
+
         class AutomaticFunctionCallingConfig:
             def __init__(self, **kwargs):
                 self.kw = kwargs
+
         class Content:
             def __init__(self, **kwargs):
                 self.kw = kwargs
+
         class Part:
             @staticmethod
             def from_text(text: str):
@@ -61,15 +72,23 @@ def test_gemini_serializes_schema_without_tools(monkeypatch):
     be.complete(
         "prompt",
         tools=None,
-        output_schema={"type": "object", "properties": {"x": {"type": "string"}}, "required": ["x"]},
-        config=Config(model="gemini-2.5-flash", temperature=0, max_tokens=128, default_system="sys"),
+        output_schema={
+            "type": "object",
+            "properties": {"x": {"type": "string"}},
+            "required": ["x"],
+        },
+        config=Config(
+            model="gemini-2.5-flash", temperature=0, max_tokens=128, default_system="sys"
+        ),
     )
 
     assert calls, "expected a generate_content call"
     _name, payload = calls[0]
     cfg = payload["config"] or {}
     assert cfg.get("response_mime_type") == "application/json"
-    assert isinstance(cfg.get("response_json_schema"), _Types.Schema) or cfg.get("response_json_schema")
+    assert isinstance(cfg.get("response_json_schema"), _Types.Schema) or cfg.get(
+        "response_json_schema"
+    )
 
 
 def test_gemini_omits_schema_when_tools_present(monkeypatch):
@@ -82,8 +101,10 @@ def test_gemini_omits_schema_when_tools_present(monkeypatch):
             @staticmethod
             def generate_content(*, model, contents, config=None):
                 calls.append(("generate_content_sync", {"model": model, "config": config}))
+
                 class _Resp:
                     text = "ok"
+
                 return _Resp()
 
         class aio:
@@ -92,6 +113,7 @@ def test_gemini_omits_schema_when_tools_present(monkeypatch):
                 async def generate_content(*, model, contents, config=None):
                     class _Resp:
                         text = "ok"
+
                     return _Resp()
 
     be = GeminiBackend()
@@ -101,18 +123,23 @@ def test_gemini_omits_schema_when_tools_present(monkeypatch):
         class Schema:
             def __init__(self, **kwargs):
                 self.kw = kwargs
+
         class FunctionDeclaration:
             def __init__(self, **kwargs):
                 self.kw = kwargs
+
         class Tool:
             def __init__(self, **kwargs):
                 self.kw = kwargs
+
         class AutomaticFunctionCallingConfig:
             def __init__(self, **kwargs):
                 self.kw = kwargs
+
         class Content:
             def __init__(self, **kwargs):
                 self.kw = kwargs
+
         class Part:
             @staticmethod
             def from_text(text: str):
@@ -120,7 +147,7 @@ def test_gemini_omits_schema_when_tools_present(monkeypatch):
 
     be._Types = _Types
 
-    from alloy.tool import tool
+    from alloy import tool
 
     @tool
     def t() -> str:
@@ -129,8 +156,14 @@ def test_gemini_omits_schema_when_tools_present(monkeypatch):
     be.complete(
         "prompt",
         tools=[t],
-        output_schema={"type": "object", "properties": {"x": {"type": "string"}}, "required": ["x"]},
-        config=Config(model="gemini-2.5-flash", temperature=0, max_tokens=128, default_system="sys"),
+        output_schema={
+            "type": "object",
+            "properties": {"x": {"type": "string"}},
+            "required": ["x"],
+        },
+        config=Config(
+            model="gemini-2.5-flash", temperature=0, max_tokens=128, default_system="sys"
+        ),
     )
 
     assert calls, "expected a generate_content call"

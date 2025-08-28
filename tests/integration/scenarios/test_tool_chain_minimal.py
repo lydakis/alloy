@@ -27,4 +27,3 @@ def test_minimal_tool_chain_one_turn():
     out = use_add()
     assert isinstance(out, int)
     assert out == 42 or out > 0
-

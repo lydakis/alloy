@@ -25,9 +25,17 @@ def test_anthropic_raises_on_tool_limit(monkeypatch):
             calls.append(kwargs)
             # First call: model requests a tool use
             if len(calls) == 1:
-                return type("Resp", (), {"content": [{"type": "tool_use", "id": "c1", "name": "foo", "input": {}}]})()
+                return type(
+                    "Resp",
+                    (),
+                    {"content": [{"type": "tool_use", "id": "c1", "name": "foo", "input": {}}]},
+                )()
             # Second call: still asks for a tool -> exceeds limit
-            return type("Resp", (), {"content": [{"type": "tool_use", "id": "c2", "name": "foo", "input": {}}]})()
+            return type(
+                "Resp",
+                (),
+                {"content": [{"type": "tool_use", "id": "c2", "name": "foo", "input": {}}]},
+            )()
 
     class _FakeClient:
         def __init__(self):
@@ -40,7 +48,11 @@ def test_anthropic_raises_on_tool_limit(monkeypatch):
         be.complete(
             "prompt",
             tools=[foo],
-            output_schema={"type": "object", "properties": {"x": {"type": "string"}}, "required": ["x"]},
+            output_schema={
+                "type": "object",
+                "properties": {"x": {"type": "string"}},
+                "required": ["x"],
+            },
             config=Config(model="claude-sonnet-4-20250514", max_tool_turns=0),
         )
 

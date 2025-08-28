@@ -22,8 +22,10 @@ def test_gemini_raises_on_tool_limit(monkeypatch):
         text: str
         function_calls: list[Any]
         candidates: list[Any]
+
         def __init__(self, with_call: bool):
             if with_call:
+
                 class FC:
                     def __init__(self):
                         self.function_call = type("FCInner", (), {"name": "foo", "args": {}})()
@@ -46,27 +48,34 @@ def test_gemini_raises_on_tool_limit(monkeypatch):
 
     be = GeminiBackend()
     be._GenAIClient = lambda: _FakeClient()
+
     # Minimal types for the adapter
     class _Types:
         class Schema:
             def __init__(self, **kwargs):
                 pass
+
         class FunctionDeclaration:
             def __init__(self, **kwargs):
                 pass
+
         class Tool:
             def __init__(self, **kwargs):
                 pass
+
         class AutomaticFunctionCallingConfig:
             def __init__(self, **kwargs):
                 pass
+
         class Content:
             def __init__(self, **kwargs):
                 pass
+
         class Part:
             @staticmethod
             def from_text(text: str):
                 return text
+
             @staticmethod
             def from_function_response(name: str, response):
                 return {"name": name, "response": response}
@@ -77,7 +86,11 @@ def test_gemini_raises_on_tool_limit(monkeypatch):
         be.complete(
             "prompt",
             tools=[foo],
-            output_schema={"type": "object", "properties": {"x": {"type": "string"}}, "required": ["x"]},
+            output_schema={
+                "type": "object",
+                "properties": {"x": {"type": "string"}},
+                "required": ["x"],
+            },
             config=Config(model="gemini-1.5-pro", max_tool_turns=1),
         )
 

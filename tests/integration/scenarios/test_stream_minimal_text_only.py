@@ -21,4 +21,3 @@ def test_stream_minimal_text_only():
         if len("".join(chunks)) > 10:
             break
     assert len("".join(chunks)) > 0
-

@@ -17,4 +17,3 @@ def test_examples_smoke_runs():
     env["ALLOY_BACKEND"] = "fake"
     rc = subprocess.call([sys.executable, str(script)], cwd=str(root), env=env)
     assert rc == 0
-

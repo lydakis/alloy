@@ -20,7 +20,7 @@ def test_optional_and_union_basic():
 def test_list_of_union_values():
     from typing import Union
 
-    raw = "[1, \"2\", 3, \"four\"]"
+    raw = '[1, "2", 3, "four"]'
     out = parse_output(list[Union[int, str]], raw)
     # Implementation detail: numeric-looking strings may coerce to int for the first matching type.
     assert out[0] == 1 and out[2] == 3 and out[3] == "four"

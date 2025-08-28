@@ -1,7 +1,7 @@
 import pytest
 
 from alloy.config import Config
-from alloy.tool import tool
+from alloy import tool
 
 
 pytestmark = pytest.mark.providers
@@ -35,7 +35,9 @@ def test_anthropic_serializes_tools_and_system(monkeypatch):
             "properties": {"x": {"type": "string"}},
             "required": ["x"],
         },
-        config=Config(model="claude-3-5-sonnet-latest", temperature=0.1, max_tokens=256, default_system="sys"),
+        config=Config(
+            model="claude-3-5-sonnet-latest", temperature=0.1, max_tokens=256, default_system="sys"
+        ),
     )
 
     assert calls, "expected messages.create to be called"
@@ -47,4 +49,3 @@ def test_anthropic_serializes_tools_and_system(monkeypatch):
     # Tools are serialized into messages.create tools field
     tools = kw.get("tools")
     assert isinstance(tools, list) and tools and tools[0].get("name") == "foo"
-
