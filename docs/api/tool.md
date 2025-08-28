@@ -1,5 +1,12 @@
 # Tools
 
+::: alloy.tool
+    options:
+      show_source: false
+      show_root_heading: true
+      members_order: source
+      separate_signature: true
+
 ## Usage
 
 ```python
@@ -31,10 +38,3 @@ def sqrt_floor(x: int) -> int:
 !!! note "See also"
     - Guide → Tools & Workflows: guide/tools-and-workflows.md
     - Guide → Contracts: guide/contracts.md
-
-::: alloy.tool
-    options:
-      show_source: false
-      show_root_heading: true
-      members_order: source
-      separate_signature: true

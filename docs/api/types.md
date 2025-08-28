@@ -1,5 +1,12 @@
 # Types
 
+::: alloy.types
+    options:
+      show_source: false
+      show_root_heading: true
+      members_order: source
+      separate_signature: true
+
 ## Usage
 
 ```python
@@ -30,10 +37,3 @@ except CommandError as e:
 
 !!! note "See also"
     - Guide → Structured Outputs: guide/structured-outputs.md
-
-::: alloy.types
-    options:
-      show_source: false
-      show_root_heading: true
-      members_order: source
-      separate_signature: true

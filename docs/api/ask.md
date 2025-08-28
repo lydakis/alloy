@@ -1,5 +1,12 @@
 # Ask
 
+::: alloy.ask._AskNamespace
+    options:
+      show_source: false
+      show_root_heading: true
+      members_order: source
+      separate_signature: true
+
 ## Usage
 
 ```python
@@ -17,10 +24,3 @@ print()
 !!! note "See also"
     - Guide → Core Concepts: guide/core-concepts.md
     - Guide → Streaming: guide/streaming.md
-
-::: alloy.ask._AskNamespace
-    options:
-      show_source: false
-      show_root_heading: true
-      members_order: source
-      separate_signature: true

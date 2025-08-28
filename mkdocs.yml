@@ -7,8 +7,11 @@ theme:
   features:
     - navigation.instant
     - navigation.sections
+    - navigation.tabs
+    - navigation.indexes
     - toc.follow
     - content.code.copy
+  custom_dir: overrides
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -97,6 +100,13 @@ extra_css:
 extra_javascript:
   - https://unpkg.com/mermaid@10.9.1/dist/mermaid.min.js
   - assets/mermaid-init.js
+# (Removed Copy curl UI assets)
+
+# Vercel Web Analytics: set the shared Analytics ID here to
+# aggregate docs (GitHub Pages) with your frontpage (Vercel) stats.
+# Example: vercel_analytics_id: "va-xxxxxxxxxxxxxxxxxxxxxxxx"
+extra:
+  vercel_analytics_id: ""
 # (Removed Copy curl UI assets)
 nav:
   - Overview:

@@ -1,5 +1,12 @@
 # Errors
 
+::: alloy.errors
+    options:
+      show_source: false
+      show_root_heading: true
+      members_order: source
+      separate_signature: true
+
 ## Usage
 
 ```python
@@ -17,10 +24,3 @@ except CommandError as e:
 
 !!! note "See also"
     - Guide → Production: guide/production.md
-
-::: alloy.errors
-    options:
-      show_source: false
-      show_root_heading: true
-      members_order: source
-      separate_signature: true

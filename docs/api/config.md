@@ -1,5 +1,12 @@
 # Config
 
+::: alloy.config
+    options:
+      show_source: false
+      show_root_heading: true
+      members_order: source
+      separate_signature: true
+
 ## Usage
 
 ```python
@@ -20,10 +27,3 @@ Precedence
 
 !!! note "See also"
     - Guide → Configuration: guide/configuration.md
-
-::: alloy.config
-    options:
-      show_source: false
-      show_root_heading: true
-      members_order: source
-      separate_signature: true

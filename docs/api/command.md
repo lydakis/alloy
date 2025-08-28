@@ -1,5 +1,12 @@
 # Command
 
+::: alloy.command
+    options:
+      show_source: false
+      show_root_heading: true
+      members_order: source
+      separate_signature: true
+
 ## Usage
 
 Text command
@@ -38,10 +45,3 @@ print(res.title)
     - Guide → Structured Outputs: guide/structured-outputs.md
     - Guide → Tools & Workflows: guide/tools-and-workflows.md
     - Guide → Streaming: guide/streaming.md
-
-::: alloy.command
-    options:
-      show_source: false
-      show_root_heading: true
-      members_order: source
-      separate_signature: true
