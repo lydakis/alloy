@@ -51,6 +51,19 @@ python -c "from alloy import ask; print(ask('Say hello'))"
 
 ## Examples
 
+**Exploration with `ask`** — Quick one‑offs and streaming
+
+```python
+from alloy import ask
+
+# One‑liner exploration
+print(ask("List 3 reasons Alloy is useful."))
+
+# Stream text output (text‑only streaming)
+for chunk in ask.stream("Write a two‑sentence pitch for Alloy."):
+    print(chunk, end="")
+```
+
 **Typed outputs** — Get back real Python objects
 
 ```python
