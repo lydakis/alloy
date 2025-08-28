@@ -7,9 +7,10 @@ Run curated, copy‑paste examples (5–15 minutes end‑to‑end). Requires Pyt
 ## Quick Decision Guide
 
 "I want to…"
+
 - Try Alloy interactively → [Exploration](exploration.md)
 - Create reusable AI functions → [Commands](commands.md)
-- Get structured data → [Commands](commands.md#typed-output-dataclass)
+- Get structured data → [Commands](commands.md)
 - Add local capabilities → [Tools](tools.md)
 - Build multi-step workflows → [Workflows](workflows.md)
 - Integrate with my app → [Integration](integration.md)
