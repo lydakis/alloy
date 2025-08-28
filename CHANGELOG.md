@@ -7,6 +7,21 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+### Tests / CI
+- Align test suite with design: unit, providers (SDK‑patched), integration (providers + scenarios), parity_live (serial), examples.
+- Add autouse config reset fixture, `ScriptedFakeBackend`, and provider patch helper.
+- Providers: OpenAI adapter tests (request/schema/stream gating, async parallel tools, finalize follow‑up, tool‑limit); parity tests for Anthropic and Gemini (tool‑limit + finalize follow‑up).
+- Integration scenarios: structured outputs, minimal tool chain, text‑only streaming.
+- Parity live: price extraction using typed outputs + normalization + oracle (symbol→ISO, thousands/decimal handling); remove output token cap to avoid truncation.
+- Examples smoke: runs curated examples via `ALLOY_BACKEND=fake`.
+- Pre‑commit: enforce top‑level `from alloy import ...` public imports in tests/docs.
+- Coverage: add `pytest-cov`; `make ci-fast` enforces ≥85% coverage on fast suites.
+- CI: PR workflow (fast lint/type/tests+coverage) and Nightly workflow (integration + parity live with provider keys).
+
+### Internal / Typing
+- Add Optional/Union handling in parser to support new parsing tests.
+- Minor mypy and ruff cleanups in tests; remove unnecessary inline comments for clarity.
+
 ## [0.2.1] - 2025-08-26
 ### Fixes
 - config: Prevent per-call overrides from resetting unspecified fields (e.g., `max_tool_turns`) to dataclass defaults. This fixes env/config values being ignored when commands passed only `default_system`.
