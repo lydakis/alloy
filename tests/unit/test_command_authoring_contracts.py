@@ -7,6 +7,8 @@ from alloy import command, ConfigurationError, CommandError
 from alloy.config import Config
 from alloy.models.base import ModelBackend
 
+pytestmark = [pytest.mark.unit, pytest.mark.contracts]
+
 
 def test_rejects_non_str_function_return_annotation():
     # Intentionally wrong authoring: command functions must be annotated -> str.

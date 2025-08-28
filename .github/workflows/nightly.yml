@@ -1,0 +1,38 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # 06:00 UTC daily
+  workflow_dispatch: {}
+
+jobs:
+  integration-and-parity:
+    name: Integration + Parity (serial)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ '3.12' ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies (providers)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,providers]'
+
+      - name: Run integration + parity_live
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          OLLAMA_HOST: ${{ secrets.OLLAMA_HOST }}
+          # Optional: model override for integration tests
+          ALLOY_IT_MODEL: ${{ secrets.ALLOY_IT_MODEL }}
+        run: make ci-nightly

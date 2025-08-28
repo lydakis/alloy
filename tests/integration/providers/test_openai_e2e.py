@@ -3,6 +3,8 @@ import pytest
 
 from alloy import command, ask, configure, tool, ensure
 
+pytestmark = pytest.mark.integration
+
 
 requires_openai = pytest.mark.skipif(
     not os.getenv("OPENAI_API_KEY"),

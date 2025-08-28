@@ -4,6 +4,7 @@ import importlib
 import pytest
 
 from alloy import command, tool, configure
+pytestmark = pytest.mark.providers
 
 
 class _FakeAsyncResponses:

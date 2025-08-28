@@ -26,7 +26,7 @@ def _as_text_from_content(content: Any) -> str:
         return ""
 
 
-_ANTHROPIC_REQUIRED_MAX_TOKENS = 512  # Anthropic requires max_tokens; use this if unspecified
+_ANTHROPIC_REQUIRED_MAX_TOKENS = 2048  # Anthropic requires max_tokens; use this if unspecified
 
 
 class _LoopState:

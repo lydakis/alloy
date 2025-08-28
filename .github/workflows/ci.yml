@@ -4,100 +4,28 @@ on:
   push:
     branches: [ main, master ]
   pull_request:
-    branches: [ main, master ]
 
 jobs:
-  tests:
+  test:
+    name: Python ${{ matrix.python-version }} — fast checks
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: [ '3.10', '3.11', '3.12', '3.13' ]
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install test dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install pytest pytest-asyncio
-      - name: Run tests
-        run: |
-          python -m pytest -q
 
-  integration:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Check for provider secrets
-        id: check_secrets
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-        run: |
-          if [ -z "${OPENAI_API_KEY}" ] && [ -z "${ANTHROPIC_API_KEY}" ] && [ -z "${GOOGLE_API_KEY}" ]; then
-            echo "no_secrets=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "no_secrets=false" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Install deps
-        if: steps.check_secrets.outputs.no_secrets == 'false'
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .[dev]
-          python -m pip install openai anthropic google-genai
-      - name: Run integration tests
-        if: steps.check_secrets.outputs.no_secrets == 'false'
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-          ALLOY_IT_MODEL: ${{ vars.ALLOY_IT_MODEL }}
-        run: |
-          python -m pytest -q tests/integration
+          pip install -e '.[dev]'
 
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install linters
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install ruff black mypy pre-commit
-      - name: Ruff
-        run: |
-          ruff check .
-      - name: Black (check)
-        run: |
-          black --check .
-      - name: Mypy
-        run: |
-          mypy .
-      - name: Pre-commit (all files)
-        run: |
-          pre-commit run --all-files --show-diff-on-failure
-
-  smoke:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install deps (dev + examples)
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .[dev]
-          python -m pip install -r examples/requirements.txt
-      - name: Run smoke examples (fake backend)
-        env:
-          ALLOY_BACKEND: fake
-        run: |
-          make smoke-examples
+      - name: Lint, typecheck, tests (fast + coverage)
+        run: make ci-fast

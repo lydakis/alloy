@@ -1,4 +1,7 @@
+import pytest
 from alloy.config import get_config, _reset_config_for_tests
+
+pytestmark = pytest.mark.unit
 
 
 def test_env_overrides_model(monkeypatch):

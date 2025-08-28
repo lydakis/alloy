@@ -238,7 +238,7 @@ configure(
 # Per-command configuration
 @command(
     output=str,
-    model="claude-3.5-sonnet",
+    model="claude-sonnet-4-20250514",
     temperature=0.9,
     system="You are a creative writer"
 )
@@ -248,7 +248,7 @@ def WriteCreatively(prompt: str) -> str:
 # Runtime overrides
 response = ask(
     "Explain simply",
-    model="gpt-3.5-turbo",
+    model="gpt-5-mini",
     temperature=0.3
 )
 ```
@@ -258,9 +258,9 @@ response = ask(
 Alloy automatically uses the best execution strategy per model:
 
 ### Native Tool Calling
-- **OpenAI**: GPT‑5 Mini, GPT‑3.5 (native function calling)
-- **Anthropic**: Claude 3, Claude 3.5 (native tool use)
-- **Google**: Gemini Pro (native function calling)
+- **OpenAI**: GPT‑5 Mini (native function calling)
+- **Anthropic**: Claude 4 Sonnet (native tool use)
+- **Google**: Gemini 2.5 Flash (native function calling)
 
 ### ReAct Fallback
 - **Meta**: Llama 3.1, Llama 3.2

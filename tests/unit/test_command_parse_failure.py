@@ -2,6 +2,8 @@ import importlib
 import pytest
 from alloy import CommandError
 
+pytestmark = [pytest.mark.unit, pytest.mark.errors]
+
 
 class _StubBackend:
     def complete(self, prompt: str, *, tools=None, output_schema=None, config=None) -> str:

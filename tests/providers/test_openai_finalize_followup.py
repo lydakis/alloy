@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import importlib
+import pytest
 
 from alloy import command, configure
+pytestmark = pytest.mark.providers
 
 
 class _FakeResponses:

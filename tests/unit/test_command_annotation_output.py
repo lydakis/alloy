@@ -4,10 +4,11 @@ import typing as t
 
 import pytest
 from pytest import MonkeyPatch
-
 from alloy import command, configure
 from alloy.config import Config
 from alloy.models.base import ModelBackend
+
+pytestmark = pytest.mark.unit
 
 
 class _SyncBackend(ModelBackend):
@@ -35,7 +36,7 @@ class _SyncBackend(ModelBackend):
         tools: object | None = None,
         output_schema: dict[str, t.Any] | None = None,
         config: Config,
-    ) -> t.Iterator[str]:  # pragma: no cover
+    ) -> t.Iterator[str]:
         yield "ok"
 
 
@@ -63,7 +64,7 @@ class _AsyncBackend(ModelBackend):
         tools: object | None = None,
         output_schema: dict[str, t.Any] | None = None,
         config: Config,
-    ) -> t.AsyncIterator[str]:  # pragma: no cover
+    ) -> t.AsyncIterator[str]:
         async def agen() -> t.AsyncIterator[str]:
             for part in ("a", "sync"):
                 yield part

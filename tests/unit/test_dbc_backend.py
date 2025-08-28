@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import importlib
+import pytest
 
 from alloy import tool, ensure, command, configure
 from alloy.config import Config
 from alloy import ToolError
 from alloy.models.base import ModelBackend
+
+pytestmark = [pytest.mark.unit, pytest.mark.contracts]
 
 
 class DbcFakeBackend(ModelBackend):
@@ -18,7 +21,7 @@ class DbcFakeBackend(ModelBackend):
                 return str(t(n=3))
             except ToolError as e:
                 return str(e)
-            except Exception as e:  # pragma: no cover - not expected in this unit test
+            except Exception as e:
                 return f"tool_error:{e}"
         return ""
 

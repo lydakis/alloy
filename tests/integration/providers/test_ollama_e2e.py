@@ -4,6 +4,8 @@ import pytest
 
 from alloy import command, configure
 
+pytestmark = pytest.mark.integration
+
 
 has_sdk = importlib.util.find_spec("ollama") is not None
 model_env = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "ollama:gpt-oss"))

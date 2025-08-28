@@ -4,6 +4,8 @@ import pytest
 
 from alloy import tool, require, ensure, ToolError
 
+pytestmark = [pytest.mark.unit, pytest.mark.contracts]
+
 
 def test_require_precondition_receives_args_and_blocks() -> None:
     @tool

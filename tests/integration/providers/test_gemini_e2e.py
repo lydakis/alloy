@@ -3,6 +3,8 @@ import pytest
 
 from alloy import command, configure
 
+pytestmark = pytest.mark.integration
+
 
 has_key = bool(os.getenv("GOOGLE_API_KEY"))
 model_env = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gemini-2.5-flash"))
@@ -16,7 +18,7 @@ requires_gemini = pytest.mark.skipif(
 
 @requires_gemini
 def test_gemini_simple_command():
-    configure(model=model_env or "gemini-2.5-pro", temperature=0.2)
+    configure(model=model_env or "gemini-2.5-flash", temperature=0.2)
 
     @command(output=str)
     def hello() -> str:

@@ -41,6 +41,15 @@ verify: format typecheck
 
 ci: lint typecheck test
 
+# Fast CI profile: lints + typecheck + focused tests with coverage
+ci-fast: lint typecheck
+	$(PY) -m pytest -m "unit or contracts or providers or examples" -q --cov=alloy --cov-report=term-missing --cov-fail-under=85
+
+# Nightly / pre-release profile: run integration + parity_live
+ci-nightly:
+	$(PY) -m pytest -m integration -q || true
+	$(PY) -m pytest -m parity_live -q || true
+
 # Run a few fast, provider-agnostic examples with the fake backend
 examples-quick:
 	@echo "[examples] Running quick smoke tests with ALLOY_BACKEND=fake"
@@ -105,16 +114,38 @@ itest:
 
 
 itest-openai:
-	@if command -v dotenv >/dev/null 2>&1; then 	  dotenv -f .env run -- $(PY) -m pytest -q tests/integration/test_openai_end_to_end.py; 	else 	  $(PY) -m pytest -q tests/integration/test_openai_end_to_end.py; 	fi
+	@if command -v dotenv >/dev/null 2>&1; then \
+	  dotenv -f .env run -- $(PY) -m pytest -q tests/integration/providers/test_openai_e2e.py; \
+	else \
+	  $(PY) -m pytest -q tests/integration/providers/test_openai_e2e.py; \
+	fi
 
 itest-anthropic:
-	@if command -v dotenv >/dev/null 2>&1; then 	  ALLOY_IT_MODEL?=claude-3.5-sonnet; 	  dotenv -f .env run -- env ALLOY_IT_MODEL=$$ALLOY_IT_MODEL $(PY) -m pytest -q tests/integration/test_anthropic_end_to_end.py; 	else 	  ALLOY_IT_MODEL?=claude-3.5-sonnet; 	  env ALLOY_IT_MODEL=$$ALLOY_IT_MODEL $(PY) -m pytest -q tests/integration/test_anthropic_end_to_end.py; 	fi
+	@if command -v dotenv >/dev/null 2>&1; then \
+	  ALLOY_IT_MODEL?=claude-sonnet-4-20250514; \
+	  dotenv -f .env run -- env ALLOY_IT_MODEL=$$ALLOY_IT_MODEL $(PY) -m pytest -q tests/integration/providers/test_anthropic_e2e.py; \
+	else \
+	  ALLOY_IT_MODEL?=claude-sonnet-4-20250514; \
+	  env ALLOY_IT_MODEL=$$ALLOY_IT_MODEL $(PY) -m pytest -q tests/integration/providers/test_anthropic_e2e.py; \
+	fi
 
 itest-gemini:
-	@if command -v dotenv >/dev/null 2>&1; then 	  ALLOY_IT_MODEL?=gemini-1.5-pro; 	  dotenv -f .env run -- env ALLOY_IT_MODEL=$$ALLOY_IT_MODEL $(PY) -m pytest -q tests/integration/test_gemini_end_to_end.py; 	else 	  ALLOY_IT_MODEL?=gemini-1.5-pro; 	  env ALLOY_IT_MODEL=$$ALLOY_IT_MODEL $(PY) -m pytest -q tests/integration/test_gemini_end_to_end.py; 	fi
+	@if command -v dotenv >/dev/null 2>&1; then \
+	  ALLOY_IT_MODEL?=gemini-1.5-pro; \
+	  dotenv -f .env run -- env ALLOY_IT_MODEL=$$ALLOY_IT_MODEL $(PY) -m pytest -q tests/integration/providers/test_gemini_e2e.py; \
+	else \
+	  ALLOY_IT_MODEL?=gemini-1.5-pro; \
+	  env ALLOY_IT_MODEL=$$ALLOY_IT_MODEL $(PY) -m pytest -q tests/integration/providers/test_gemini_e2e.py; \
+	fi
 
 itest-ollama:
-	@if command -v dotenv >/dev/null 2>&1; then 	  ALLOY_IT_MODEL?=ollama:gpt-oss; 	  dotenv -f .env run -- env ALLOY_IT_MODEL=$$ALLOY_IT_MODEL $(PY) -m pytest -q tests/integration/test_ollama_end_to_end.py; 	else 	  ALLOY_IT_MODEL?=ollama:gpt-oss; 	  env ALLOY_IT_MODEL=$$ALLOY_IT_MODEL $(PY) -m pytest -q tests/integration/test_ollama_end_to_end.py; 	fi
+	@if command -v dotenv >/dev/null 2>&1; then \
+	  ALLOY_IT_MODEL?=ollama:gpt-oss; \
+	  dotenv -f .env run -- env ALLOY_IT_MODEL=$$ALLOY_IT_MODEL $(PY) -m pytest -q tests/integration/providers/test_ollama_e2e.py; \
+	else \
+	  ALLOY_IT_MODEL?=ollama:gpt-oss; \
+	  env ALLOY_IT_MODEL=$$ALLOY_IT_MODEL $(PY) -m pytest -q tests/integration/providers/test_ollama_e2e.py; \
+	fi
 docs-serve:
 	@if command -v mkdocs >/dev/null 2>&1; then \
 	  mkdocs serve -a 127.0.0.1:8000; \

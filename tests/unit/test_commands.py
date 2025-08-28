@@ -1,8 +1,10 @@
 from dataclasses import dataclass
-
+import pytest
 from alloy import ask, command, configure, CommandError
 from alloy.config import Config
 from alloy.models.base import ModelBackend
+
+pytestmark = pytest.mark.unit
 
 
 class FakeBackend(ModelBackend):

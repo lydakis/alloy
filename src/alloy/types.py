@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import json
 from typing import Any
-from typing import get_args, get_origin, get_type_hints
+from typing import get_args, get_origin, get_type_hints, Union as _Union
+import types as _pytypes
 from functools import lru_cache
 from dataclasses import is_dataclass, fields
 
@@ -80,6 +81,21 @@ def _coerce(tp: Any, value: Any) -> Any:
             return value
         s = str(value).strip().lower()
         return s in ("true", "1", "yes", "y", "t", "on")
+    if origin in (_Union, getattr(_pytypes, "UnionType", object())):
+        if value is None:
+            return None
+        last_exc: Exception | None = None
+        for alt in args:
+            if alt is type(None):
+                continue
+            try:
+                return _coerce(alt, value)
+            except Exception as e:
+                last_exc = e
+                continue
+        if last_exc is not None:
+            raise last_exc
+        return value
     if origin is list:
         if not isinstance(value, list):
             return value

@@ -5,6 +5,8 @@ from alloy import command, configure, tool, ensure
 from dataclasses import dataclass
 from alloy import ask
 
+pytestmark = pytest.mark.integration
+
 
 has_key = bool(os.getenv("ANTHROPIC_API_KEY"))
 model_env = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "claude-sonnet-4-20250514"))

@@ -5,6 +5,8 @@ import pytest
 
 from alloy import command, ConfigurationError
 
+pytestmark = [pytest.mark.unit, pytest.mark.errors]
+
 
 def use_fake_backend(monkeypatch):
     from alloy.models.base import ModelBackend

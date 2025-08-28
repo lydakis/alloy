@@ -7,6 +7,8 @@ import pytest
 
 from alloy import command, CommandError
 
+pytestmark = [pytest.mark.unit, pytest.mark.errors]
+
 
 class BlankBackend:
     def complete(self, prompt: str, *, tools=None, output_schema=None, config=None) -> str:

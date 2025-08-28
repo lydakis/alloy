@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 import importlib
-
 import pytest
-
 from alloy import command, configure
 from alloy.config import Config
 from alloy.models.base import ModelBackend
+
+pytestmark = pytest.mark.unit
 
 
 class AsyncFakeBackend(ModelBackend):
