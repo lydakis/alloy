@@ -2,21 +2,12 @@
 
 Python for logic. English for intelligence.
 
-Write typed AI functions that feel like normal Python. Decorate a function with
-`@command(output=MyType)`, call any supported model, and get a `MyType` back —
-enforced via provider‑native structured outputs. Add Python tools with
-design‑by‑contract to keep agent loops reliable.
-
 [![CI](https://github.com/lydakis/alloy/actions/workflows/ci.yml/badge.svg)](https://github.com/lydakis/alloy/actions/workflows/ci.yml)
 [![Docs](https://github.com/lydakis/alloy/actions/workflows/docs.yml/badge.svg)](https://docs.alloy.fyi/)
 [![Docs Site](https://img.shields.io/badge/docs-website-blue)](https://docs.alloy.fyi/)
 [![PyPI](https://img.shields.io/pypi/v/alloy-ai.svg)](https://pypi.org/project/alloy-ai/)
 [![Downloads](https://pepy.tech/badge/alloy-ai)](https://pepy.tech/project/alloy-ai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-License: MIT
-
-Status: see Providers for current support details: https://docs.alloy.fyi/guide/providers/
 
 ```python
 from alloy import command
@@ -28,223 +19,144 @@ def extract_price(text: str) -> str:
 print(extract_price("This costs $49.99"))  # 49.99
 ```
 
-[Quick Start](#quick-start) | [Examples](examples/) | [Docs](https://docs.alloy.fyi) | [Why Alloy?](#why-alloy)
+Write typed AI functions that feel like normal Python. No framework, no abstractions —
+just functions that happen to use AI.
 
-## Why Alloy
+[Install](#install) • [Tutorial](https://docs.alloy.fyi/tutorial/) • [Examples](examples/) • [Docs](https://docs.alloy.fyi)
 
-- Provider‑enforced types: return real Python types (dataclasses, primitives) without brittle string parsing.
-- Python‑first: no heavy framework — just functions that compose in your codebase.
-- Tools + Contracts: integrate your Python utilities with `@tool` and guard behavior via `@require/@ensure`.
-- Predictable defaults: clear errors, capped tool loops (default `max_tool_turns=10`).
-- Cross‑provider: same code across OpenAI, Anthropic, Gemini, and Ollama.
+## Install
 
-## Quick Start
+```bash
+pip install alloy-ai                    # OpenAI only
+pip install 'alloy-ai[anthropic]'       # With Anthropic
+pip install 'alloy-ai[providers]'       # All providers
+```
 
-Install (OpenAI only): `pip install alloy-ai`
-
-All providers (OpenAI, Anthropic, Gemini, Ollama): `pip install 'alloy-ai[providers]'`
-
-Set an API key (OpenAI):
+Quick start (OpenAI):
 
 ```bash
 export OPENAI_API_KEY=sk-...
-export ALLOY_MODEL=gpt-5-mini   # default if omitted
+python -c "from alloy import ask; print(ask('Say hello'))"
 ```
 
-Optional offline mode: `export ALLOY_BACKEND=fake` (deterministic demo outputs)
+## Why Alloy?
 
-Hello, Alloy (copy‑paste)
+**🎯 Types you can trust**: Provider‑enforced structured outputs. Get a real `float`, not a string to parse.
 
-```python
-from alloy import ask, command, configure
-from dotenv import load_dotenv
+**🐍 Just Python**: Commands are functions. Tools are functions. Everything composes.
 
-load_dotenv(); configure(temperature=0.2)
+**⚡ Production‑ready**: Retries, contracts, streaming, cross‑provider support — batteries included.
 
-@command  # returns str by default
-def summarize(text: str) -> str:
-    return f"Summarize in 1 sentence: {text}"
+**🔍 Zero magic**: See what’s happening. Control what’s happening. No hidden state.
 
-print(ask("Say hi succinctly."))
-print(summarize("Alloy lets you write typed AI functions in Python."))
-```
+## Examples
 
-Pro tip: run a quick, offline demo set with `make examples-quick` (uses `ALLOY_BACKEND=fake`).
-
-## Provider Setup (quick)
-
-Set one of the following before running examples. Full configuration knobs: https://docs.alloy.fyi/guide/configuration/
-
-- OpenAI
-  - `export OPENAI_API_KEY=...`
-  - `export ALLOY_MODEL=gpt-5-mini`
-- Anthropic (Claude)
-  - `export ANTHROPIC_API_KEY=...`
-  - `export ALLOY_MODEL=claude-sonnet-4-20250514`
-  - If required: `export ALLOY_MAX_TOKENS=512`
-- Google Gemini
-  - `export GOOGLE_API_KEY=...`
-  - `export ALLOY_MODEL=gemini-2.5-flash`
-- Ollama (local)
-  - Ensure a model is running: `ollama run <model>`
-  - `export ALLOY_MODEL=ollama:<model>`
-
-## Flagship Examples
-
-Typed dataclass output (provider‑enforced)
+**Typed outputs** — Get back real Python objects
 
 ```python
 from dataclasses import dataclass
-from alloy import command, configure
-from dotenv import load_dotenv
+from alloy import command
 
 @dataclass
-class ArticleSummary:
-    title: str
-    key_points: list[str]
-    reading_time_minutes: int
+class Analysis:
+    sentiment: str
+    score: float
+    keywords: list[str]
 
-@command(output=ArticleSummary)
-def summarize_article(text: str) -> str:
-    return f"""
-    Summarize with: title, 3–5 key_points, reading_time_minutes.
-    Article:
-    {text}
-    """
+@command(output=Analysis)
+def analyze(text: str) -> str:
+    return f"Analyze this text: {text}"
 
-def main():
-    load_dotenv()
-    configure(temperature=0.2)
-    res = summarize_article("Python emphasizes readability and has a vast ecosystem.")
-    print(res)
-
-if __name__ == "__main__":
-    main()
+result = analyze("Alloy is amazing!")
+print(result.score)  # 0.95
 ```
 
-Tools + DBC (validate → save workflow)
+**Tools + Contracts** — Safe multi‑step workflows
 
 ```python
-from dotenv import load_dotenv
-from alloy import command, tool, require, ensure, configure
-import datetime
+from alloy import command, tool, ensure, require
 
 @tool
-@ensure(lambda d: isinstance(d, dict) and "validated_at" in d, "Must add validated_at")
-def validate_data(data: dict) -> dict:
-    d = dict(data)
-    d["validated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    return d
+@ensure(lambda x: x > 0, "Result must be positive")
+def calculate(expression: str) -> float:
+    return eval(expression)  # simplified example
 
-@tool
-@require(lambda ba: "validated_at" in ba.arguments.get("data", {}), "Run validate_data first")
-@ensure(lambda ok: ok is True, "Save must succeed")
-def save_to_production(data: dict) -> bool:
-    print("Saving:", data)
-    return True
-
-@command(output=str, tools=[validate_data, save_to_production])
-def process_order(order: dict) -> str:
-    return f"Validate then save this order: {order}"
-
-def main():
-    load_dotenv()
-    configure(temperature=0.2)
-    print(process_order({"id": 123, "amount": 99.99}))
-
-if __name__ == "__main__":
-    main()
+@command(tools=[calculate])
+def solve(problem: str) -> str:
+    return f"Solve step by step: {problem}"
 ```
 
-See more: the full Examples index in the docs.
+See more in [examples/](examples/) and the
+[Examples guide](https://docs.alloy.fyi/examples/).
 
-- Examples: https://docs.alloy.fyi/examples/
+<details>
+<summary>📦 More installation options</summary>
 
-## Streaming policy
+```bash
+# Specific providers
+pip install 'alloy-ai[anthropic]'
+pip install 'alloy-ai[gemini]'
+pip install 'alloy-ai[ollama]'
 
-- Streaming is text‑only across providers. Commands with tools or non‑string outputs do not stream; call them normally to get typed results. Details: https://docs.alloy.fyi/guide/streaming/
+# Development
+pip install -e '.[dev]'
+```
 
-## Enforcing outputs
-- Alloy uses provider‑native structured outputs (JSON Schema) to enforce the expected shape. If parsing fails, you get a clear, typed error.
-- Docs: https://docs.alloy.fyi/guide/structured-outputs/
+</details>
 
-Progressive path
-- Start exploratory: `ask("...")`
-- Add a command: `@command` → returns `str`
-- Enforce types: `@command(output=T)`
-- Add tools + DBC: `@command(output=T, tools=[...])` with `@require/@ensure`
+<details>
+<summary>🔧 Configuration</summary>
 
-Notes
-- Streaming with tools is not supported.
-- Structured outputs: provider JSON Schema (OpenAI/Anthropic/Gemini) and JSON‑mode guidance for Ollama. See Enforcing outputs above.
-- Configuration defaults: `model=gpt-5-mini`; override via `configure(...)` or env.
-  - `ALLOY_MODEL`, `ALLOY_TEMPERATURE`, `ALLOY_MAX_TOKENS`, `ALLOY_SYSTEM`/`ALLOY_DEFAULT_SYSTEM`, `ALLOY_RETRY`, `ALLOY_MAX_TOOL_TURNS`.
-- OpenAI finalize: if a tool loop completes without a final structured output, Alloy issues one follow‑up turn (no tools) to finalize; then raises if still missing.
+```bash
+export ALLOY_MODEL=gpt-5-mini
+export ALLOY_TEMPERATURE=0.2
+export ALLOY_MAX_TOOL_TURNS=10
+```
 
-Examples
-- Explore the runnable suite: https://docs.alloy.fyi/examples/
+Or in Python:
 
-Offline tip
-- For local demos without network/API keys, set `ALLOY_BACKEND=fake` (not for production).
+```python
+from alloy import configure
+configure(model="gpt-5-mini", temperature=0.2)
+```
 
-Config precedence (summary)
-- Defaults: `model=gpt-5-mini`, `max_tool_turns=10` (safe defaults)
-- Process env (ALLOY_*) overrides defaults
-- `configure(...)` and context `use_config(...)` override env/defaults
-- Per‑call overrides (e.g., `ask(..., model=...)`) override everything above
+</details>
 
-Make targets
-- `make setup` — install dev deps and package in editable mode
-- `make test` / `make lint` / `make typecheck` — CI-like checks
-- `make examples-quick` — run a few fast examples with `ALLOY_BACKEND=fake`
-- `make examples-openai` — run OpenAI provider example (requires `OPENAI_API_KEY`)
-- `make examples-anthropic` — run Anthropic example (requires `ANTHROPIC_API_KEY`, sets `ALLOY_MAX_TOKENS=512` if unset)
-- `make examples-gemini` — run Gemini example (requires `GOOGLE_API_KEY`)
-- `make examples-ollama` — run Ollama example (ensure a local model is running)
-- `make docs-serve` — run docs locally (default: 127.0.0.1:8000)
-- `make docs-build` — build the docs site
+<details>
+<summary>🧪 Run examples offline</summary>
 
- Troubleshooting
-- API key: ensure `OPENAI_API_KEY` (or other provider key) is set (env or `.env`)
-- Model choice: start with `gpt-5-mini` for speed; override via `configure(model=...)` or `ALLOY_MODEL`
-- Slow runs: reduce `max_tokens`, lower `temperature`, prefer smaller models
-- Tool loops: default limit is 10; adjust via `configure(max_tool_turns=...)` or `ALLOY_MAX_TOOL_TURNS`
-- Errors: read exception messages — Alloy surfaces parse/contract errors clearly
+```bash
+export ALLOY_BACKEND=fake
+make examples-quick
+```
 
-Observability
-- See the minimal example: `examples/90-advanced/04_observability.py`. OpenTelemetry integration is planned.
+</details>
 
-## Support matrix (summary)
-- OpenAI (GPT‑4/5 & o‑series): completions, typed commands, ask, streaming (no tools in stream), tool‑calling, structured outputs
-- Anthropic (Claude Sonnet/Opus): completions + tool‑calling loop (no streaming yet); requires `max_tokens` (Alloy uses 512 if unset)
-- Google (Gemini 2.5 Pro/Flash): completions (tools/streaming limited in scaffold); uses `google‑genai`
-- Ollama (local): completions, text streaming, tools via JSON loop, JSON‑mode guidance for typed outputs (`model="ollama:<name>"`)
+## Providers
 
-How to run locally
-- Install providers: `pip install 'alloy-ai[providers]'`
-- Create `.env` with `OPENAI_API_KEY=...` (or set env vars directly)
-- Run any example, e.g.: `python examples/10-commands/01_first_command.py`
+Works with major providers — same code, zero changes:
 
+| Provider | Models (examples) | Setup |
+|----------|--------------------|-------|
+| OpenAI   | gpt‑5              | `export OPENAI_API_KEY=...` |
+| Anthropic| claude‑4           | `export ANTHROPIC_API_KEY=...` |
+| Google   | gemini             | `export GOOGLE_API_KEY=...` |
+| Local    | ollama             | `ollama run <model>` + `ALLOY_MODEL=ollama:<model>` |
 
-Support matrix
-- See Providers for current provider support and stability: https://docs.alloy.fyi/guide/providers/
+See the [full provider guide](https://docs.alloy.fyi/guide/providers/).
 
-Install options
-- Base: `pip install alloy-ai` (OpenAI + python‑dotenv)
-- All providers: `pip install 'alloy-ai[providers]'` (OpenAI, Anthropic, Gemini via `google‑genai`, Ollama)
-- Specific extras: `pip install 'alloy-ai[anthropic]'`, `'alloy-ai[gemini]'`, `'alloy-ai[ollama]'`
-Documentation
-- Full docs: https://docs.alloy.fyi/
+## Next Steps
 
-Why Alloy vs X
+New to Alloy? → [10‑minute tutorial](https://docs.alloy.fyi/tutorial/)
 
-- Minimal, Python‑first: typed outputs + tools without orchestration overhead.
-- Cross‑provider: same code, consistent behavior across vendors.
-- Clear contracts: DBC tools + strict structured outputs.
-- Deep dive: https://docs.alloy.fyi/equivalence/
+Ready to build? → [Browse examples](examples/)
 
+Need details? → [Read the docs](https://docs.alloy.fyi)
 
+## Contributing
 
-Releases
-- Changelog: CHANGELOG.md
-- Publishing: Create a tag like `v0.1.1` on main — CI builds and uploads to PyPI (needs Trusted Publishing for `alloy-ai` or a configured token).
+We welcome contributions! See [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
