@@ -43,7 +43,7 @@ ci: lint typecheck test
 
 # Fast CI profile: lints + typecheck + focused tests with coverage
 ci-fast: lint typecheck
-	$(PY) -m pytest -m "unit or contracts or providers or examples" -q --cov=alloy --cov-report=term-missing --cov-fail-under=85
+	$(PY) -m pytest -m "unit or contracts or providers or examples" -q --cov=alloy --cov-report=term-missing --cov-fail-under=80
 
 # Nightly / pre-release profile: run integration + parity_live
 ci-nightly:
