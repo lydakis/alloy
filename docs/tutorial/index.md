@@ -53,7 +53,7 @@ print(summarize("Alloy lets you write typed AI functions in Python."))
 
 Run: `python tutorial_step2.py`
 
-Expected: a one‑sentence summary.
+You'll see: a one‑sentence summary.
 
 ---
 
@@ -85,7 +85,7 @@ print(res.title)
 
 Run: `python tutorial_step3.py`
 
-Expected: a structured object; IDE autocompletes fields.
+You'll see: a structured object; IDE autocompletes fields.
 
 ---
 
@@ -110,7 +110,7 @@ print(analyze("Alloy makes typed AI functions feel like normal Python."))
 
 Run: `python tutorial_step4.py`
 
-Expected: a short analysis referencing the word count.
+You'll see: a short analysis referencing the word count.
 
 ---
 
@@ -145,7 +145,7 @@ print(process_order({"id": 123, "amount": 99.99}))
 
 Run: `python tutorial_step5.py`
 
-Expected: a short message indicating the steps; contracts guide the model.
+You'll see: a short message indicating the steps; contracts guide the model.
 
 ---
 
@@ -172,7 +172,7 @@ print()
 
 Run: `python tutorial_step6.py`
 
-Expected: streamed text printed inline for both loops (two short lines).
+You'll see: streamed text printed inline for both loops (two short lines).
 
 Note: Commands with tools or typed outputs don’t stream. Details: [Guide → Streaming](../guide/streaming.md).
 
