@@ -198,3 +198,4 @@ Next steps
 - [Examples (curated)](../examples/index.md)
 - [Providers (capability matrix + setup)](../guide/providers.md)
 - [Configuration (precedence and overrides)](../guide/configuration.md)
+ - [Common Pitfalls](../guide/pitfalls.md)

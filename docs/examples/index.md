@@ -54,3 +54,7 @@ Run curated, copy‑paste examples (5–15 minutes end‑to‑end). Requires Pyt
 - [70-providers](https://github.com/lydakis/alloy/tree/main/examples/70-providers)
 - [80-patterns](https://github.com/lydakis/alloy/tree/main/examples/80-patterns)
 - [90-advanced](https://github.com/lydakis/alloy/tree/main/examples/90-advanced)
+
+## Tips
+
+- Read the [Common Pitfalls](../guide/pitfalls.md) for quick wins (streaming limits, typed outputs, tool loops).

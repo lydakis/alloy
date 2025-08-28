@@ -61,6 +61,7 @@ plugins:
           - guide/providers.md: Providers
           - guide/production.md: Production
           - guide/streaming.md: Streaming
+          - guide/pitfalls.md: Common Pitfalls
           - typing.md: Typing
           - observability.md: Observability
           - tool_recipes.md: Tool Recipes
@@ -114,6 +115,7 @@ nav:
       - guide/providers.md
       - guide/production.md
       - guide/streaming.md
+      - guide/pitfalls.md
       - typing.md
       - observability.md
       - tool_recipes.md
