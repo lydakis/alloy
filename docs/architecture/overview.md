@@ -34,6 +34,6 @@ flowchart LR
 
 - Backends: [openai.py](https://github.com/lydakis/alloy/blob/main/src/alloy/models/openai.py), [anthropic.py](https://github.com/lydakis/alloy/blob/main/src/alloy/models/anthropic.py), [gemini.py](https://github.com/lydakis/alloy/blob/main/src/alloy/models/gemini.py), [ollama.py](https://github.com/lydakis/alloy/blob/main/src/alloy/models/ollama.py)
 - Type system: [types.py](https://github.com/lydakis/alloy/blob/main/src/alloy/types.py) (schema), [command.py](https://github.com/lydakis/alloy/blob/main/src/alloy/command.py) (parsing)
-- Contracts: [contracts.py](https://github.com/lydakis/alloy/blob/main/src/alloy/contracts.py)
+- Contracts: [tool.py](https://github.com/lydakis/alloy/blob/main/src/alloy/tool.py) (require/ensure)
 
 See detailed pages for diagrams and deeper explanations.
