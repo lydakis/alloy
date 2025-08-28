@@ -1,9 +1,6 @@
 # Type System
 
-- Audience: engineers wanting the internals of Alloy’s typing and schema generation.
-- Outcome: understand how Python types map to provider schemas and back.
-- Time: 4 minutes
-- Prereqs: none.
+How Python types map to provider schemas and back (~4 minutes).
 
 ---
 

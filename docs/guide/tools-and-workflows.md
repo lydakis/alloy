@@ -1,9 +1,6 @@
 # Tools & Workflows
 
-Audience: developers adding local capabilities and orchestrating multi‑step tasks.
-Outcome: write safe tools, attach them to commands, and assemble small workflows without framework hooks.
-Time: 6 minutes
-Prereqs: Python 3.10+, `pip install alloy-ai`.
+Add local capabilities and assemble small workflows in ~6 minutes. Requires Python 3.10+ and `pip install alloy-ai`.
 
 ---
 

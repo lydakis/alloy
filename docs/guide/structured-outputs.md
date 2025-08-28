@@ -1,9 +1,6 @@
 # Structured Outputs
 
-Audience: developers who need provider‑enforced typed results.
-Outcome: know the supported shapes, strict‑mode behavior, and error surfaces.
-Time: 6 minutes
-Prereqs: Python 3.10+, `pip install alloy-ai`.
+Get provider‑enforced typed results in ~6 minutes. Requires Python 3.10+ and `pip install alloy-ai`.
 
 ---
 

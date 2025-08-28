@@ -1,9 +1,6 @@
 # Architecture Overview
 
-- Audience: engineers curious about Alloy internals.
-- Outcome: high‑level map of command lifecycle, provider abstraction, and type system.
-- Time: 3 minutes
-- Prereqs: none.
+High‑level map of the command lifecycle, provider abstraction, and type system (~3 minutes).
 
 ---
 

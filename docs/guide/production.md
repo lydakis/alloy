@@ -1,9 +1,6 @@
 # Production
 
-Audience: developers preparing Alloy commands for production use.
-Outcome: apply retries/backoff, timeouts, idempotency, logging hooks, and observability patterns.
-Time: 6 minutes
-Prereqs: Python 3.10+, `pip install alloy-ai`.
+Prepare Alloy commands for production: retries, timeouts, idempotency, logging, and observability (~6 minutes). Requires Python 3.10+ and `pip install alloy-ai`.
 
 ---
 

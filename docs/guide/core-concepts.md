@@ -1,9 +1,6 @@
 # Core Concepts
 
-Audience: developers new to Alloy evaluating the model and API fit.
-Outcome: understand Commands, Tools, Types, Contracts, and Providers with a minimal snippet for each.
-Time: 5 minutes
-Prereqs: Python 3.10+, `pip install alloy-ai`.
+Learn Alloy’s five core concepts in ~5 minutes. Requires Python 3.10+ and `pip install alloy-ai`.
 
 ---
 

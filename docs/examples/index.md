@@ -1,18 +1,25 @@
-# Examples Index
+# Examples
 
-Audience: developers who prefer copy‑paste runnable examples.
-Outcome: run curated examples locally (or offline) with expected outputs.
-Time: 5–15 minutes
-Prereqs: Python 3.10+, `pip install -e '.[dev]'` or `pip install alloy-ai`; set provider key or `ALLOY_BACKEND=fake`.
+Run curated, copy‑paste examples (5–15 minutes end‑to‑end). Requires Python 3.10+ and `pip install alloy-ai` (or `-e '.[dev]'` for the repo). Set a provider key; `ALLOY_BACKEND=fake` is optional for offline demos.
 
 ---
+
+## Quick Decision Guide
+
+"I want to…"
+- Try Alloy interactively → [Exploration](exploration.md)
+- Create reusable AI functions → [Commands](commands.md)
+- Get structured data → [Commands](commands.md#typed-output-dataclass)
+- Add local capabilities → [Tools](tools.md)
+- Build multi-step workflows → [Workflows](workflows.md)
+- Integrate with my app → [Integration](integration.md)
 
 ## Run
 
 - Each example is a standalone script: `python examples/<category>/<file>.py`
 - Offline mode: `export ALLOY_BACKEND=fake` for deterministic demo outputs.
 
-## Categories
+## Browse by Category
 
 - Exploration: `examples/00-explore/`
 - Commands: `examples/10-commands/`

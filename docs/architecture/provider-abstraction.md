@@ -1,9 +1,6 @@
 # Provider Abstraction
 
-- Audience: engineers interested in backend support and portability.
-- Outcome: know how Alloy normalizes provider differences.
-- Time: 3 minutes
-- Prereqs: none.
+How Alloy normalizes provider differences (~3 minutes).
 
 ---
 

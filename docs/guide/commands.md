@@ -1,9 +1,6 @@
 # Commands
 
-Audience: developers authoring Alloy commands and choosing signatures.
-Outcome: know how to declare commands, set `output`, use sync/async/streaming, and handle errors.
-Time: 7 minutes
-Prereqs: Python 3.10+, `pip install alloy-ai`.
+Write AI functions with `@command` in ~7 minutes. Requires Python 3.10+ and `pip install alloy-ai`.
 
 ---
 

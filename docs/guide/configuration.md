@@ -1,11 +1,15 @@
 # Configuration
 
-Audience: developers configuring models, retries, and runtime knobs.
-Outcome: apply env, global, and per‑call configuration with clear precedence.
-Time: 4 minutes
-Prereqs: Python 3.10+, `pip install alloy-ai`.
+Configure models, retries, and runtime knobs in ~4 minutes. Requires Python 3.10+ and `pip install alloy-ai`.
 
 ---
+
+## Quick Start
+
+```bash
+export OPENAI_API_KEY=...
+export ALLOY_MODEL=gpt-5-mini
+```
 
 ## Precedence
 
@@ -14,7 +18,7 @@ Prereqs: Python 3.10+, `pip install alloy-ai`.
 3. Environment variables (`ALLOY_*`)
 4. Built‑in defaults (`model="gpt-5-mini"`, `max_tool_turns=10`)
 
-## Environment variables
+## All Settings (env)
 
 - `ALLOY_MODEL`
 - `ALLOY_TEMPERATURE`

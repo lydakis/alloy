@@ -1,9 +1,6 @@
 # Contracts
 
-Audience: developers enforcing pre/post conditions around tools and workflows.
-Outcome: apply `@require` and `@ensure` to guide the model and catch issues early.
-Time: 5 minutes
-Prereqs: Python 3.10+, `pip install alloy-ai`.
+Guide the model with pre/post conditions in ~5 minutes. Requires Python 3.10+ and `pip install alloy-ai`.
 
 ---
 

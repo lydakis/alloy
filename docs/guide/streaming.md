@@ -1,9 +1,6 @@
 # Streaming
 
-Audience: developers deciding when and how to stream results.
-Outcome: know current text‑only streaming limits and preview the vNext sequence‑of‑objects model.
-Time: 4 minutes
-Prereqs: Python 3.10+, `pip install alloy-ai`.
+Understand current text‑only streaming and the preview for sequence‑of‑objects (~4 minutes). Requires Python 3.10+ and `pip install alloy-ai`.
 
 ---
 

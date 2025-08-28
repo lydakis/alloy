@@ -1,9 +1,6 @@
 # Command Lifecycle
 
-- Audience: engineers integrating deeply or extending Alloy.
-- Outcome: understand how a command runs end‑to‑end.
-- Time: 4 minutes
-- Prereqs: none.
+Understand how a command runs end‑to‑end (~4 minutes).
 
 ---
 

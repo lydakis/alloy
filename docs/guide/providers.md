@@ -1,9 +1,6 @@
 # Providers
 
-Audience: developers setting up provider credentials and picking models.
-Outcome: configure OpenAI/Anthropic/Gemini/Ollama/Fake and consult a single capability matrix.
-Time: 6 minutes
-Prereqs: Python 3.10+, `pip install alloy-ai`.
+Set up OpenAI/Anthropic/Gemini/Ollama quickly and consult a single capability matrix. Requires Python 3.10+ and `pip install alloy-ai`.
 
 ---
 
