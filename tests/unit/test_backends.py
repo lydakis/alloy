@@ -31,7 +31,11 @@ def test_routing_to_ollama_backend():
 
 
 def test_gemini_complete_requires_sdk():
-    if importlib.util.find_spec("google.genai") is not None:
+    try:
+        spec = importlib.util.find_spec("google.genai")
+    except ModuleNotFoundError:
+        spec = None
+    if spec is not None:
         pytest.skip("Gemini SDK present; skipping missing-SDK unit")
     be = get_backend("gemini-2.5-flash")
     with pytest.raises(ConfigurationError):

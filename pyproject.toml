@@ -112,3 +112,15 @@ strict_optional = true
 show_error_codes = true
 pretty = true
 exclude = [".venv/"]
+
+[tool.coverage.run]
+source = ["src/alloy"]
+omit = [
+  "src/alloy/models/*",
+  "src/alloy/react.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+]
