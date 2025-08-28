@@ -1,9 +1,6 @@
 # Commands
 
-Audience: developers writing reusable text and typed commands.
-Outcome: run sync/async commands, and return typed results.
-Time: 4–6 minutes
-Prereqs: `pip install alloy-ai`; set provider key or `ALLOY_BACKEND=fake`.
+Create reusable text and typed commands (4–6 minutes).
 
 ---
 

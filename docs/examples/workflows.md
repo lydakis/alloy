@@ -1,9 +1,6 @@
 # Workflows
 
-Audience: developers composing multi‑step tasks in Python.
-Outcome: assemble small, reliable workflows without a framework.
-Time: 5–8 minutes
-Prereqs: `pip install alloy-ai`; set provider key or `ALLOY_BACKEND=fake`.
+Assemble small, reliable workflows without a framework (5–8 minutes).
 
 ---
 

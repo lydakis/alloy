@@ -1,9 +1,6 @@
 # Integration
 
-Audience: developers integrating with common Python libraries and HTTP.
-Outcome: safely integrate Alloy commands into Flask endpoints and pandas workflows.
-Time: 6–10 minutes
-Prereqs: `pip install alloy-ai`; optional extras in `examples/requirements.txt`.
+Integrate Alloy with common Python libraries and HTTP (6–10 minutes).
 
 ---
 

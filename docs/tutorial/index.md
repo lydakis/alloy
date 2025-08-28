@@ -32,7 +32,7 @@ Run
 python tutorial_step1.py
 ```
 
-Expected: a short greeting.
+You'll see: a short greeting.
 
 ---
 

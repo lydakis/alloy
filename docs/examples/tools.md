@@ -1,9 +1,6 @@
 # Tools
 
-Audience: developers exposing local capabilities to commands.
-Outcome: attach tools, run multiple tools, and apply contracts.
-Time: 5–8 minutes
-Prereqs: `pip install alloy-ai`; set provider key or `ALLOY_BACKEND=fake`.
+Expose local capabilities and apply contracts (5–8 minutes).
 
 ---
 

@@ -1,9 +1,6 @@
 # Exploration
 
-Audience: developers trying Alloy interactively or via tiny scripts.
-Outcome: use `ask()` for freeform prompts and a first `@command`.
-Time: 3 minutes
-Prereqs: `pip install alloy-ai`; set provider key or `ALLOY_BACKEND=fake`.
+Try Alloy interactively with `ask()` and your first `@command` (3 minutes).
 
 ---
 
