@@ -35,10 +35,10 @@ plugins:
           options:
             docstring_style: google
             show_root_heading: true
-            show_source: false
+            show_source: true
             members_order: source
             separate_signature: true
-            filters: []
+            filters: ["!^_"]
   - gen-files:
       scripts:
         - gen_linkset.py
@@ -47,54 +47,80 @@ plugins:
       sections:
         "Overview":
           - index.md: Intro
-          - getting-started.md: Getting Started
+          - whats-new.md: What's New
+          - equivalence.md: Equivalence
+        "Tutorial":
+          - tutorial/index.md: Tutorial (10 minutes)
         "Guides":
-          - configuration.md: Configuration
-          - commands.md: Commands & Tools
-          - equivalence.md: Equivalence Guide
+          - guide/core-concepts.md: Core Concepts
+          - guide/commands.md: Commands
+          - guide/structured-outputs.md: Structured Outputs
+          - guide/tools-and-workflows.md: Tools & Workflows
+          - guide/contracts.md: Contracts
+          - guide/configuration.md: Configuration
+          - guide/providers.md: Providers
+          - guide/production.md: Production
+          - guide/streaming.md: Streaming
+          - typing.md: Typing
           - observability.md: Observability
           - tool_recipes.md: Tool Recipes
-          - typing.md: Typing
-          - backends.md: Backends & Routing
           - cookbook.md: Cookbook
-          - outputs.md: Enforcing Outputs
-          - examples.md: Examples
           - contributing-docs.md: Contributing Docs
           - roadmap.md: Roadmap
-          - whats-new.md: What's New
+        "Examples":
+          - examples/index.md: Examples Index
+          - examples/exploration.md: Exploration
+          - examples/commands.md: Commands
+          - examples/tools.md: Tools
+          - examples/workflows.md: Workflows
+          - examples/integration.md: Integration
         "API":
           - api/**/*.md
+        "Architecture":
+          - architecture/overview.md: Architecture Overview
+          - architecture/command-lifecycle.md: Command Lifecycle
+          - architecture/provider-abstraction.md: Provider Abstraction
+          - architecture/type-system.md: Type System
 markdown_extensions:
   - admonition
   - codehilite
   - toc:
       permalink: true
   - pymdownx.highlight
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
 extra_css:
   - assets/theme.css
+extra_javascript:
+  - https://unpkg.com/mermaid@10.9.1/dist/mermaid.min.js
+  - assets/mermaid-init.js
 # (Removed Copy curl UI assets)
 nav:
-  - Overview: index.md
-  - Getting Started: getting-started.md
-  - Configuration: configuration.md
-  - Commands & Tools: commands.md
-  - Equivalence Guide: equivalence.md
-  - Observability: observability.md
-  - Tool Recipes: tool_recipes.md
-  - Typing: typing.md
-  - Backends & Routing: backends.md
-  - Cookbook: cookbook.md
-  - Enforcing Outputs: outputs.md
-  - Stability & Support: stability.md
-  - Examples: examples.md
-  - Flagship Examples: flagship-examples.md
-  - Roadmap: roadmap.md
-  - What's New: whats-new.md
+  - Overview:
+      - index.md
+      - whats-new.md
+      - equivalence.md
+  - Tutorial:
+      - tutorial/index.md
+  - Guide:
+      - guide/core-concepts.md
+      - guide/commands.md
+      - guide/structured-outputs.md
+      - guide/tools-and-workflows.md
+      - guide/contracts.md
+      - guide/configuration.md
+      - guide/providers.md
+      - guide/production.md
+      - guide/streaming.md
+      - typing.md
+      - observability.md
+      - tool_recipes.md
   - API Reference:
       - Top-level: api/alloy.md
-      - Commands: api/command.md
       - Ask: api/ask.md
+      - Command: api/command.md
       - Config: api/config.md
       - Tools: api/tool.md
       - Errors: api/errors.md
@@ -105,4 +131,17 @@ nav:
           - Anthropic: api/models/anthropic.md
           - Gemini: api/models/gemini.md
           - Ollama: api/models/ollama.md
+  - Examples:
+      - examples/index.md
+      - examples/exploration.md
+      - examples/commands.md
+      - examples/tools.md
+      - examples/workflows.md
+      - examples/integration.md
+  - Architecture:
+      - architecture/overview.md
+      - architecture/command-lifecycle.md
+      - architecture/provider-abstraction.md
+      - architecture/type-system.md
+  - Roadmap: roadmap.md
   - Contributing Docs: contributing-docs.md

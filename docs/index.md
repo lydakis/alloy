@@ -2,29 +2,52 @@
 
 Python for logic. English for intelligence.
 
-Alloy lets you declare typed AI commands in Python, wire up tools, and route to multiple model providers with a consistent API.
+!!! success "Outcomes first"
+    - Run your first command in under 2 minutes.
+    - Enforce typed outputs without brittle parsing.
+    - Add tools + contracts safely.
+    - Switch providers without code changes.
 
-- Typed commands via `@command(output=...)`
-- Simple `ask(...)` namespace for quick prompts
-- Tool calling with contracts and validation
-- Multi‑provider backends (OpenAI, Anthropic, Gemini, Ollama)
+## What is Alloy?
 
-Install with:
+Alloy lets you write typed AI functions that feel like normal Python. Decorate a function with `@command`, optionally declare `output=T`, and Alloy enforces the result via provider‑native structured outputs. Add plain‑Python tools (`@tool`) with [design‑by‑contract](guide/contracts.md) to keep workflows reliable. Switch providers by changing environment variables — no code changes.
 
+> What Alloy is / isn’t: see the concise guide in [Equivalence](equivalence.md).
+
+## Quick Start
+
+Install
 ```bash
 pip install alloy-ai
 ```
 
-See Getting Started for installation and a 2‑minute tutorial.
+Set a provider (OpenAI example)
+```bash
+export OPENAI_API_KEY=...
+export ALLOY_MODEL=gpt-5-mini
+# Offline demos: export ALLOY_BACKEND=fake
+```
 
-Looking for recent changes? See the [What’s New](whats-new.md) page.
+Write code
+```python
+from alloy import command
 
-> Note: This site is built and deployed via GitHub Actions.
+@command
+def summarize(text: str) -> str:
+    """Return a short summary of the input."""
 
-## Philosophy
+print(summarize("Alloy lets you write typed AI functions in plain Python."))
+# → "Write typed AI functions in plain Python."
+```
 
-- Keep primitives small and explicit: typed `@command` and plain‑Python `@tool`.
-- Compose behavior in Python (functions, modules, asyncio), not a new orchestration layer.
-- Prefer predictable defaults; opt into structure via `output=...`.
-- Stay provider‑agnostic; adaptors live under `alloy/models/*`.
-- Offer recipes instead of bundled features so teams can choose libraries and guarantees.
+Links: [Tutorial](tutorial/index.md) · [Guide](guide/core-concepts.md) · [Examples](examples/index.md) · [Providers](guide/providers.md) · [What’s New](whats-new.md)
+
+## Streaming
+
+Current: text‑only. Commands that use tools or non‑string outputs do not stream via Alloy. See [Guide → Streaming](guide/streaming.md).
+
+Preview (vNext): Alloy will support streaming structured outputs as whole objects when the return type is a sequence (e.g., `list[T]`). Items are yielded one validated object at a time, even when tools are used. See [guide/streaming.md#preview-vnext](guide/streaming.md#preview-vnext).
+
+## Providers
+
+Model IDs and capabilities evolve. The Providers page maintains the up‑to‑date capability matrix and setup steps per provider: [Guide → Providers](guide/providers.md).

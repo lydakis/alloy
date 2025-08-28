@@ -93,7 +93,7 @@ def configure(**kwargs: Any) -> None:
     """Set global defaults for Alloy execution.
 
     Example:
-        configure(model="gpt-4", temperature=0.7)
+        configure(model="gpt-5-mini", temperature=0.7)
     """
     global _global_config
     extra = kwargs.pop("extra", {})

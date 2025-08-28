@@ -11,11 +11,11 @@ Python for logic. English for intelligence.
 ## Running
 - Each example is a standalone script: `python examples/<category>/<file>.py`
 - Default model is `gpt-5-mini`; you can override with `configure(...)` or `ALLOY_MODEL`.
-- Streaming policy: Commands → Streaming constraints: https://docs.alloy.fyi/commands/#sync-async-and-streaming
+- Streaming policy: Commands → Streaming constraints: https://docs.alloy.fyi/guide/streaming/
 
 ## Provider Setup (quick)
 
-Set one of the following before running examples. Full configuration knobs: https://docs.alloy.fyi/configuration/
+Set one of the following before running examples. Full configuration knobs: https://docs.alloy.fyi/guide/configuration/
 
 - OpenAI
   - `export OPENAI_API_KEY=...`

@@ -1,3 +1,9 @@
+# Models: Anthropic
+
+See also
+- Guide → Providers: guide/providers.md
+- Architecture → Provider Abstraction: architecture/provider-abstraction.md#provider-mapping
+
 ::: alloy.models.anthropic
     options:
       show_source: false

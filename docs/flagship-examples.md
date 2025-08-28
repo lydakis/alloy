@@ -1,15 +1,10 @@
 # Flagship Examples
 
-These are small, copy‑pasteable examples that demonstrate Alloy’s core patterns. Each snippet links to a runnable script under `examples/`.
-
-Tip
-- Install optional deps: `pip install -r examples/requirements.txt`
-- Pick a model (e.g., `export ALLOY_MODEL=gpt-5-mini`) and set your provider key
-- Offline mode: `export ALLOY_BACKEND=fake`
+Small, copy‑pasteable examples that demonstrate Alloy’s core patterns. Each snippet links to a runnable script under `examples/` on GitHub.
 
 ## Ask: exploratory
 
-Path: `examples/00-explore/01_ask_basic.py`
+Path: [`examples/00-explore/01_ask_basic.py`](https://github.com/lydakis/alloy/blob/main/examples/00-explore/01_ask_basic.py)
 
 When to use: quick exploration, ad‑hoc questions, ideation before adding structure.
 
@@ -28,7 +23,7 @@ if __name__ == "__main__":
 
 ## First command: text output
 
-Path: `examples/10-commands/01_first_command.py`
+Path: [`examples/10-commands/01_first_command.py`](https://github.com/lydakis/alloy/blob/main/examples/10-commands/01_first_command.py)
 
 When to use: you want a reusable function that returns text; lightweight helpers, prompts you call from normal Python.
 
@@ -51,7 +46,7 @@ if __name__ == "__main__":
 
 ## Typed output: dataclass
 
-Path: `examples/20-typed/02_dataclass_output.py`
+Path: [`examples/20-typed/02_dataclass_output.py`](https://github.com/lydakis/alloy/blob/main/examples/20-typed/02_dataclass_output.py)
 
 When to use: you need a structured result (provider‑enforced) without manual parsing; great for API payloads, forms, and summaries.
 
@@ -90,7 +85,7 @@ if __name__ == "__main__":
 
 ## Contracts: validate → save workflow
 
-Path: `examples/40-contracts/02_workflow_contracts.py`
+Path: [`examples/40-contracts/02_workflow_contracts.py`](https://github.com/lydakis/alloy/blob/main/examples/40-contracts/02_workflow_contracts.py)
 
 When to use: workflows with explicit preconditions and postconditions; enforce tool order (validate → save) and surface failures for self‑correction.
 
@@ -128,7 +123,7 @@ def process_order(order: dict) -> str:
 
 ## RAG: answer with citations
 
-Path: `examples/80-patterns/01_rag_citations.py`
+Path: [`examples/80-patterns/01_rag_citations.py`](https://github.com/lydakis/alloy/blob/main/examples/80-patterns/01_rag_citations.py)
 
 When to use: questions that must cite sources; domain Q&A, compliance, and documentation lookups where provenance matters.
 
@@ -168,11 +163,11 @@ def answer_with_sources(question: str) -> str:
 ```
 
 Further
-- See the full suite under `examples/` for composition, integrations, providers, patterns, and advanced flows (deep agents, OCR, observability, evals).
+- See the full suite under [examples/](https://github.com/lydakis/alloy/tree/main/examples) for composition, integrations, providers, patterns, and advanced flows (deep agents, OCR, observability, evals).
 
 ## Stateful assistant: file-backed memory
 
-Path: `examples/80-patterns/06_stateful_assistant.py`
+Path: [`examples/80-patterns/06_stateful_assistant.py`](https://github.com/lydakis/alloy/blob/main/examples/80-patterns/06_stateful_assistant.py)
 
 When to use: durable, per‑user memory across sessions (preferences, profile facts); keep Alloy stateless and store memory in Python.
 
@@ -225,7 +220,7 @@ def assistant_turn(user_id: str, message: str) -> str:
 
 ## Conversation history: rolling transcript
 
-Path: `examples/80-patterns/07_conversation_history.py`
+Path: [`examples/80-patterns/07_conversation_history.py`](https://github.com/lydakis/alloy/blob/main/examples/80-patterns/07_conversation_history.py)
 
 When to use: short‑term conversational continuity within a session; feed the recent transcript into each turn to keep context.
 

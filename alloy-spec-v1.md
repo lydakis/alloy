@@ -229,7 +229,7 @@ from alloy import configure
 
 # Global defaults
 configure(
-    model="gpt-4",
+    model="gpt-5-mini",
     temperature=0.7,
     max_tokens=2000,
     default_system="You are a helpful assistant"
@@ -258,7 +258,7 @@ response = ask(
 Alloy automatically uses the best execution strategy per model:
 
 ### Native Tool Calling
-- **OpenAI**: GPT-4, GPT-3.5 (native function calling)
+- **OpenAI**: GPT‑5 Mini, GPT‑3.5 (native function calling)
 - **Anthropic**: Claude 3, Claude 3.5 (native tool use)
 - **Google**: Gemini Pro (native function calling)
 
@@ -274,7 +274,7 @@ def Analyze(data: dict) -> str:
     return f"Analyze: {data}"
 
 # Automatically uses:
-# - Native tools for GPT-4/Claude
+# - Native tools for GPT‑5/Claude
 # - ReAct loop for Llama
 # - Best available for each model
 ```
@@ -346,7 +346,7 @@ from dataclasses import dataclass
 import asyncio
 
 # Configure defaults
-configure(model="gpt-4", temperature=0.7)
+configure(model="gpt-5-mini", temperature=0.7)
 
 # Define tools
 @tool

@@ -81,4 +81,4 @@ def run_with_logging(fn):
 
 For production, prefer your existing logging/metrics system around Alloy calls.
 
-See also: `examples/90-advanced/04_observability.py` for a minimal timing wrapper.
+See also: [`examples/90-advanced/04_observability.py`](https://github.com/lydakis/alloy/blob/main/examples/90-advanced/04_observability.py) for a minimal timing wrapper.

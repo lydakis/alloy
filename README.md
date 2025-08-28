@@ -16,7 +16,7 @@ design‑by‑contract to keep agent loops reliable.
 
 License: MIT
 
-Status: see Backends & Routing for current support details: https://docs.alloy.fyi/backends/
+Status: see Providers for current support details: https://docs.alloy.fyi/guide/providers/
 
 ```python
 from alloy import command
@@ -73,7 +73,7 @@ Pro tip: run a quick, offline demo set with `make examples-quick` (uses `ALLOY_B
 
 ## Provider Setup (quick)
 
-Set one of the following before running examples. Full configuration knobs: https://docs.alloy.fyi/configuration/
+Set one of the following before running examples. Full configuration knobs: https://docs.alloy.fyi/guide/configuration/
 
 - OpenAI
   - `export OPENAI_API_KEY=...`
@@ -163,11 +163,11 @@ See more: Flagship Examples and the full Examples index in the docs.
 
 ## Streaming policy
 
-- Streaming is text‑only across providers. Commands with tools or non‑string outputs do not stream; call them normally to get typed results. Details: https://docs.alloy.fyi/commands/#sync-async-and-streaming
+- Streaming is text‑only across providers. Commands with tools or non‑string outputs do not stream; call them normally to get typed results. Details: https://docs.alloy.fyi/guide/streaming/
 
 ## Enforcing outputs
 - Alloy uses provider‑native structured outputs (JSON Schema) to enforce the expected shape. If parsing fails, you get a clear, typed error.
-- Docs: https://docs.alloy.fyi/outputs/
+- Docs: https://docs.alloy.fyi/guide/structured-outputs/
 
 Progressive path
 - Start exploratory: `ask("...")`
@@ -229,7 +229,7 @@ How to run locally
 
 
 Support matrix
-- See Backends & Routing for current provider support and stability: https://docs.alloy.fyi/backends/
+- See Providers for current provider support and stability: https://docs.alloy.fyi/guide/providers/
 
 Install options
 - Base: `pip install alloy-ai` (OpenAI + python‑dotenv)

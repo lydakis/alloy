@@ -54,7 +54,7 @@ def review_pr(diff: str, pr_description: str) -> str:
     return f"Review this PR considering our patterns: {pr_description}\nDiff: {diff}"
 ```
 
-See `examples/` for runnable versions and more demos.
+See [examples/](https://github.com/lydakis/alloy/tree/main/examples) for runnable versions and more demos.
 
 ## Deep Agent (planning, subagents, workspace)
 
@@ -63,7 +63,7 @@ Pattern: compose primitives to build a multi‑phase agent that plans, spawns fo
 Run (real model):
 
 ```
-python examples/patterns/deep_agents.py
+python examples/90-advanced/01_deep_agents.py
 ```
 
 No API keys? You can preview behavior without network by setting `ALLOY_BACKEND=fake` when running the example.
@@ -99,4 +99,4 @@ def deep_research(goal: str) -> str:
     """.strip().format(goal=goal)
 ```
 
-Full example: `examples/patterns/deep_agents.py`.
+Full example: [`examples/90-advanced/01_deep_agents.py`](https://github.com/lydakis/alloy/blob/main/examples/90-advanced/01_deep_agents.py).

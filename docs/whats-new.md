@@ -2,8 +2,8 @@
 
 Release notes and highlights. See full changelog for details.
 
-- Changelog: https://github.com/lydakis/alloy/blob/main/CHANGELOG.md
-- Releases: https://github.com/lydakis/alloy/releases
+- [Changelog](https://github.com/lydakis/alloy/blob/main/CHANGELOG.md)
+- [Releases](https://github.com/lydakis/alloy/releases)
 
 ## 0.2.0 (2025-08-26)
 
