@@ -156,9 +156,8 @@ if __name__ == "__main__":
     main()
 ```
 
-See more: Flagship Examples and the full Examples index in the docs.
+See more: the full Examples index in the docs.
 
-- Flagship: https://docs.alloy.fyi/flagship-examples/
 - Examples: https://docs.alloy.fyi/examples/
 
 ## Streaming policy
@@ -184,7 +183,6 @@ Notes
 
 Examples
 - Explore the runnable suite: https://docs.alloy.fyi/examples/
-- Embedded snippets: https://docs.alloy.fyi/flagship-examples/
 
 Offline tip
 - For local demos without network/API keys, set `ALLOY_BACKEND=fake` (not for production).
