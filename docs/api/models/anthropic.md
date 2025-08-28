@@ -10,3 +10,11 @@ See also
       show_root_heading: true
       members_order: source
       separate_signature: true
+
+## Usage
+
+```bash
+export ANTHROPIC_API_KEY=...
+export ALLOY_MODEL=claude-sonnet-4-20250514
+# Tip: Anthropic requires max_tokens; Alloy uses 512 if unset
+```

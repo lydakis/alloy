@@ -10,3 +10,10 @@ See also
       show_root_heading: true
       members_order: source
       separate_signature: true
+
+## Usage
+
+```bash
+export ALLOY_MODEL=ollama:<model>
+# Ensure the model is running locally: ollama run <model>
+```

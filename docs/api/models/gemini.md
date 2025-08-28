@@ -10,3 +10,10 @@ See also
       show_root_heading: true
       members_order: source
       separate_signature: true
+
+## Usage
+
+```bash
+export GOOGLE_API_KEY=...
+export ALLOY_MODEL=gemini-2.5-flash
+```

@@ -10,3 +10,10 @@ See also
       show_root_heading: true
       members_order: source
       separate_signature: true
+
+## Usage
+
+```bash
+export OPENAI_API_KEY=...
+export ALLOY_MODEL=gpt-5-mini
+```
