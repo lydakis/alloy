@@ -11,6 +11,9 @@ import logging
 
 log = logging.getLogger(__name__)
 
+# Default cap for parallel tool execution across providers
+DEFAULT_PARALLEL_TOOLS_MAX: int = 8
+
 
 @dataclass
 class Config:
@@ -22,6 +25,7 @@ class Config:
     retry_on: type[BaseException] | None = None
     max_tool_turns: int | None = 10
     auto_finalize_missing_output: bool | None = True
+    parallel_tools_max: int | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
     def merged(self, other: "Config" | None) -> "Config":
@@ -39,7 +43,9 @@ class Config:
         return replace(self, **updates)
 
 
-_BUILTIN_DEFAULTS: Config = Config(model="gpt-5-mini")
+_BUILTIN_DEFAULTS: Config = Config(
+    model="gpt-5-mini", parallel_tools_max=DEFAULT_PARALLEL_TOOLS_MAX
+)
 _global_config: Config = Config()
 _context_config: contextvars.ContextVar[Config | None] = contextvars.ContextVar(
     "alloy_context_config", default=None
@@ -84,6 +90,7 @@ def _config_from_env() -> Config:
         retry=_parse_env_var("ALLOY_RETRY", int),
         retry_on=None,
         max_tool_turns=_parse_env_var("ALLOY_MAX_TOOL_TURNS", int),
+        parallel_tools_max=_parse_env_var("ALLOY_PARALLEL_TOOLS_MAX", int),
         auto_finalize_missing_output=_parse_env_var("ALLOY_AUTO_FINALIZE_MISSING_OUTPUT", bool),
         extra=extra,
     )
@@ -139,6 +146,13 @@ def get_config(overrides: dict[str, Any] | None = None) -> Config:
         .merged(_context_config.get())
     )
     if not overrides:
+        ptm = getattr(cfg, "parallel_tools_max", None)
+        if not isinstance(ptm, int) or ptm <= 0:
+            cfg = replace(
+                cfg,
+                parallel_tools_max=_BUILTIN_DEFAULTS.parallel_tools_max
+                or DEFAULT_PARALLEL_TOOLS_MAX,
+            )
         return cfg
     overrides = dict(overrides)
     if "system" in overrides and "default_system" not in overrides:
@@ -148,4 +162,11 @@ def get_config(overrides: dict[str, Any] | None = None) -> Config:
         cfg = cfg.merged(Config(extra=extra))
     allowed = {f.name for f in fields(Config)}
     valid = {k: v for k, v in overrides.items() if k in allowed and v is not None}
-    return replace(cfg, **valid)
+    cfg = replace(cfg, **valid)
+    ptm2 = getattr(cfg, "parallel_tools_max", None)
+    if not isinstance(ptm2, int) or ptm2 <= 0:
+        cfg = replace(
+            cfg,
+            parallel_tools_max=_BUILTIN_DEFAULTS.parallel_tools_max or DEFAULT_PARALLEL_TOOLS_MAX,
+        )
+    return cfg

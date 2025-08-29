@@ -5,9 +5,8 @@ from typing import Any, cast
 import json
 import concurrent.futures
 import asyncio
-import time
 
-from ..config import Config
+from ..config import Config, DEFAULT_PARALLEL_TOOLS_MAX
 from ..errors import ConfigurationError, ToolLoopLimitExceeded, ToolError
 from .base import ModelBackend
 
@@ -57,20 +56,111 @@ def _schema_to_gemini(T: Any, s: dict[str, Any]) -> Any:
     return T.Schema(type=m)
 
 
+def _finalize_json_output(
+    T: Any, client: Any, model_name: str, history: list[Any], cfg: dict[str, object]
+) -> str:
+    if T is None:
+        raise ConfigurationError("Google GenAI SDK types not available")
+    cfg2 = dict(cfg)
+    cfg2.pop("tools", None)
+    cfg2.pop("automatic_function_calling", None)
+    finalize_msg = T.Content(
+        role="user",
+        parts=[
+            T.Part.from_text(
+                text=(
+                    "Return only a JSON object that matches the required schema. "
+                    "No extra text or code fences."
+                )
+            )
+        ],
+    )
+
+    def _finalize_once(msg: Any) -> tuple[str, Any]:
+        res = client.models.generate_content(
+            model=model_name, contents=history + [msg], config=cfg2 or None
+        )
+        txt = _extract_text_from_response(res)
+        parsed = getattr(res, "parsed", None)
+        return txt, parsed
+
+    txt, parsed = _finalize_once(finalize_msg)
+    if parsed is not None and str(txt).strip():
+        return txt
+
+    strict_msg = T.Content(
+        role="user",
+        parts=[
+            T.Part.from_text(
+                text=(
+                    "Respond ONLY with the JSON object matching the required schema. No extra text, no backticks."
+                )
+            )
+        ],
+    )
+    txt2, _parsed2 = _finalize_once(strict_msg)
+    return txt2
+
+
+async def _afinalize_json_output(
+    T: Any, client: Any, model_name: str, history: list[Any], cfg: dict[str, object]
+) -> str:
+    if T is None:
+        raise ConfigurationError("Google GenAI SDK types not available")
+    cfg2 = dict(cfg)
+    cfg2.pop("tools", None)
+    cfg2.pop("automatic_function_calling", None)
+    finalize_msg = T.Content(
+        role="user",
+        parts=[
+            T.Part.from_text(
+                text=(
+                    "Return only a JSON object that matches the required schema. "
+                    "No extra text or code fences."
+                )
+            )
+        ],
+    )
+
+    async def _finalize_once(msg: Any) -> tuple[str, Any]:
+        res = await client.aio.models.generate_content(
+            model=model_name, contents=history + [msg], config=cfg2 or None
+        )
+        txt = _extract_text_from_response(res)
+        parsed = getattr(res, "parsed", None)
+        return txt, parsed
+
+    txt, parsed = await _finalize_once(finalize_msg)
+    if parsed is not None and str(txt).strip():
+        return txt
+    strict_msg = T.Content(
+        role="user",
+        parts=[
+            T.Part.from_text(
+                text=(
+                    "Respond ONLY with the JSON object matching the required schema. No extra text, no backticks."
+                )
+            )
+        ],
+    )
+    txt2, _parsed2 = await _finalize_once(strict_msg)
+    return txt2
+
+
 class _LoopState:
     def __init__(
         self,
         *,
         types_mod: Any,
+        config: Config,
         tools: list[Any],
         cfg: dict[str, object],
         prompt: str,
-        max_turns: int,
     ) -> None:
         self.T = types_mod
+        self.config = config
         self.cfg = dict(cfg)
         self.turns = 0
-        self.max_turns = max_turns
         decls = []
         self.tool_map: dict[str, Any] = {}
         self.exceeded_tool_limit: bool = False
@@ -96,7 +186,7 @@ class _LoopState:
     def contents(self) -> list[Any]:
         return self.history
 
-    def _extract_calls_from_response(self, res: Any) -> list[tuple[str, Any]]:
+    def _extract_tool_calls(self, res: Any) -> list[tuple[str, Any]]:
         calls: list[tuple[str, Any]] = []
         fc_list = getattr(res, "function_calls", None)
         if fc_list:
@@ -121,13 +211,14 @@ class _LoopState:
         return calls
 
     def after_response(self, res: Any) -> tuple[bool, str]:
-        calls = self._extract_calls_from_response(res)
+        calls = self._extract_tool_calls(res)
 
         if calls:
             self.turns += 1
-            if self.max_turns >= 0 and self.turns > self.max_turns:
+            limit = self.config.max_tool_turns
+            if isinstance(limit, int) and limit >= 0 and self.turns > limit:
                 self.exceeded_tool_limit = True
-                return True, _output_as_str(res)
+                return True, _extract_text_from_response(res)
             candidates = getattr(res, "candidates", None)
             if isinstance(candidates, list) and candidates:
                 content0 = getattr(candidates[0], "content", None)
@@ -137,12 +228,17 @@ class _LoopState:
             if len(calls) <= 1:
                 if calls:
                     n, a = calls[0]
-                    results.append((n, _compute_tool_result(n, a, self.tool_map)))
+                    results.append((n, _execute_tool_call(n, a, self.tool_map)))
             else:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=len(calls)) as ex:
-                    futs = [
-                        ex.submit(_compute_tool_result, n, a, self.tool_map) for (n, a) in calls
-                    ]
+                _ptm_val = self.config.parallel_tools_max
+                ptm: int = (
+                    _ptm_val
+                    if isinstance(_ptm_val, int) and _ptm_val > 0
+                    else DEFAULT_PARALLEL_TOOLS_MAX
+                )
+                max_workers = max(1, min(len(calls), ptm))
+                with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
+                    futs = [ex.submit(_execute_tool_call, n, a, self.tool_map) for (n, a) in calls]
                     out = [f.result() for f in futs]
                 results = list(zip([c[0] for c in calls], out))
             for name, result_obj in results:
@@ -156,16 +252,17 @@ class _LoopState:
                 )
                 self.history.append(self.T.Content(role="tool", parts=[resp_part]))
             return False, ""
-        return True, _output_as_str(res)
+        return True, _extract_text_from_response(res)
 
     async def after_response_async(self, res: Any) -> tuple[bool, str]:
-        calls = self._extract_calls_from_response(res)
+        calls = self._extract_tool_calls(res)
 
         if calls:
             self.turns += 1
-            if self.max_turns >= 0 and self.turns > self.max_turns:
+            limit = self.config.max_tool_turns
+            if isinstance(limit, int) and limit >= 0 and self.turns > limit:
                 self.exceeded_tool_limit = True
-                return True, _output_as_str(res)
+                return True, _extract_text_from_response(res)
             candidates = getattr(res, "candidates", None)
             if isinstance(candidates, list) and candidates:
                 content0 = getattr(candidates[0], "content", None)
@@ -173,12 +270,23 @@ class _LoopState:
                     self.history.append(content0)
             if len(calls) <= 1:
                 n, a = calls[0]
-                res0 = await asyncio.to_thread(_compute_tool_result, n, a, self.tool_map)
+                res0 = await asyncio.to_thread(_execute_tool_call, n, a, self.tool_map)
                 results = [(n, res0)]
             else:
-                tasks = [
-                    asyncio.to_thread(_compute_tool_result, n, a, self.tool_map) for (n, a) in calls
-                ]
+                _ptm_val = self.config.parallel_tools_max
+                ptm: int = (
+                    _ptm_val
+                    if isinstance(_ptm_val, int) and _ptm_val > 0
+                    else DEFAULT_PARALLEL_TOOLS_MAX
+                )
+                sem = asyncio.Semaphore(ptm)
+
+                async def _run(name_args: tuple[str, Any]) -> Any:
+                    n0, a0 = name_args
+                    async with sem:
+                        return await asyncio.to_thread(_execute_tool_call, n0, a0, self.tool_map)
+
+                tasks = [_run(c) for c in calls]
                 out = await asyncio.gather(*tasks)
                 results = list(zip([c[0] for c in calls], out))
             for name, result_obj in results:
@@ -192,7 +300,7 @@ class _LoopState:
                 )
                 self.history.append(self.T.Content(role="tool", parts=[resp_part]))
             return False, ""
-        return True, _output_as_str(res)
+        return True, _extract_text_from_response(res)
 
 
 class GeminiBackend(ModelBackend):
@@ -201,6 +309,7 @@ class GeminiBackend(ModelBackend):
     def __init__(self) -> None:
         self._GenAIClient: Any | None = None
         self._Types: Any | None = None
+        self._client: Any | None = None
         try:
             from google import genai as _genai
             from google.genai import types as _types
@@ -209,6 +318,13 @@ class GeminiBackend(ModelBackend):
             self._Types = _types
         except Exception:
             pass
+
+    def _get_client(self) -> Any:
+        if self._GenAIClient is None:  # pragma: no cover
+            raise ConfigurationError("Google GenAI SDK not installed. Install `alloy[gemini]`.")
+        if self._client is None:
+            self._client = self._GenAIClient()
+        return self._client
 
     @staticmethod
     def _prepare_tool_config(T: Any, config: Config) -> Any | None:
@@ -235,10 +351,7 @@ class GeminiBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> str:
-        if self._GenAIClient is None:  # pragma: no cover
-            raise ConfigurationError("Google GenAI SDK not installed. Install `alloy[gemini]`.")
-
-        client: Any = self._GenAIClient()
+        client: Any = self._get_client()
         model_name = config.model
         if not model_name:
             raise ConfigurationError(
@@ -256,15 +369,12 @@ class GeminiBackend(ModelBackend):
             tool_config = self._prepare_tool_config(T, config)
             if tool_config is not None:
                 cfg_tools["tool_config"] = tool_config
-            mt = config.max_tool_turns
-            if not isinstance(mt, int):
-                raise ConfigurationError("max_tool_turns must be provided by configuration")
             state = _LoopState(
                 types_mod=T,
+                config=config,
                 tools=tools,
                 cfg=cfg_tools,
                 prompt=prompt,
-                max_turns=mt,
             )
             while True:
                 try:
@@ -283,8 +393,8 @@ class GeminiBackend(ModelBackend):
                     if (output_schema is not None) and (
                         config.auto_finalize_missing_output is not False
                     ):
-                        text2 = self._finalize_with_prompt(
-                            client, model_name, state.contents(), cfg
+                        text2 = _finalize_json_output(
+                            self._Types, client, model_name, state.contents(), cfg
                         )
                         return _unwrap_value_if_needed(text2, wrapped_primitive)
                     return _unwrap_value_if_needed(text, wrapped_primitive)
@@ -293,7 +403,7 @@ class GeminiBackend(ModelBackend):
             res_new = client.models.generate_content(
                 model=model_name, contents=prompt, config=cfg or None
             )
-            text = _output_as_str(res_new)
+            text = _extract_text_from_response(res_new)
             should_finalize = (
                 output_schema is not None
                 and (config.auto_finalize_missing_output is not False)
@@ -311,65 +421,11 @@ class GeminiBackend(ModelBackend):
                     else None
                 )
                 history = [c for c in [user_content, assistant_content] if c is not None]
-                text2 = self._finalize_with_prompt(client, model_name, history, cfg)
+                text2 = _finalize_json_output(self._Types, client, model_name, history, cfg)
                 return _unwrap_value_if_needed(text2, wrapped_primitive)
             return _unwrap_value_if_needed(text, wrapped_primitive)
         except Exception as e:  # pragma: no cover
             raise ConfigurationError(str(e)) from e
-
-    def _finalize_with_prompt(
-        self,
-        client: Any,
-        model_name: str,
-        history: list[Any],
-        cfg: dict[str, object],
-    ) -> str:
-        T = self._Types
-        if T is None:
-            raise ConfigurationError("Google GenAI SDK types not available")
-        cfg2 = dict(cfg)
-        cfg2.pop("tools", None)
-        cfg2.pop("automatic_function_calling", None)
-        finalize_msg = T.Content(
-            role="user",
-            parts=[
-                T.Part.from_text(
-                    text=(
-                        "Return only a JSON object that matches the required schema. "
-                        "No extra text or code fences."
-                    )
-                )
-            ],
-        )
-
-        def _finalize_once(msg: Any) -> tuple[str, Any]:
-            res = client.models.generate_content(
-                model=model_name, contents=history + [msg], config=cfg2 or None
-            )
-            txt = _output_as_str(res)
-            parsed = getattr(res, "parsed", None)
-            return txt, parsed
-
-        txt, parsed = _finalize_once(finalize_msg)
-        if parsed is not None and str(txt).strip():
-            return txt
-
-        try:
-            time.sleep(0.4)
-        except Exception:
-            pass
-        strict_msg = T.Content(
-            role="user",
-            parts=[
-                T.Part.from_text(
-                    text=(
-                        "Respond ONLY with the JSON object matching the required schema. No extra text, no backticks."
-                    )
-                )
-            ],
-        )
-        txt2, _parsed2 = _finalize_once(strict_msg)
-        return txt2
 
     def stream(
         self,
@@ -379,13 +435,12 @@ class GeminiBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> Iterable[str]:
-        if self._GenAIClient is None:  # pragma: no cover
-            raise ConfigurationError("Google GenAI SDK not installed. Install `alloy[gemini]`.")
+        _ = self._get_client()
         if tools or output_schema is not None:
             raise ConfigurationError(
                 "Streaming supports text only; tools and structured outputs are not supported"
             )
-        client: Any = self._GenAIClient()
+        client: Any = self._client
         model_name = config.model
         if not model_name:
             raise ConfigurationError(
@@ -416,9 +471,7 @@ class GeminiBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> str:
-        if self._GenAIClient is None:  # pragma: no cover
-            raise ConfigurationError("Google GenAI SDK not installed. Install `alloy[gemini]`.")
-        client: Any = self._GenAIClient()
+        client: Any = self._get_client()
         model_name = config.model
         if not model_name:
             raise ConfigurationError(
@@ -435,15 +488,12 @@ class GeminiBackend(ModelBackend):
             tool_config = self._prepare_tool_config(T, config)
             if tool_config is not None:
                 cfg_tools["tool_config"] = tool_config
-            mt = config.max_tool_turns
-            if not isinstance(mt, int):
-                raise ConfigurationError("max_tool_turns must be provided by configuration")
             state = _LoopState(
                 types_mod=T,
+                config=config,
                 tools=tools,
                 cfg=cfg_tools,
                 prompt=prompt,
-                max_turns=mt,
             )
             while True:
                 try:
@@ -462,8 +512,8 @@ class GeminiBackend(ModelBackend):
                     if (output_schema is not None) and (
                         config.auto_finalize_missing_output is not False
                     ):
-                        text2 = await self._afinalize_with_prompt(
-                            client, model_name, state.contents(), cfg
+                        text2 = await _afinalize_json_output(
+                            self._Types, client, model_name, state.contents(), cfg
                         )
                         return _unwrap_value_if_needed(text2, wrapped_primitive)
                     return _unwrap_value_if_needed(text, wrapped_primitive)
@@ -472,7 +522,7 @@ class GeminiBackend(ModelBackend):
             res = await client.aio.models.generate_content(
                 model=model_name, contents=prompt, config=cfg or None
             )
-            text = _output_as_str(res)
+            text = _extract_text_from_response(res)
             should_finalize = (
                 output_schema is not None
                 and (config.auto_finalize_missing_output is not False)
@@ -490,7 +540,7 @@ class GeminiBackend(ModelBackend):
                     else None
                 )
                 history = [c for c in [user_content, assistant_content] if c is not None]
-                text2 = await self._afinalize_with_prompt(client, model_name, history, cfg)
+                text2 = await _afinalize_json_output(self._Types, client, model_name, history, cfg)
                 return _unwrap_value_if_needed(text2, wrapped_primitive)
             return _unwrap_value_if_needed(text, wrapped_primitive)
         except Exception as e:  # pragma: no cover
@@ -504,13 +554,12 @@ class GeminiBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> AsyncIterable[str]:
-        if self._GenAIClient is None:  # pragma: no cover
-            raise ConfigurationError("Google GenAI SDK not installed. Install `alloy[gemini]`.")
+        _ = self._get_client()
         if tools or output_schema is not None:
             raise ConfigurationError(
                 "Streaming supports text only; tools and structured outputs are not supported"
             )
-        client: Any = self._GenAIClient()
+        client: Any = self._client
         model_name = config.model
         if not model_name:
             raise ConfigurationError(
@@ -529,59 +578,6 @@ class GeminiBackend(ModelBackend):
                     yield txt
 
         return agen()
-
-    async def _afinalize_with_prompt(
-        self,
-        client: Any,
-        model_name: str,
-        history: list[Any],
-        cfg: dict[str, object],
-    ) -> str:
-        T = self._Types
-        if T is None:
-            raise ConfigurationError("Google GenAI SDK types not available")
-        cfg2 = dict(cfg)
-        cfg2.pop("tools", None)
-        cfg2.pop("automatic_function_calling", None)
-        finalize_msg = T.Content(
-            role="user",
-            parts=[
-                T.Part.from_text(
-                    text=(
-                        "Return only a JSON object that matches the required schema. "
-                        "No extra text or code fences."
-                    )
-                )
-            ],
-        )
-
-        async def _finalize_once(msg: Any) -> tuple[str, Any]:
-            res = await client.aio.models.generate_content(
-                model=model_name, contents=history + [msg], config=cfg2 or None
-            )
-            txt = _output_as_str(res)
-            parsed = getattr(res, "parsed", None)
-            return txt, parsed
-
-        txt, parsed = await _finalize_once(finalize_msg)
-        if parsed is not None and str(txt).strip():
-            return txt
-        try:
-            await asyncio.sleep(0.4)
-        except Exception:
-            pass
-        strict_msg = T.Content(
-            role="user",
-            parts=[
-                T.Part.from_text(
-                    text=(
-                        "Respond ONLY with the JSON object matching the required schema. No extra text, no backticks."
-                    )
-                )
-            ],
-        )
-        txt2, _parsed2 = await _finalize_once(strict_msg)
-        return txt2
 
 
 def _response_text(res: Any) -> str:
@@ -603,7 +599,7 @@ def _response_text(res: Any) -> str:
     return ""
 
 
-def _output_as_str(res: Any) -> str:
+def _extract_text_from_response(res: Any) -> str:
     parsed = getattr(res, "parsed", None)
     if parsed is not None:
         try:
@@ -628,7 +624,7 @@ def _unwrap_value_if_needed(text: str, wrapped_primitive: bool) -> str:
     return text
 
 
-def _compute_tool_result(name: str, args: Any, tool_map: dict[str, Any]) -> Any:
+def _execute_tool_call(name: str, args: Any, tool_map: dict[str, Any]) -> Any:
     tool = tool_map.get(name)
     if not tool:
         return {"type": "tool_error", "error": f"Tool '{name}' not available"}
