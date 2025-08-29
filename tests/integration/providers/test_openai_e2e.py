@@ -72,3 +72,64 @@ def test_openai_dbc_tool_message_propagates():
     out = check()
     assert isinstance(out, str)
     assert "must be even" in out.lower()
+
+
+@requires_openai
+@pytest.mark.asyncio
+async def test_openai_async_streaming_text_only():
+    model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))
+    configure(model=model, temperature=0)
+    chunks = []
+    aiter = await ask.stream_async("Say 'hello world' exactly once.")
+    async for ch in aiter:
+        chunks.append(ch)
+        if len("".join(chunks)) >= 5:
+            break
+    assert len("".join(chunks)) > 0
+
+
+@requires_openai
+def test_openai_sync_streaming_text_only():
+    model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))
+    configure(model=model, temperature=0)
+    chunks = []
+    for ch in ask.stream("Say 'hello world' exactly once."):
+        chunks.append(ch)
+        if len("".join(chunks)) >= 5:
+            break
+    assert len("".join(chunks)) > 0
+
+
+@requires_openai
+@pytest.mark.asyncio
+async def test_openai_async_command_streaming_text_only():
+    model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))
+    configure(model=model, temperature=0)
+
+    @command(output=str)
+    async def gen() -> str:
+        return "Say 'streaming ok' in a few words."
+
+    out: list[str] = []
+    async for ch in gen.stream():
+        out.append(ch)
+        if len("".join(out)) >= 5:
+            break
+    assert len("".join(out)) > 0
+
+
+@requires_openai
+def test_openai_sync_command_streaming_text_only():
+    model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))
+    configure(model=model, temperature=0)
+
+    @command(output=str)
+    def gen() -> str:
+        return "Say 'streaming ok' in a few words."
+
+    out: list[str] = []
+    for ch in gen.stream():
+        out.append(ch)
+        if len("".join(out)) >= 5:
+            break
+    assert len("".join(out)) > 0

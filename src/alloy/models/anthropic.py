@@ -10,6 +10,8 @@ from ..config import Config, DEFAULT_PARALLEL_TOOLS_MAX
 from ..errors import ConfigurationError, ToolLoopLimitExceeded, ToolError
 from .base import ModelBackend
 
+_ANTHROPIC_REQUIRED_MAX_TOKENS = 2048
+
 
 def _extract_text_from_response(resp: Any) -> str:
     try:
@@ -25,9 +27,6 @@ def _extract_text_from_response(resp: Any) -> str:
         return "".join(parts) or getattr(resp, "text", "") or ""
     except Exception:
         return ""
-
-
-_ANTHROPIC_REQUIRED_MAX_TOKENS = 2048
 
 
 def _finalize_json_output(client: Any, state: _LoopState) -> str | None:

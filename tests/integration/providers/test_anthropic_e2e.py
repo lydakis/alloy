@@ -153,3 +153,51 @@ def test_anthropic_parallel_tool_calls_single_message_results():
     assert "New York, NY: 45°F, clear skies" in out
     assert "San Francisco time: 2:30 PM PST" in out
     assert "New York time: 5:30 PM EST" in out
+
+
+@requires_anthropic
+@pytest.mark.asyncio
+async def test_anthropic_async_streaming_text_only():
+    configure(model=model_env or "claude-sonnet-4-20250514", temperature=0)
+    chunks = []
+    aiter = await ask.stream_async("Say 'hello world' exactly once.")
+    async for ch in aiter:
+        chunks.append(ch)
+        if len("".join(chunks)) >= 5:
+            break
+    assert len("".join(chunks)) > 0
+
+
+@requires_anthropic
+@pytest.mark.asyncio
+async def test_anthropic_async_command_streaming_text_only():
+    configure(model=model_env or "claude-sonnet-4-20250514", temperature=0)
+    from alloy import command
+
+    @command(output=str)
+    async def gen() -> str:
+        return "Say 'streaming ok' in a few words."
+
+    out: list[str] = []
+    async for ch in gen.stream():
+        out.append(ch)
+        if len("".join(out)) >= 5:
+            break
+    assert len("".join(out)) > 0
+
+
+@requires_anthropic
+def test_anthropic_sync_command_streaming_text_only():
+    configure(model=model_env or "claude-sonnet-4-20250514", temperature=0)
+    from alloy import command
+
+    @command(output=str)
+    def gen() -> str:
+        return "Say 'streaming ok' in a few words."
+
+    out: list[str] = []
+    for ch in gen.stream():
+        out.append(ch)
+        if len("".join(out)) >= 5:
+            break
+    assert len("".join(out)) > 0
