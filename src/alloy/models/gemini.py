@@ -353,6 +353,30 @@ class GeminiBackend(ModelBackend):
             return None
         return None
 
+    def _apply_tool_choice(
+        self, cfg: dict[str, object], tools_present: bool, extra: Any, tool_turns: int
+    ) -> None:
+        if not tools_present:
+            cfg.pop("tool_config", None)
+            return
+        T = self._Types
+        if T is None:
+            return
+        try:
+            mode_raw = extra.get("gemini_tool_mode") if isinstance(extra, dict) else None
+            mode = str(mode_raw).upper() if isinstance(mode_raw, str) else ""
+            allowed = (
+                extra.get("gemini_allowed_function_names") if isinstance(extra, dict) else None
+            )
+            if mode in ("AUTO", "ANY", "NONE"):
+                fcfg = T.FunctionCallingConfig(
+                    mode=mode,
+                    allowed_function_names=allowed if isinstance(allowed, list) else None,
+                )
+                cfg["tool_config"] = T.ToolConfig(function_calling_config=fcfg)
+        except Exception:
+            return
+
     def complete(
         self,
         prompt: str,
@@ -376,9 +400,6 @@ class GeminiBackend(ModelBackend):
             cfg_tools = dict(cfg)
             cfg_tools.pop("response_mime_type", None)
             cfg_tools.pop("response_json_schema", None)
-            tool_config = self._prepare_tool_config(T, config)
-            if tool_config is not None:
-                cfg_tools["tool_config"] = tool_config
             state = _LoopState(
                 types_mod=T,
                 config=config,
@@ -388,6 +409,8 @@ class GeminiBackend(ModelBackend):
             )
             while True:
                 try:
+                    extra = getattr(config, "extra", {}) or {}
+                    self._apply_tool_choice(state.cfg, True, extra, state.turns)
                     res = client.models.generate_content(
                         model=model_name, contents=state.contents(), config=state.cfg or None
                     )
@@ -504,9 +527,6 @@ class GeminiBackend(ModelBackend):
             cfg_tools = dict(cfg)
             cfg_tools.pop("response_mime_type", None)
             cfg_tools.pop("response_json_schema", None)
-            tool_config = self._prepare_tool_config(T, config)
-            if tool_config is not None:
-                cfg_tools["tool_config"] = tool_config
             state = _LoopState(
                 types_mod=T,
                 config=config,
@@ -516,6 +536,8 @@ class GeminiBackend(ModelBackend):
             )
             while True:
                 try:
+                    extra = getattr(config, "extra", {}) or {}
+                    self._apply_tool_choice(state.cfg, True, extra, state.turns)
                     res = await client.aio.models.generate_content(
                         model=model_name, contents=state.contents(), config=state.cfg or None
                     )

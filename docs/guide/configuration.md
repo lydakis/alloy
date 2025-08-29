@@ -38,3 +38,15 @@ from alloy import configure
 
 configure(model="gpt-5-mini", temperature=0.2)
 ```
+
+## Provider-Specific Extras (advanced)
+
+Pass provider knobs via `Config.extra` or `ALLOY_EXTRA_JSON`.
+
+| Provider | Key | Type | Example | Notes |
+|----------|-----|------|---------|-------|
+| OpenAI | `openai_tool_choice` | str or dict | `"auto"`, `"required"`, or a function spec dict | Overrides default tool choice (`auto`) when tools are present |
+| Anthropic | `anthropic_tool_choice` | dict | `{ "type": "auto" | "any" | "tool" | "none" }` | See Anthropic docs; `disable_parallel_tool_use` supported via `anthropic_disable_parallel_tool_use: true` |
+| Gemini | `gemini_tool_mode` | str | `"AUTO"`, `"ANY"`, `"NONE"` | Also supports `gemini_allowed_function_names: ["name1", "name2"]` |
+
+Keep the main API minimal; prefer defaults unless you need explicit control.

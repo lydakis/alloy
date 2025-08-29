@@ -54,6 +54,41 @@ def test_openai_serializes_tools_and_schema(monkeypatch):
     assert kwargs.get("max_output_tokens") == 64
 
 
+def test_openai_tool_choice_override_from_extra(monkeypatch):
+    from alloy.models.openai import OpenAIBackend
+    from alloy import tool
+    from alloy.config import Config
+
+    calls: list[dict] = []
+
+    class _FakeResponses:
+        def create(self, **kwargs):
+            calls.append(kwargs)
+            return {"id": "r1", "output_text": "ok"}
+
+    class _FakeOpenAI:
+        def __init__(self) -> None:
+            self.responses = _FakeResponses()
+
+    be = OpenAIBackend()
+    be._OpenAI = _FakeOpenAI
+
+    @tool
+    def do() -> str:
+        return "ok"
+
+    be.complete(
+        "prompt",
+        tools=[do],
+        output_schema=None,
+        config=Config(model="gpt-5-mini", extra={"openai_tool_choice": "required"}),
+    )
+
+    assert calls, "expected responses.create to be called"
+    kwargs = calls[0]
+    assert kwargs.get("tool_choice") == "required"
+
+
 def test_openai_streaming_gating(monkeypatch):
     from alloy.models.openai import OpenAIBackend
 

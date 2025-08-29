@@ -208,7 +208,6 @@ def _prepare_request_kwargs(
         kwargs["previous_response_id"] = prev_id
     if tool_defs is not None:
         kwargs["tools"] = tool_defs
-        kwargs["tool_choice"] = "auto"
     if text_format is not None:
         kwargs["text"] = {"format": text_format}
     if (config.temperature is not None) and not _is_temp_limited(config.model):
@@ -330,6 +329,18 @@ class OpenAIBackend(ModelBackend):
         except Exception:
             pass
 
+    def _apply_tool_choice(
+        self, kwargs: dict[str, Any], tools_present: bool, extra: Any, tool_turns: int
+    ) -> None:
+        if not tools_present:
+            kwargs.pop("tool_choice", None)
+            return
+        choice = extra.get("openai_tool_choice") if isinstance(extra, dict) else None
+        if isinstance(choice, (str, dict)):
+            kwargs["tool_choice"] = choice
+        else:
+            kwargs["tool_choice"] = "auto"
+
     def complete(
         self,
         prompt: str,
@@ -349,7 +360,10 @@ class OpenAIBackend(ModelBackend):
             tool_map=tool_map,
         )
         while True:
-            resp = client.responses.create(**state.build_kwargs())
+            kwargs = state.build_kwargs()
+            extra = getattr(config, "extra", {}) or {}
+            self._apply_tool_choice(kwargs, state.tool_defs is not None, extra, state.turns)
+            resp = client.responses.create(**kwargs)
             done, out = state.after_response(resp)
             if done:
                 if state.exceeded_tool_limit:
@@ -423,7 +437,10 @@ class OpenAIBackend(ModelBackend):
             tool_map=tool_map,
         )
         while True:
-            resp = await client.responses.create(**state.build_kwargs())
+            kwargs = state.build_kwargs()
+            extra = getattr(config, "extra", {}) or {}
+            self._apply_tool_choice(kwargs, state.tool_defs is not None, extra, state.turns)
+            resp = await client.responses.create(**kwargs)
             done, out = await state.after_response_async(resp)
             if done:
                 if state.exceeded_tool_limit:
