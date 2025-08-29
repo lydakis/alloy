@@ -3,17 +3,12 @@ from __future__ import annotations
 from collections.abc import Iterable, AsyncIterable
 from typing import Any, cast
 import json
-import concurrent.futures
-import asyncio
 
-from ..config import Config, DEFAULT_PARALLEL_TOOLS_MAX
+from ..config import Config
 from ..errors import (
     ConfigurationError,
-    ToolLoopLimitExceeded,
-    ToolError,
-    create_tool_loop_exception,
 )
-from .base import ModelBackend
+from .base import ModelBackend, BaseLoopState, ToolCall, ToolResult
 
 
 def _prepare_config(config: Config, output_schema: dict | None) -> tuple[dict[str, object], bool]:
@@ -152,7 +147,7 @@ async def _afinalize_json_output(
     return txt2
 
 
-class _LoopState:
+class GeminiLoopState(BaseLoopState[Any]):
     def __init__(
         self,
         *,
@@ -162,14 +157,11 @@ class _LoopState:
         cfg: dict[str, object],
         prompt: str,
     ) -> None:
+        super().__init__(config, {})
         self.T = types_mod
-        self.config = config
         self.cfg = dict(cfg)
-        self.turns = 0
         decls = []
         self.tool_map: dict[str, Any] = {}
-        self.exceeded_tool_limit: bool = False
-        self.last_response_text: str = ""
         for tl in tools:
             spec = tl.spec.as_schema()
             params = spec.get("parameters") if isinstance(spec, dict) else None
@@ -188,129 +180,84 @@ class _LoopState:
         self.history: list[Any] = [
             self.T.Content(role="user", parts=[self.T.Part.from_text(text=prompt)])
         ]
+        self._last_assistant_content: Any | None = None
 
-    def contents(self) -> list[Any]:
-        return self.history
+    def _apply_tool_choice(self) -> None:
+        T = self.T
+        if T is None:
+            return
+        extra = getattr(self.config, "extra", {}) or {}
+        try:
+            mode_raw = extra.get("gemini_tool_mode") if isinstance(extra, dict) else None
+            mode = str(mode_raw).upper() if isinstance(mode_raw, str) else ""
+            allowed = (
+                extra.get("gemini_allowed_function_names") if isinstance(extra, dict) else None
+            )
+            if mode in ("AUTO", "ANY", "NONE"):
+                fcfg = T.FunctionCallingConfig(
+                    mode=mode,
+                    allowed_function_names=allowed if isinstance(allowed, list) else None,
+                )
+                self.cfg["tool_config"] = T.ToolConfig(function_calling_config=fcfg)
+        except Exception:
+            return
 
-    def _extract_tool_calls(self, res: Any) -> list[tuple[str, Any]]:
-        calls: list[tuple[str, Any]] = []
-        fc_list = getattr(res, "function_calls", None)
+    def make_request(self, client: Any) -> Any:
+        self._apply_tool_choice()
+        return client.models.generate_content(
+            model=self.config.model, contents=self.history, config=self.cfg or None
+        )
+
+    async def amake_request(self, client: Any) -> Any:
+        self._apply_tool_choice()
+        return await client.aio.models.generate_content(
+            model=self.config.model, contents=self.history, config=self.cfg or None
+        )
+
+    def extract_text(self, response: Any) -> str:
+        return _extract_text_from_response(response)
+
+    def extract_tool_calls(self, response: Any) -> list[ToolCall] | None:
+        self._last_assistant_content = None
+        calls: list[ToolCall] = []
+        fc_list = getattr(response, "function_calls", None)
         if fc_list:
             for fc in fc_list:
                 name_val = getattr(fc, "name", None) or getattr(
                     getattr(fc, "function_call", None), "name", ""
                 )
                 args_val = getattr(getattr(fc, "function_call", None), "args", {})
-                calls.append((str(name_val or ""), args_val))
+                calls.append(ToolCall(id=None, name=str(name_val or ""), args=args_val or {}))
         if not calls:
-            candidates = getattr(res, "candidates", None)
+            candidates = getattr(response, "candidates", None)
             if isinstance(candidates, list) and candidates:
                 content_obj = getattr(candidates[0], "content", None)
                 parts = getattr(content_obj, "parts", None)
+                if content_obj is not None:
+                    self._last_assistant_content = content_obj
                 if isinstance(parts, list):
                     for p in parts:
                         fc = getattr(p, "function_call", None)
                         if fc is not None:
                             calls.append(
-                                (str(getattr(fc, "name", "") or ""), getattr(fc, "args", {}))
+                                ToolCall(
+                                    id=None,
+                                    name=str(getattr(fc, "name", "") or ""),
+                                    args=getattr(fc, "args", {}) or {},
+                                )
                             )
         return calls
 
-    def after_response(self, res: Any) -> tuple[bool, str]:
-        response_text = _extract_text_from_response(res)
-        self.last_response_text = response_text
-        calls = self._extract_tool_calls(res)
-
-        if calls:
-            self.turns += 1
-            limit = self.config.max_tool_turns
-            if isinstance(limit, int) and limit >= 0 and self.turns > limit:
-                self.exceeded_tool_limit = True
-                return True, response_text
-            candidates = getattr(res, "candidates", None)
-            if isinstance(candidates, list) and candidates:
-                content0 = getattr(candidates[0], "content", None)
-                if content0 is not None:
-                    self.history.append(content0)
-            results: list[tuple[str, Any]] = []
-            if len(calls) <= 1:
-                if calls:
-                    n, a = calls[0]
-                    results.append((n, _execute_tool_call(n, a, self.tool_map)))
-            else:
-                _ptm_val = self.config.parallel_tools_max
-                ptm: int = (
-                    _ptm_val
-                    if isinstance(_ptm_val, int) and _ptm_val > 0
-                    else DEFAULT_PARALLEL_TOOLS_MAX
-                )
-                max_workers = max(1, min(len(calls), ptm))
-                with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
-                    futs = [ex.submit(_execute_tool_call, n, a, self.tool_map) for (n, a) in calls]
-                    out = [f.result() for f in futs]
-                results = list(zip([c[0] for c in calls], out))
-            for name, result_obj in results:
-                resp_part = self.T.Part.from_function_response(
-                    name=name or "unknown",
-                    response=(
-                        result_obj
-                        if isinstance(result_obj, (dict, list))
-                        else {"result": result_obj}
-                    ),
-                )
-                self.history.append(self.T.Content(role="tool", parts=[resp_part]))
-            return False, ""
-        return True, response_text
-
-    async def after_response_async(self, res: Any) -> tuple[bool, str]:
-        response_text = _extract_text_from_response(res)
-        self.last_response_text = response_text
-        calls = self._extract_tool_calls(res)
-
-        if calls:
-            self.turns += 1
-            limit = self.config.max_tool_turns
-            if isinstance(limit, int) and limit >= 0 and self.turns > limit:
-                self.exceeded_tool_limit = True
-                return True, response_text
-            candidates = getattr(res, "candidates", None)
-            if isinstance(candidates, list) and candidates:
-                content0 = getattr(candidates[0], "content", None)
-                if content0 is not None:
-                    self.history.append(content0)
-            if len(calls) <= 1:
-                n, a = calls[0]
-                res0 = await asyncio.to_thread(_execute_tool_call, n, a, self.tool_map)
-                results = [(n, res0)]
-            else:
-                _ptm_val = self.config.parallel_tools_max
-                ptm: int = (
-                    _ptm_val
-                    if isinstance(_ptm_val, int) and _ptm_val > 0
-                    else DEFAULT_PARALLEL_TOOLS_MAX
-                )
-                sem = asyncio.Semaphore(ptm)
-
-                async def _run(name_args: tuple[str, Any]) -> Any:
-                    n0, a0 = name_args
-                    async with sem:
-                        return await asyncio.to_thread(_execute_tool_call, n0, a0, self.tool_map)
-
-                tasks = [_run(c) for c in calls]
-                out = await asyncio.gather(*tasks)
-                results = list(zip([c[0] for c in calls], out))
-            for name, result_obj in results:
-                resp_part = self.T.Part.from_function_response(
-                    name=name or "unknown",
-                    response=(
-                        result_obj
-                        if isinstance(result_obj, (dict, list))
-                        else {"result": result_obj}
-                    ),
-                )
-                self.history.append(self.T.Content(role="tool", parts=[resp_part]))
-            return False, ""
-        return True, _extract_text_from_response(res)
+    def add_tool_results(self, calls: list[ToolCall], results: list[ToolResult]) -> None:
+        if self._last_assistant_content is not None:
+            self.history.append(self._last_assistant_content)
+        for call, res in zip(calls, results):
+            payload = res.value if res.ok else res.error
+            response_obj = payload if isinstance(payload, (dict, list)) else {"result": payload}
+            resp_part = self.T.Part.from_function_response(
+                name=(call.name or "unknown"), response=response_obj
+            )
+            self.history.append(self.T.Content(role="tool", parts=[resp_part]))
 
 
 class GeminiBackend(ModelBackend):
@@ -330,7 +277,7 @@ class GeminiBackend(ModelBackend):
             pass
 
     def _get_client(self) -> Any:
-        if self._GenAIClient is None:  # pragma: no cover
+        if self._GenAIClient is None:
             raise ConfigurationError("Google GenAI SDK not installed. Install `alloy[gemini]`.")
         if self._client is None:
             self._client = self._GenAIClient()
@@ -400,46 +347,18 @@ class GeminiBackend(ModelBackend):
             cfg_tools = dict(cfg)
             cfg_tools.pop("response_mime_type", None)
             cfg_tools.pop("response_json_schema", None)
-            state = _LoopState(
+            state = GeminiLoopState(
                 types_mod=T,
                 config=config,
                 tools=tools,
                 cfg=cfg_tools,
                 prompt=prompt,
             )
-            while True:
-                try:
-                    extra = getattr(config, "extra", {}) or {}
-                    self._apply_tool_choice(state.cfg, True, extra, state.turns)
-                    res = client.models.generate_content(
-                        model=model_name, contents=state.contents(), config=state.cfg or None
-                    )
-                except Exception as e:  # pragma: no cover
-                    raise ConfigurationError(str(e)) from e
-                done, text = state.after_response(res)
-                if done:
-                    if state.exceeded_tool_limit:
-                        lim = config.max_tool_turns
-                        partial = (state.last_response_text or "").strip()
-                        msg = f"Exceeded tool-call turn limit (max_tool_turns={lim}, turns_taken={state.turns})."
-                        if partial:
-                            msg += f" Partial response: {partial[:500]}"
-                        else:
-                            msg += " No final answer produced."
-                        raise ToolLoopLimitExceeded(
-                            msg,
-                            max_turns=lim,
-                            turns_taken=state.turns,
-                            partial_text=state.last_response_text,
-                        )
-                    if (output_schema is not None) and (
-                        config.auto_finalize_missing_output is not False
-                    ):
-                        text2 = _finalize_json_output(
-                            self._Types, client, model_name, state.contents(), cfg
-                        )
-                        return _unwrap_value_if_needed(text2, wrapped_primitive)
-                    return _unwrap_value_if_needed(text, wrapped_primitive)
+            out = self.run_tool_loop(client, state)
+            if (output_schema is not None) and (config.auto_finalize_missing_output is not False):
+                text2 = _finalize_json_output(self._Types, client, model_name, state.history, cfg)
+                return _unwrap_value_if_needed(text2, wrapped_primitive)
+            return _unwrap_value_if_needed(out, wrapped_primitive)
 
         try:
             res_new = client.models.generate_content(
@@ -466,7 +385,7 @@ class GeminiBackend(ModelBackend):
                 text2 = _finalize_json_output(self._Types, client, model_name, history, cfg)
                 return _unwrap_value_if_needed(text2, wrapped_primitive)
             return _unwrap_value_if_needed(text, wrapped_primitive)
-        except Exception as e:  # pragma: no cover
+        except Exception as e:
             raise ConfigurationError(str(e)) from e
 
     def stream(
@@ -494,7 +413,7 @@ class GeminiBackend(ModelBackend):
             stream = client.models.generate_content_stream(
                 model=model_name, contents=prompt, config=cfg or None
             )
-        except Exception as e:  # pragma: no cover
+        except Exception as e:
             raise ConfigurationError(str(e)) from e
 
         def gen():
@@ -527,38 +446,20 @@ class GeminiBackend(ModelBackend):
             cfg_tools = dict(cfg)
             cfg_tools.pop("response_mime_type", None)
             cfg_tools.pop("response_json_schema", None)
-            state = _LoopState(
+            state = GeminiLoopState(
                 types_mod=T,
                 config=config,
                 tools=tools,
                 cfg=cfg_tools,
                 prompt=prompt,
             )
-            while True:
-                try:
-                    extra = getattr(config, "extra", {}) or {}
-                    self._apply_tool_choice(state.cfg, True, extra, state.turns)
-                    res = await client.aio.models.generate_content(
-                        model=model_name, contents=state.contents(), config=state.cfg or None
-                    )
-                except Exception as e:  # pragma: no cover
-                    raise ConfigurationError(str(e)) from e
-                done, text = await state.after_response_async(res)
-                if done:
-                    if state.exceeded_tool_limit:
-                        raise create_tool_loop_exception(
-                            max_turns=config.max_tool_turns,
-                            turns_taken=state.turns,
-                            partial_text=state.last_response_text,
-                        )
-                    if (output_schema is not None) and (
-                        config.auto_finalize_missing_output is not False
-                    ):
-                        text2 = await _afinalize_json_output(
-                            self._Types, client, model_name, state.contents(), cfg
-                        )
-                        return _unwrap_value_if_needed(text2, wrapped_primitive)
-                    return _unwrap_value_if_needed(text, wrapped_primitive)
+            out = await self.arun_tool_loop(client, state)
+            if (output_schema is not None) and (config.auto_finalize_missing_output is not False):
+                text2 = await _afinalize_json_output(
+                    self._Types, client, model_name, state.history, cfg
+                )
+                return _unwrap_value_if_needed(text2, wrapped_primitive)
+            return _unwrap_value_if_needed(out, wrapped_primitive)
 
         try:
             res = await client.aio.models.generate_content(
@@ -585,7 +486,7 @@ class GeminiBackend(ModelBackend):
                 text2 = await _afinalize_json_output(self._Types, client, model_name, history, cfg)
                 return _unwrap_value_if_needed(text2, wrapped_primitive)
             return _unwrap_value_if_needed(text, wrapped_primitive)
-        except Exception as e:  # pragma: no cover
+        except Exception as e:
             raise ConfigurationError(str(e)) from e
 
     async def astream(
@@ -664,15 +565,3 @@ def _unwrap_value_if_needed(text: str, wrapped_primitive: bool) -> str:
         except Exception:
             return text
     return text
-
-
-def _execute_tool_call(name: str, args: Any, tool_map: dict[str, Any]) -> Any:
-    tool = tool_map.get(name)
-    if not tool:
-        return {"type": "tool_error", "error": f"Tool '{name}' not available"}
-    try:
-        return tool(**args) if isinstance(args, dict) else tool(args)
-    except Exception as e:
-        if isinstance(e, ToolError):
-            return str(e)
-        return {"type": "tool_error", "error": str(e)}

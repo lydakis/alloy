@@ -3,16 +3,12 @@ from __future__ import annotations
 from collections.abc import Iterable, AsyncIterable
 from typing import Any
 import json
-import concurrent.futures
-import asyncio
 
-from ..config import Config, DEFAULT_PARALLEL_TOOLS_MAX
+from ..config import Config
 from ..errors import (
     ConfigurationError,
-    ToolError,
-    create_tool_loop_exception,
 )
-from .base import ModelBackend
+from .base import ModelBackend, BaseLoopState, ToolCall, ToolResult
 
 
 def _build_text_format(output_schema: dict | None) -> dict | None:
@@ -109,7 +105,7 @@ def _has_any_output(resp: Any) -> bool:
     return bool(text and text.strip())
 
 
-class _LoopState:
+class OpenAILoopState(BaseLoopState[Any]):
     def __init__(
         self,
         *,
@@ -119,19 +115,26 @@ class _LoopState:
         tool_defs: list[dict] | None,
         tool_map: dict[str, Any],
     ) -> None:
+        super().__init__(config, tool_map)
         self.prompt = prompt
-        self.config = config
         self.text_format = text_format
         self.tool_defs = tool_defs
-        self.tool_map = tool_map
-        self.turns = 0
         self.prev_id: str | None = None
         self.pending: list[dict[str, Any]] | None = None
-        self.exceeded_tool_limit: bool = False
-        self.last_response_text: str = ""
 
-    def build_kwargs(self) -> dict[str, object]:
-        return _prepare_request_kwargs(
+    def _apply_tool_choice(self, kwargs: dict[str, Any]) -> None:
+        if self.tool_defs is None:
+            kwargs.pop("tool_choice", None)
+            return
+        extra = getattr(self.config, "extra", {}) or {}
+        choice = extra.get("openai_tool_choice") if isinstance(extra, dict) else None
+        if isinstance(choice, (str, dict)):
+            kwargs["tool_choice"] = choice
+        else:
+            kwargs["tool_choice"] = "auto"
+
+    def make_request(self, client: Any) -> Any:
+        kwargs = _prepare_request_kwargs(
             self.prompt,
             config=self.config,
             text_format=self.text_format,
@@ -139,48 +142,54 @@ class _LoopState:
             pending=self.pending,
             prev_id=self.prev_id,
         )
+        self._apply_tool_choice(kwargs)
+        return client.responses.create(**kwargs)
 
-    def after_response(self, resp: Any) -> tuple[bool, str]:
-        response_text = _extract_text_from_response(resp)
-        self.last_response_text = response_text
-        self.prev_id = _get(resp, "id", self.prev_id)
-        calls = _extract_tool_calls(resp)
-        if calls and self.tool_defs is not None:
-            self.turns += 1
-            limit = self.config.max_tool_turns
-            if isinstance(limit, int) and limit >= 0 and self.turns > limit:
-                self.exceeded_tool_limit = True
-                return True, response_text
-            _ptm_val = self.config.parallel_tools_max
-            ptm: int = (
-                _ptm_val
-                if isinstance(_ptm_val, int) and _ptm_val > 0
-                else DEFAULT_PARALLEL_TOOLS_MAX
-            )
-            self.pending = _process_tool_calls(calls, self.tool_map, parallel_tools_max=ptm)
-            return False, ""
-        return True, response_text
+    async def amake_request(self, client: Any) -> Any:
+        kwargs = _prepare_request_kwargs(
+            self.prompt,
+            config=self.config,
+            text_format=self.text_format,
+            tool_defs=self.tool_defs,
+            pending=self.pending,
+            prev_id=self.prev_id,
+        )
+        self._apply_tool_choice(kwargs)
+        return await client.responses.create(**kwargs)
 
-    async def after_response_async(self, resp: Any) -> tuple[bool, str]:
-        response_text = _extract_text_from_response(resp)
-        self.last_response_text = response_text
-        self.prev_id = _get(resp, "id", self.prev_id)
-        calls = _extract_tool_calls(resp)
-        if calls and self.tool_defs is not None:
-            self.turns += 1
-            limit = self.config.max_tool_turns
-            if isinstance(limit, int) and limit >= 0 and self.turns > limit:
-                self.exceeded_tool_limit = True
-                return True, response_text
-            _ptm_val = self.config.parallel_tools_max
-            ptm: int = (
-                _ptm_val
-                if isinstance(_ptm_val, int) and _ptm_val > 0
-                else DEFAULT_PARALLEL_TOOLS_MAX
+    def extract_text(self, response: Any) -> str:
+        self.prev_id = _get(response, "id", self.prev_id)
+        return _extract_text_from_response(response)
+
+    def extract_tool_calls(self, response: Any) -> list[ToolCall] | None:
+        raw_calls = _extract_tool_calls(response)
+        out: list[ToolCall] = []
+        for c in raw_calls:
+            raw = c.get("arguments") or "{}"
+            try:
+                args = json.loads(raw)
+                if not isinstance(args, dict):
+                    args = {}
+            except Exception:
+                args = {}
+            out.append(ToolCall(id=c.get("call_id"), name=c.get("name", ""), args=args))
+        return out
+
+    def add_tool_results(self, calls: list[ToolCall], results: list[ToolResult]) -> None:
+        pending: list[dict[str, Any]] = []
+        for call, res in zip(calls, results):
+            payload = res.value if res.ok else res.error
+            if isinstance(payload, str):
+                out_json = payload
+            else:
+                try:
+                    out_json = json.dumps(payload)
+                except Exception:
+                    out_json = str(payload)
+            pending.append(
+                {"type": "function_call_output", "call_id": call.id or "", "output": out_json}
             )
-            self.pending = await _aprocess_tool_calls(calls, self.tool_map, parallel_tools_max=ptm)
-            return False, ""
-        return True, response_text
+        self.pending = pending
 
 
 def _is_temp_limited(model: str | None) -> bool:
@@ -217,65 +226,7 @@ def _prepare_request_kwargs(
     return kwargs
 
 
-def _execute_tool_call(call: dict[str, str], tool_map: dict[str, Any]) -> dict[str, str]:
-    name = call.get("name") or ""
-    args_raw = call.get("arguments") or "{}"
-    call_id = call.get("call_id") or ""
-    tool = tool_map.get(name)
-    if not tool:
-        result_obj: Any = {"type": "tool_error", "error": f"Tool '{name}' not available."}
-    else:
-        try:
-            parsed = json.loads(args_raw)
-        except json.JSONDecodeError:
-            parsed = {}
-        try:
-            result = tool(**parsed) if isinstance(parsed, dict) else tool(parsed)
-            result_obj = result
-        except Exception as exc:
-            if isinstance(exc, ToolError):
-                result_obj = str(exc)
-            else:
-                result_obj = {"type": "tool_error", "error": str(exc)}
-    if isinstance(result_obj, str):
-        result_json = result_obj
-    else:
-        try:
-            result_json = json.dumps(result_obj)
-        except (TypeError, ValueError):
-            result_json = str(result_obj)
-    return {"type": "function_call_output", "call_id": call_id, "output": result_json}
-
-
-def _process_tool_calls(
-    calls: list[dict[str, str]], tool_map: dict[str, Any], *, parallel_tools_max: int
-) -> list[dict[str, str]]:
-    if len(calls) <= 1:
-        return [_execute_tool_call(calls[0], tool_map)] if calls else []
-    max_workers = max(1, min(len(calls), parallel_tools_max))
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
-        futures = [ex.submit(_execute_tool_call, call, tool_map) for call in calls]
-        results = [f.result() for f in futures]
-    return results
-
-
-async def _aprocess_tool_calls(
-    calls: list[dict[str, str]], tool_map: dict[str, Any], *, parallel_tools_max: int
-) -> list[dict[str, str]]:
-    if len(calls) <= 1:
-        return [await asyncio.to_thread(_execute_tool_call, calls[0], tool_map)] if calls else []
-    sem = asyncio.Semaphore(parallel_tools_max)
-
-    async def _run(call: dict[str, str]) -> dict[str, str]:
-        async with sem:
-            return await asyncio.to_thread(_execute_tool_call, call, tool_map)
-
-    tasks = [_run(call) for call in calls]
-    results = await asyncio.gather(*tasks)
-    return results
-
-
-def _finalize_json_output(client: Any, state: _LoopState) -> str:
+def _finalize_json_output(client: Any, state: OpenAILoopState) -> str:
     kwargs2 = _prepare_request_kwargs(
         "Continue from the previous response and provide the final answer in the required format only.",
         config=state.config,
@@ -288,7 +239,7 @@ def _finalize_json_output(client: Any, state: _LoopState) -> str:
     return _extract_text_from_response(resp2)
 
 
-async def _afinalize_json_output(client: Any, state: _LoopState) -> str:
+async def _afinalize_json_output(client: Any, state: OpenAILoopState) -> str:
     kwargs2 = _prepare_request_kwargs(
         "Continue from the previous response and provide the final answer in the required format only.",
         config=state.config,
@@ -352,33 +303,17 @@ class OpenAIBackend(ModelBackend):
         client: Any = self._get_sync_client()
         tool_defs, tool_map = _build_tools(tools)
         text_format = _build_text_format(output_schema)
-        state = _LoopState(
+        state = OpenAILoopState(
             prompt=prompt,
             config=config,
             text_format=text_format,
             tool_defs=tool_defs,
             tool_map=tool_map,
         )
-        while True:
-            kwargs = state.build_kwargs()
-            extra = getattr(config, "extra", {}) or {}
-            self._apply_tool_choice(kwargs, state.tool_defs is not None, extra, state.turns)
-            resp = client.responses.create(**kwargs)
-            done, out = state.after_response(resp)
-            if done:
-                if state.exceeded_tool_limit:
-                    raise create_tool_loop_exception(
-                        max_turns=state.config.max_tool_turns,
-                        turns_taken=state.turns,
-                        partial_text=state.last_response_text,
-                    )
-                if (
-                    state.text_format
-                    and (state.config.auto_finalize_missing_output is not False)
-                    and not _has_any_output(resp)
-                ):
-                    return _finalize_json_output(client, state)
-                return out
+        out = self.run_tool_loop(client, state)
+        if text_format and (config.auto_finalize_missing_output is not False) and not out.strip():
+            return _finalize_json_output(client, state)
+        return out
 
     def stream(
         self,
@@ -429,33 +364,17 @@ class OpenAIBackend(ModelBackend):
         client: Any = self._get_async_client()
         tool_defs, tool_map = _build_tools(tools)
         text_format = _build_text_format(output_schema)
-        state = _LoopState(
+        state = OpenAILoopState(
             prompt=prompt,
             config=config,
             text_format=text_format,
             tool_defs=tool_defs,
             tool_map=tool_map,
         )
-        while True:
-            kwargs = state.build_kwargs()
-            extra = getattr(config, "extra", {}) or {}
-            self._apply_tool_choice(kwargs, state.tool_defs is not None, extra, state.turns)
-            resp = await client.responses.create(**kwargs)
-            done, out = await state.after_response_async(resp)
-            if done:
-                if state.exceeded_tool_limit:
-                    raise create_tool_loop_exception(
-                        max_turns=state.config.max_tool_turns,
-                        turns_taken=state.turns,
-                        partial_text=state.last_response_text,
-                    )
-                if (
-                    state.text_format
-                    and (state.config.auto_finalize_missing_output is not False)
-                    and not _has_any_output(resp)
-                ):
-                    return await _afinalize_json_output(client, state)
-                return out
+        out = await self.arun_tool_loop(client, state)
+        if text_format and (config.auto_finalize_missing_output is not False) and not out.strip():
+            return await _afinalize_json_output(client, state)
+        return out
 
     async def astream(
         self,

@@ -1,11 +1,57 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, AsyncIterable
+from dataclasses import dataclass
+from typing import Any, Callable, Generic, TypeVar
+import abc
+import concurrent.futures
+import asyncio
 
-from ..config import Config
-from ..errors import ConfigurationError
+from ..config import Config, DEFAULT_PARALLEL_TOOLS_MAX
+from ..errors import ConfigurationError, ToolError, create_tool_loop_exception
 import os
 import json
+
+
+T = TypeVar("T")
+
+
+@dataclass
+class ToolCall:
+    id: str | int | None
+    name: str
+    args: dict[str, Any]
+
+
+@dataclass
+class ToolResult:
+    id: str | int | None
+    ok: bool
+    value: Any | None = None
+    error: str | None = None
+
+
+class BaseLoopState(Generic[T], abc.ABC):
+    def __init__(self, config: Config, tool_map: dict[str, Callable[..., Any]]):
+        self.config = config
+        self.tool_map = tool_map
+        self.turns = 0
+        self.last_response_text: str = ""
+
+    @abc.abstractmethod
+    def make_request(self, client: Any) -> T: ...
+
+    @abc.abstractmethod
+    async def amake_request(self, client: Any) -> T: ...
+
+    @abc.abstractmethod
+    def extract_text(self, response: T) -> str: ...
+
+    @abc.abstractmethod
+    def extract_tool_calls(self, response: T) -> list[ToolCall] | None: ...
+
+    @abc.abstractmethod
+    def add_tool_results(self, calls: list[ToolCall], results: list[ToolResult]) -> None: ...
 
 
 class ModelBackend:
@@ -53,6 +99,103 @@ class ModelBackend:
         config: Config,
     ) -> AsyncIterable[str]:
         raise NotImplementedError
+
+    def _execute_single_tool(
+        self, call: ToolCall, tool_map: dict[str, Callable[..., Any]]
+    ) -> ToolResult:
+        fn = tool_map.get(call.name)
+        if not fn:
+            return ToolResult(call.id, ok=False, error=f"Tool '{call.name}' not available")
+        try:
+            out = fn(**call.args) if isinstance(call.args, dict) else fn(call.args)
+            return ToolResult(call.id, ok=True, value=out)
+        except ToolError as e:
+            return ToolResult(call.id, ok=False, error=str(e))
+        except Exception as e:
+            return ToolResult(call.id, ok=False, error=f"{type(e).__name__}: {e}")
+
+    def execute_tools(
+        self,
+        calls: list[ToolCall],
+        *,
+        parallel_tools_max: int,
+        tool_map: dict[str, Callable[..., Any]],
+    ) -> list[ToolResult]:
+        if not calls:
+            return []
+        if len(calls) == 1:
+            return [self._execute_single_tool(calls[0], tool_map)]
+        max_workers = max(1, min(len(calls), parallel_tools_max))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
+            futs = [ex.submit(self._execute_single_tool, c, tool_map) for c in calls]
+            return [f.result() for f in futs]
+
+    async def aexecute_tools(
+        self,
+        calls: list[ToolCall],
+        *,
+        parallel_tools_max: int,
+        tool_map: dict[str, Callable[..., Any]],
+    ) -> list[ToolResult]:
+        if not calls:
+            return []
+        sem = asyncio.Semaphore(max(1, parallel_tools_max))
+
+        async def run(c: ToolCall) -> ToolResult:
+            async with sem:
+                return await asyncio.to_thread(self._execute_single_tool, c, tool_map)
+
+        return await asyncio.gather(*(run(c) for c in calls))
+
+    def run_tool_loop(self, client: Any, state: BaseLoopState[T]) -> str:
+        while True:
+            resp = state.make_request(client)
+            text = state.extract_text(resp)
+            state.last_response_text = text
+
+            calls = state.extract_tool_calls(resp) or []
+            if not calls:
+                return text
+
+            state.turns += 1
+            lim = state.config.max_tool_turns
+            if isinstance(lim, int) and lim >= 0 and state.turns > lim:
+                raise create_tool_loop_exception(
+                    max_turns=lim, turns_taken=state.turns, partial_text=state.last_response_text
+                )
+
+            ptm_raw = state.config.parallel_tools_max
+            ptm = (
+                ptm_raw if isinstance(ptm_raw, int) and ptm_raw > 0 else DEFAULT_PARALLEL_TOOLS_MAX
+            )
+            results = self.execute_tools(calls, parallel_tools_max=ptm, tool_map=state.tool_map)
+            state.add_tool_results(calls, results)
+
+    async def arun_tool_loop(self, client: Any, state: BaseLoopState[T]) -> str:
+        while True:
+            resp = await state.amake_request(client)
+            text = state.extract_text(resp)
+            state.last_response_text = text
+
+            calls = state.extract_tool_calls(resp) or []
+            if not calls:
+                return text
+
+            state.turns += 1
+            lim = state.config.max_tool_turns
+            if isinstance(lim, int) and lim >= 0 and state.turns > lim:
+                raise create_tool_loop_exception(
+                    max_turns=lim, turns_taken=state.turns, partial_text=state.last_response_text
+                )
+
+            ptm_raw = state.config.parallel_tools_max
+            ptm = (
+                ptm_raw if isinstance(ptm_raw, int) and ptm_raw > 0 else DEFAULT_PARALLEL_TOOLS_MAX
+            )
+            results = await self.aexecute_tools(
+                calls, parallel_tools_max=ptm, tool_map=state.tool_map
+            )
+            state.add_tool_results(calls, results)
 
 
 def get_backend(model: str | None) -> ModelBackend:

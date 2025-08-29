@@ -2,17 +2,13 @@ from __future__ import annotations
 
 from collections.abc import Iterable, AsyncIterable
 from typing import Any
-import asyncio
 import json
-import concurrent.futures
 
-from ..config import Config, DEFAULT_PARALLEL_TOOLS_MAX
+from ..config import Config
 from ..errors import (
     ConfigurationError,
-    ToolError,
-    create_tool_loop_exception,
 )
-from .base import ModelBackend
+from .base import ModelBackend, BaseLoopState, ToolCall, ToolResult
 
 _ANTHROPIC_REQUIRED_MAX_TOKENS = 2048
 
@@ -33,7 +29,7 @@ def _extract_text_from_response(resp: Any) -> str:
         return ""
 
 
-def _finalize_json_output(client: Any, state: _LoopState) -> str | None:
+def _finalize_json_output(client: Any, state: "AnthropicLoopState") -> str | None:
     state.messages.append(
         {
             "role": "user",
@@ -48,7 +44,7 @@ def _finalize_json_output(client: Any, state: _LoopState) -> str | None:
     state.messages.append(
         {"role": "assistant", "content": [{"type": "text", "text": state.prefill}]}
     )
-    kwargs2 = state.build_kwargs()
+    kwargs2 = state._base_kwargs()
     kwargs2.pop("tools", None)
     kwargs2.pop("tool_choice", None)
     resp2 = client.messages.create(**kwargs2)
@@ -56,7 +52,7 @@ def _finalize_json_output(client: Any, state: _LoopState) -> str | None:
     return f"{state.prefill}{out2}" if out2 else None
 
 
-async def _afinalize_json_output(client: Any, state: _LoopState) -> str | None:
+async def _afinalize_json_output(client: Any, state: "AnthropicLoopState") -> str | None:
     state.messages.append(
         {
             "role": "user",
@@ -71,49 +67,12 @@ async def _afinalize_json_output(client: Any, state: _LoopState) -> str | None:
     state.messages.append(
         {"role": "assistant", "content": [{"type": "text", "text": state.prefill}]}
     )
-    kwargs2 = state.build_kwargs()
+    kwargs2 = state._base_kwargs()
     kwargs2.pop("tools", None)
     kwargs2.pop("tool_choice", None)
     resp2 = await client.messages.create(**kwargs2)
     out2 = _extract_text_from_response(resp2)
     return f"{state.prefill}{out2}" if out2 else None
-
-
-def _execute_tool_call(tc: dict[str, Any], tool_map: dict[str, Any]) -> dict[str, Any]:
-    name = str(tc.get("name") or "")
-    args = tc.get("input")
-    if not isinstance(args, dict):
-        args = {}
-    tuid = str(tc.get("id") or "")
-    tool = tool_map.get(name)
-    is_error = False
-    if not tool:
-        is_error = True
-        result_obj: Any = f"Tool '{name}' not available"
-    else:
-        try:
-            result_obj = tool(**args)
-        except Exception as e:
-            is_error = True
-            if isinstance(e, ToolError):
-                result_obj = str(e)
-            else:
-                result_obj = f"{type(e).__name__}: {str(e)}"
-    if isinstance(result_obj, str):
-        result_text = result_obj
-    else:
-        try:
-            result_text = json.dumps(result_obj)
-        except Exception:
-            result_text = str(result_obj)
-    block: dict[str, Any] = {
-        "type": "tool_result",
-        "tool_use_id": tuid,
-        "content": result_text,
-    }
-    if is_error:
-        block["is_error"] = True
-    return block
 
 
 def _extract_tool_calls(resp: Any) -> list[dict[str, Any]]:
@@ -136,7 +95,7 @@ def _extract_tool_calls(resp: Any) -> list[dict[str, Any]]:
     return tool_calls
 
 
-class _LoopState:
+class AnthropicLoopState(BaseLoopState[Any]):
     def __init__(
         self,
         *,
@@ -147,33 +106,50 @@ class _LoopState:
         tool_map: dict[str, Any],
         prefill: str | None,
     ) -> None:
-        self.config = config
+        super().__init__(config, tool_map)
         self.system = system
         self.tool_defs = tool_defs
-        self.tool_map = tool_map
-        self.turns = 0
         self.prefill = prefill
         self.messages: list[dict[str, Any]] = [
             {"role": "user", "content": [{"type": "text", "text": prompt}]}
         ]
-        self.exceeded_tool_limit: bool = False
-        self.last_response_text: str = ""
         if prefill:
             self.messages.append(
                 {"role": "assistant", "content": [{"type": "text", "text": prefill}]}
             )
+        self._last_assistant_content: list[dict[str, Any]] | None = None
 
-    def build_kwargs(self) -> dict[str, Any]:
-        kwargs: dict[str, Any] = {
-            "model": self.config.model,
-            "messages": self.messages,
-        }
+    def _apply_tool_choice(self, kwargs: dict[str, Any]) -> None:
+        if self.tool_defs is None:
+            kwargs.pop("tool_choice", None)
+            return
+        extra = getattr(self.config, "extra", {}) or {}
+        choice: dict[str, Any] = {"type": "auto"}
+        if isinstance(extra, dict):
+            override = extra.get("anthropic_tool_choice")
+            if isinstance(override, dict) and override.get("type") in {
+                "auto",
+                "any",
+                "tool",
+                "none",
+            }:
+                choice = dict(override)
+            dptu = extra.get("anthropic_disable_parallel_tool_use")
+            if isinstance(dptu, bool) and choice.get("type") in {"auto", "any", "tool"}:
+                choice["disable_parallel_tool_use"] = dptu
+        kwargs["tool_choice"] = choice
+
+    def _base_kwargs(self) -> dict[str, Any]:
         mt = (
             int(self.config.max_tokens)
             if self.config.max_tokens is not None
             else _ANTHROPIC_REQUIRED_MAX_TOKENS
         )
-        kwargs["max_tokens"] = mt
+        kwargs: dict[str, Any] = {
+            "model": self.config.model,
+            "messages": self.messages,
+            "max_tokens": mt,
+        }
         if self.system:
             kwargs["system"] = self.system
         if self.config.temperature is not None:
@@ -182,100 +158,65 @@ class _LoopState:
             kwargs["tools"] = self.tool_defs
         return kwargs
 
-    def after_response(self, resp: Any) -> tuple[bool, str]:
-        content = getattr(resp, "content", []) or []
-        response_text = _extract_text_from_response(resp)
-        self.last_response_text = (
-            f"{self.prefill}{response_text}"
-            if self.prefill and isinstance(response_text, str)
-            else response_text
-        )
-        tool_calls = _extract_tool_calls(resp)
-        if tool_calls and self.tool_defs is not None:
-            self.turns += 1
-            limit = self.config.max_tool_turns
-            if isinstance(limit, int) and limit >= 0 and self.turns > limit:
-                self.exceeded_tool_limit = True
-                return True, self.last_response_text
+    def make_request(self, client: Any) -> Any:
+        kwargs = self._base_kwargs()
+        self._apply_tool_choice(kwargs)
+        return client.messages.create(**kwargs)
+
+    async def amake_request(self, client: Any) -> Any:
+        kwargs = self._base_kwargs()
+        self._apply_tool_choice(kwargs)
+        return await client.messages.create(**kwargs)
+
+    def extract_text(self, response: Any) -> str:
+        txt = _extract_text_from_response(response)
+        return f"{self.prefill}{txt}" if self.prefill and isinstance(txt, str) else txt
+
+    def extract_tool_calls(self, response: Any) -> list[ToolCall] | None:
+        self._last_assistant_content = getattr(response, "content", None) or []
+        calls_raw = _extract_tool_calls(response)
+        out: list[ToolCall] = []
+        for c in calls_raw:
+            name = str(c.get("name") or "")
+            args = c.get("input")
+            if not isinstance(args, dict):
+                args = {}
+            out.append(ToolCall(id=str(c.get("id") or ""), name=name, args=args))
+        return out
+
+    def add_tool_results(self, calls: list[ToolCall], results: list[ToolResult]) -> None:
+        content = self._last_assistant_content
+        if content:
             self.messages.append({"role": "assistant", "content": content})
-
-            if len(tool_calls) <= 1:
-                results = [_execute_tool_call(tool_calls[0], self.tool_map)] if tool_calls else []
+        else:
+            blocks = [
+                {"type": "tool_use", "id": c.id or "", "name": c.name, "input": c.args}
+                for c in calls
+            ]
+            self.messages.append({"role": "assistant", "content": blocks})
+        blocks_out: list[dict[str, Any]] = []
+        for call, res in zip(calls, results):
+            payload = res.value if res.ok else res.error
+            if isinstance(payload, str):
+                result_text = payload
             else:
-                _ptm_val = self.config.parallel_tools_max
-                ptm: int = (
-                    _ptm_val
-                    if isinstance(_ptm_val, int) and _ptm_val > 0
-                    else DEFAULT_PARALLEL_TOOLS_MAX
-                )
-                max_workers = max(1, min(len(tool_calls), ptm))
-                with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
-                    futures = [
-                        ex.submit(_execute_tool_call, tc, self.tool_map) for tc in tool_calls
-                    ]
-                    results = [f.result() for f in futures]
-
-            blocks: list[dict[str, Any]] = list(results)
-            self.messages.append({"role": "user", "content": blocks})
-            if self.prefill:
-                self.messages.append(
-                    {"role": "assistant", "content": [{"type": "text", "text": self.prefill}]}
-                )
-            return False, ""
-        text_out = response_text
+                try:
+                    result_text = json.dumps(payload)
+                except Exception:
+                    result_text = str(payload)
+            block: dict[str, Any] = {
+                "type": "tool_result",
+                "tool_use_id": str(call.id or ""),
+                "content": result_text,
+            }
+            if not res.ok:
+                block["is_error"] = True
+            blocks_out.append(block)
+        self.messages.append({"role": "user", "content": blocks_out})
         if self.prefill:
-            return True, f"{self.prefill}{text_out}"
-        return True, text_out
-
-    async def after_response_async(self, resp: Any) -> tuple[bool, str]:
-        content = getattr(resp, "content", []) or []
-        response_text = _extract_text_from_response(resp)
-        self.last_response_text = (
-            f"{self.prefill}{response_text}"
-            if self.prefill and isinstance(response_text, str)
-            else response_text
-        )
-        tool_calls = _extract_tool_calls(resp)
-        if tool_calls and self.tool_defs is not None:
-            self.turns += 1
-            limit = self.config.max_tool_turns
-            if isinstance(limit, int) and limit >= 0 and self.turns > limit:
-                self.exceeded_tool_limit = True
-                return True, self.last_response_text
-            self.messages.append({"role": "assistant", "content": content})
-
-            if len(tool_calls) <= 1:
-                results = (
-                    [await asyncio.to_thread(_execute_tool_call, tool_calls[0], self.tool_map)]
-                    if tool_calls
-                    else []
-                )
-            else:
-                _ptm_val = self.config.parallel_tools_max
-                ptm: int = (
-                    _ptm_val
-                    if isinstance(_ptm_val, int) and _ptm_val > 0
-                    else DEFAULT_PARALLEL_TOOLS_MAX
-                )
-                sem = asyncio.Semaphore(ptm)
-
-                async def _run(tc: dict[str, Any]) -> dict[str, Any]:
-                    async with sem:
-                        return await asyncio.to_thread(_execute_tool_call, tc, self.tool_map)
-
-                results = await asyncio.gather(*[_run(tc) for tc in tool_calls])
-
-            blocks: list[dict[str, Any]] = list(results)
-            self.messages.append({"role": "user", "content": blocks})
-            if self.prefill:
-                self.messages.append(
-                    {"role": "assistant", "content": [{"type": "text", "text": self.prefill}]}
-                )
-            return False, ""
-        text_out = response_text
-        if self.prefill:
-            return True, f"{self.prefill}{text_out}"
-        return True, text_out
+            self.messages.append(
+                {"role": "assistant", "content": [{"type": "text", "text": self.prefill}]}
+            )
 
 
 class AnthropicBackend(ModelBackend):
@@ -384,7 +325,7 @@ class AnthropicBackend(ModelBackend):
         if isinstance(system_hint, str) and system_hint:
             sys_str = f"{system}\n\n{system_hint}" if system else system_hint
 
-        state = _LoopState(
+        state = AnthropicLoopState(
             prompt=prompt,
             config=config,
             system=sys_str,
@@ -392,7 +333,12 @@ class AnthropicBackend(ModelBackend):
             tool_map=tool_map,
             prefill=prefill,
         )
-        return self._run_loop_sync(client, state, config)
+        out = self.run_tool_loop(client, state)
+        if state.prefill and state.tool_defs is not None:
+            out2 = _finalize_json_output(client, state)
+            if isinstance(out2, str) and out2:
+                return out2
+        return out
 
     def stream(
         self,
@@ -441,7 +387,7 @@ class AnthropicBackend(ModelBackend):
         if isinstance(system_hint, str) and system_hint:
             sys_str = f"{system}\n\n{system_hint}" if system else system_hint
 
-        state = _LoopState(
+        state = AnthropicLoopState(
             prompt=prompt,
             config=config,
             system=sys_str,
@@ -449,7 +395,12 @@ class AnthropicBackend(ModelBackend):
             tool_map=tool_map,
             prefill=prefill,
         )
-        return await self._run_loop_async(client, state, config)
+        out = await self.arun_tool_loop(client, state)
+        if state.prefill and state.tool_defs is not None:
+            out2 = await _afinalize_json_output(client, state)
+            if isinstance(out2, str) and out2:
+                return out2
+        return out
 
     async def astream(
         self,
@@ -482,78 +433,20 @@ class AnthropicBackend(ModelBackend):
 
         return agen()
 
-    def _apply_tool_choice(
-        self, kwargs: dict[str, Any], tools_present: bool, extra: Any, tool_turns: int
-    ) -> None:
-        if not tools_present:
-            kwargs.pop("tool_choice", None)
-            return
-        choice: dict[str, Any] = {"type": "auto"}
-        if isinstance(extra, dict):
-            override = extra.get("anthropic_tool_choice")
-            if isinstance(override, dict) and override.get("type") in {
-                "auto",
-                "any",
-                "tool",
-                "none",
-            }:
-                choice = dict(override)
-            dptu = extra.get("anthropic_disable_parallel_tool_use")
-            if isinstance(dptu, bool) and choice.get("type") in {"auto", "any", "tool"}:
-                choice["disable_parallel_tool_use"] = dptu
-        kwargs["tool_choice"] = choice
-
-    def _run_loop_sync(self, client: Any, state: _LoopState, config: Config) -> str:
-        while True:
-            kwargs = state.build_kwargs()
-            extra = getattr(config, "extra", {}) or {}
-            self._apply_tool_choice(kwargs, state.tool_defs is not None, extra, state.turns)
-            resp = client.messages.create(**kwargs)
-            done, out = state.after_response(resp)
-            if done:
-                if state.exceeded_tool_limit:
-                    raise create_tool_loop_exception(
-                        max_turns=state.config.max_tool_turns,
-                        turns_taken=state.turns,
-                        partial_text=state.last_response_text,
-                    )
-                if state.prefill and state.tool_defs is not None:
-                    out2 = _finalize_json_output(client, state)
-                    if isinstance(out2, str) and out2:
-                        return out2
-                return out
-
-    async def _run_loop_async(self, client: Any, state: _LoopState, config: Config) -> str:
-        while True:
-            kwargs = state.build_kwargs()
-            extra = getattr(config, "extra", {}) or {}
-            self._apply_tool_choice(kwargs, state.tool_defs is not None, extra, state.turns)
-            resp = await client.messages.create(**kwargs)
-            done, out = await state.after_response_async(resp)
-            if done:
-                if state.exceeded_tool_limit:
-                    raise create_tool_loop_exception(
-                        max_turns=state.config.max_tool_turns,
-                        turns_taken=state.turns,
-                        partial_text=state.last_response_text,
-                    )
-                if state.prefill and state.tool_defs is not None:
-                    out2 = await _afinalize_json_output(client, state)
-                    if isinstance(out2, str) and out2:
-                        return out2
-                return out
-
     def _prepare_stream_kwargs(self, prompt: str, config: Config) -> dict[str, Any]:
-        state = _LoopState(
-            prompt=prompt,
-            config=config,
-            system=config.default_system,
-            tool_defs=None,
-            tool_map={},
-            prefill=None,
-        )
-        kwargs = state.build_kwargs()
-        kwargs.pop("tools", None)
+        kwargs: dict[str, Any] = {
+            "model": config.model,
+            "messages": [{"role": "user", "content": [{"type": "text", "text": prompt}]}],
+            "max_tokens": (
+                int(config.max_tokens)
+                if config.max_tokens is not None
+                else _ANTHROPIC_REQUIRED_MAX_TOKENS
+            ),
+        }
+        if config.default_system:
+            kwargs["system"] = str(config.default_system)
+        if config.temperature is not None:
+            kwargs["temperature"] = config.temperature
         return kwargs
 
     def _parse_stream_event(self, event: Any) -> str | None:
