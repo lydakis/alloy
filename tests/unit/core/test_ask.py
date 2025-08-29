@@ -40,4 +40,3 @@ def test_ask_wraps_backend_exception(monkeypatch):
 async def test_ask_stream_async_disallowed_with_tools():
     with pytest.raises(CommandError):
         await ask.stream_async("hi", tools=[lambda: None], model="gpt-5-mini")
-
