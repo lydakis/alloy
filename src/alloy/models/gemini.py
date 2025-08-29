@@ -339,26 +339,27 @@ class GeminiBackend(ModelBackend):
                 "A model name must be specified in the configuration for the Gemini backend."
             )
         cfg, wrapped_primitive = _prepare_config(config, output_schema)
-
-        if tools:
-            T = self._Types
-            if T is None:
-                raise ConfigurationError("Google GenAI SDK types not available")
-            cfg_tools = dict(cfg)
-            cfg_tools.pop("response_mime_type", None)
-            cfg_tools.pop("response_json_schema", None)
-            state = GeminiLoopState(
-                types_mod=T,
-                config=config,
-                tools=tools,
-                cfg=cfg_tools,
-                prompt=prompt,
-            )
-            out = self.run_tool_loop(client, state)
-            if (output_schema is not None) and (config.auto_finalize_missing_output is not False):
+        T = self._Types
+        if T is None:
+            raise ConfigurationError("Google GenAI SDK types not available")
+        cfg_state = dict(cfg)
+        tools_present = bool(tools)
+        if tools_present:
+            cfg_state.pop("response_mime_type", None)
+            cfg_state.pop("response_json_schema", None)
+        state = GeminiLoopState(
+            types_mod=T,
+            config=config,
+            tools=tools or [],
+            cfg=cfg_state,
+            prompt=prompt,
+        )
+        out = self.run_tool_loop(client, state)
+        if (output_schema is not None) and (config.auto_finalize_missing_output is not False):
+            if tools_present or not out.strip():
                 text2 = _finalize_json_output(self._Types, client, model_name, state.history, cfg)
                 return _unwrap_value_if_needed(text2, wrapped_primitive)
-            return _unwrap_value_if_needed(out, wrapped_primitive)
+        return _unwrap_value_if_needed(out, wrapped_primitive)
 
         try:
             res_new = client.models.generate_content(
@@ -439,27 +440,29 @@ class GeminiBackend(ModelBackend):
                 "A model name must be specified in the configuration for the Gemini backend."
             )
         cfg, wrapped_primitive = _prepare_config(config, output_schema)
-        if tools:
-            T = self._Types
-            if T is None:
-                raise ConfigurationError("Google GenAI SDK types not available")
-            cfg_tools = dict(cfg)
-            cfg_tools.pop("response_mime_type", None)
-            cfg_tools.pop("response_json_schema", None)
-            state = GeminiLoopState(
-                types_mod=T,
-                config=config,
-                tools=tools,
-                cfg=cfg_tools,
-                prompt=prompt,
-            )
-            out = await self.arun_tool_loop(client, state)
-            if (output_schema is not None) and (config.auto_finalize_missing_output is not False):
+        T = self._Types
+        if T is None:
+            raise ConfigurationError("Google GenAI SDK types not available")
+        cfg_state = dict(cfg)
+        tools_present = bool(tools)
+        if tools_present:
+            cfg_state.pop("response_mime_type", None)
+            cfg_state.pop("response_json_schema", None)
+        state = GeminiLoopState(
+            types_mod=T,
+            config=config,
+            tools=tools or [],
+            cfg=cfg_state,
+            prompt=prompt,
+        )
+        out = await self.arun_tool_loop(client, state)
+        if (output_schema is not None) and (config.auto_finalize_missing_output is not False):
+            if tools_present or not out.strip():
                 text2 = await _afinalize_json_output(
                     self._Types, client, model_name, state.history, cfg
                 )
                 return _unwrap_value_if_needed(text2, wrapped_primitive)
-            return _unwrap_value_if_needed(out, wrapped_primitive)
+        return _unwrap_value_if_needed(out, wrapped_primitive)
 
         try:
             res = await client.aio.models.generate_content(
