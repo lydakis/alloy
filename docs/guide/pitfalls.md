@@ -80,6 +80,9 @@ def info() -> str:
     return "Return {summary, score}"
 ```
 
+Note
+- Dicts are allowed as tool input parameters. Tool schemas are non‑strict and accept open‑ended objects for inputs, while outputs remain strict.
+
 ## Tool loop limits
 
 - The tool loop is capped by `max_tool_turns` (default 10) to avoid runaway behavior.

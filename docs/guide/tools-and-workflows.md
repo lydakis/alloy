@@ -31,6 +31,9 @@ def analyze_file(path: str) -> str:
     return f"Read the file, then list 3 key insights. path={path}"
 ```
 
+Tip
+- Parameters with default values are optional for tools. Only parameters without defaults are required by the model. This applies to nested dataclasses used as tool parameters as well.
+
 ## Multi‑step workflows
 
 - Compose Python functions; no special orchestration layer needed.

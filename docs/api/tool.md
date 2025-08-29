@@ -35,6 +35,12 @@ def sqrt_floor(x: int) -> int:
     return int(math.sqrt(x))
 ```
 
+### Optional parameters
+
+- Tool parameters with default values are optional. Only parameters without defaults are included in the JSON Schema `required` list.
+- Nested dataclasses in tool parameters also respect defaults (their fields with defaults are not required).
+- Applies across OpenAI, Anthropic, and Gemini; unknown top‑level keys are rejected (`additionalProperties: false`).
+
 !!! note "See also"
     - Guide → Tools & Workflows: guide/tools-and-workflows.md
     - Guide → Contracts: guide/contracts.md

@@ -50,3 +50,8 @@ Resulting schema (conceptual)
 
 - Providers return the structured payload; Alloy validates against the schema and instantiates `T`.
 - On parse failure, `CommandError` includes expected type and a snippet of the model output.
+
+## Strict vs non‑strict schemas
+
+- Structured outputs (for `@command(output=T)`) use strict schemas: all fields are required and `additionalProperties: false`. Open‑ended dicts are rejected.
+- Tool parameter schemas use non‑strict schemas: only parameters/fields without defaults are required. Open‑ended dicts are allowed for tool inputs.
