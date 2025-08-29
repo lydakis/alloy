@@ -75,6 +75,27 @@ def test_openai_dbc_tool_message_propagates():
 
 
 @requires_openai
+def test_openai_tools_optional_param_is_omittable():
+    model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))
+    configure(model=model, temperature=0.1)
+
+    @tool
+    def add(a: int, b: int = 1) -> int:
+        return a + b
+
+    @command(output=int, tools=[add])
+    def use_add() -> str:
+        return (
+            "Use add(a=2) to compute 2+1. Do not pass b; rely on its default. "
+            "Return only the number."
+        )
+
+    out = use_add()
+    assert isinstance(out, int)
+    assert out == 3
+
+
+@requires_openai
 @pytest.mark.asyncio
 async def test_openai_async_streaming_text_only():
     model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))

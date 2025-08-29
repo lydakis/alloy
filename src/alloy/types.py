@@ -5,11 +5,16 @@ from typing import Any
 from typing import get_args, get_origin, get_type_hints, Union as _Union
 import types as _pytypes
 from functools import lru_cache
-from dataclasses import is_dataclass, fields
+from dataclasses import is_dataclass, fields, MISSING
 
 
-def to_json_schema(tp: Any) -> dict | None:
+def to_json_schema(tp: Any, strict: bool = True) -> dict | None:
     """Best-effort JSON Schema generator for output types.
+
+    Args:
+        tp: The type to convert to JSON schema
+        strict: If True (default), all fields are required (for structured outputs).
+                If False, fields with defaults are optional (for tool parameters).
 
     Supports primitives, dataclasses (with postponed annotations), and nested
     lists/dicts. Falls back to None for complex generics/Unions so callers can
@@ -23,22 +28,25 @@ def to_json_schema(tp: Any) -> dict | None:
     args = get_args(tp)
     if origin is list:
         items_t = args[0] if args else Any
-        items_schema = to_json_schema(items_t) or {"type": "string"}
+        items_schema = to_json_schema(items_t, strict=strict) or {"type": "string"}
         return {"type": "array", "items": items_schema}
     if tp is dict or origin is dict:
-        raise ValueError(
-            "Strict Structured Outputs do not support open-ended dict outputs. "
-            "Define a concrete object schema (e.g., a dataclass or TypedDict)."
-        )
+        if strict:
+            raise ValueError(
+                "Strict Structured Outputs do not support open-ended dict outputs. "
+                "Define a concrete object schema (e.g., a dataclass or TypedDict)."
+            )
+        return {"type": "object"}
     if is_dataclass_type(tp):
         props: dict[str, dict] = {}
         required: list[str] = []
         hints = _get_type_hints(tp)
         for f in fields(tp):
             f_type = hints.get(f.name, f.type)
-            f_schema = to_json_schema(f_type) or {"type": "string"}
+            f_schema = to_json_schema(f_type, strict=strict) or {"type": "string"}
             props[f.name] = f_schema
-            required.append(f.name)
+            if strict or (f.default is MISSING and f.default_factory is MISSING):
+                required.append(f.name)
         schema = {
             "type": "object",
             "properties": props,

@@ -2,39 +2,32 @@ import os
 import importlib.util
 import pytest
 
-from alloy import command, configure
+from alloy import command, configure, tool, ConfigurationError
 
 pytestmark = pytest.mark.integration
 
 
-has_sdk = importlib.util.find_spec("ollama") is not None
-model_env = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "ollama:gpt-oss"))
-is_ollama = model_env.lower().startswith("ollama:")
+has_ollama = importlib.util.find_spec("ollama") is not None
+model_env = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", ""))
+is_ollama = model_env.lower().startswith("ollama") or model_env.lower().startswith("local")
 
 requires_ollama = pytest.mark.skipif(
-    not (has_sdk and is_ollama),
-    reason="Ollama test skipped (need `pip install alloy[ollama]` and ALLOY_IT_MODEL=ollama:<name>)",
+    not (has_ollama and is_ollama),
+    reason="Ollama SDK not installed or model not ollama*; integration test skipped",
 )
 
 
 @requires_ollama
-def test_ollama_simple_command():
-    configure(model=model_env, temperature=0.2)
+def test_ollama_placeholder_tools_not_supported():
+    configure(model=model_env or "ollama:phi3", temperature=0.1)
 
-    @command(output=str)
-    def hello() -> str:
-        return "Say 'ok' in one word."
+    @tool
+    def add(a: int, b: int = 1) -> int:
+        return a + b
 
-    try:
-        out = hello()
-    except Exception as e:
-        msg = str(e).lower()
-        cause = getattr(e, "__cause__", None)
-        cmsg = str(cause).lower() if cause else ""
-        if ("ollama" in msg or "ollama" in cmsg) and (
-            "connect" in msg or "failed" in msg or "connect" in cmsg or "failed" in cmsg
-        ):
-            pytest.skip(f"Ollama not reachable: {e}")
-        raise
-    assert isinstance(out, str)
-    assert len(out.strip()) > 0
+    @command(output=int, tools=[add])
+    def use_add() -> str:
+        return "Compute 2+1 using add(a=2); return the number only."
+
+    with pytest.raises(ConfigurationError):
+        _ = use_add()

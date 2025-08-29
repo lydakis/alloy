@@ -1,7 +1,7 @@
 import os
 import pytest
 
-from alloy import command, configure
+from alloy import command, configure, tool
 
 pytestmark = pytest.mark.integration
 
@@ -90,3 +90,23 @@ def test_gemini_sync_command_streaming_text_only():
         if len("".join(out)) >= 5:
             break
     assert len("".join(out)) > 0
+
+
+@requires_gemini
+def test_gemini_tools_optional_param_is_omittable():
+    configure(model=model_env or "gemini-2.5-flash", temperature=0.1)
+
+    @tool
+    def add(a: int, b: int = 1) -> int:
+        return a + b
+
+    @command(output=int, tools=[add])
+    def use_add() -> str:
+        return (
+            "Use add(a=2) to compute 2+1. Do not pass b; rely on its default. "
+            "Return only the number."
+        )
+
+    out = use_add()
+    assert isinstance(out, int)
+    assert out == 3

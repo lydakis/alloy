@@ -156,6 +156,26 @@ def test_anthropic_parallel_tool_calls_single_message_results():
 
 
 @requires_anthropic
+def test_anthropic_tools_optional_param_is_omittable():
+    configure(model=model_env or "claude-sonnet-4-20250514", temperature=0.1)
+
+    @tool
+    def add(a: int, b: int = 1) -> int:
+        return a + b
+
+    @command(output=int, tools=[add])
+    def use_add() -> str:
+        return (
+            "Use add(a=2) to compute 2+1. Do not pass b; rely on its default. "
+            "Return only the number."
+        )
+
+    out = use_add()
+    assert isinstance(out, int)
+    assert out == 3
+
+
+@requires_anthropic
 @pytest.mark.asyncio
 async def test_anthropic_async_streaming_text_only():
     configure(model=model_env or "claude-sonnet-4-20250514", temperature=0)

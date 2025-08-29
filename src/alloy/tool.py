@@ -32,17 +32,13 @@ class ToolSpec:
         properties: dict[str, Any] = {}
         required: list[str] = []
         for name, p in sig.parameters.items():
-            ann = p.annotation if p.annotation is not inspect._empty else None
-            schema = None
-            if ann is not None:
-                try:
-                    schema = to_json_schema(ann)
-                except ValueError:
-                    schema = {"type": "object"}
-            if not isinstance(schema, dict):
-                schema = {"type": "string"}
-            properties[name] = schema
-            required.append(name)
+            if p.annotation is not inspect.Parameter.empty:
+                schema = to_json_schema(p.annotation, strict=False)
+            else:
+                schema = None
+            properties[name] = schema if isinstance(schema, dict) else {"type": "string"}
+            if p.default is inspect.Parameter.empty:
+                required.append(name)
         return {
             "name": self.name,
             "description": self.description,
