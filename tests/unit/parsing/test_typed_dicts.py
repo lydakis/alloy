@@ -73,7 +73,7 @@ def test_typed_dict_nested():
 @pytest.mark.skipif("typing_extensions" not in globals(), reason="typing_extensions not available")
 def test_typed_dict_mixed_required_optional_via_notrequired():
     try:
-        from typing_extensions import TypedDict, NotRequired  # type: ignore
+        from typing_extensions import TypedDict, NotRequired
     except Exception:
         pytest.skip("typing_extensions not available")
 
