@@ -246,7 +246,6 @@ class GeminiBackend(ModelBackend):
             )
         cfg, wrapped_primitive = _prepare_config(config, output_schema)
 
-        # Tools: manual function-calling loop when tools provided
         if tools:
             T = self._Types
             if T is None:
@@ -290,7 +289,6 @@ class GeminiBackend(ModelBackend):
                         return _unwrap_value_if_needed(text2, wrapped_primitive)
                     return _unwrap_value_if_needed(text, wrapped_primitive)
 
-        # Single call without tools
         try:
             res_new = client.models.generate_content(
                 model=model_name, contents=prompt, config=cfg or None
@@ -344,7 +342,6 @@ class GeminiBackend(ModelBackend):
             ],
         )
 
-        # Attempt up to 2 finalize calls: first normal, then stricter fallback
         def _finalize_once(msg: Any) -> tuple[str, Any]:
             res = client.models.generate_content(
                 model=model_name, contents=history + [msg], config=cfg2 or None
@@ -356,7 +353,7 @@ class GeminiBackend(ModelBackend):
         txt, parsed = _finalize_once(finalize_msg)
         if parsed is not None and str(txt).strip():
             return txt
-        # Fallback: stricter wording and minimal backoff
+
         try:
             time.sleep(0.4)
         except Exception:

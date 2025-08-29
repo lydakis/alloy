@@ -26,7 +26,7 @@ def _as_text_from_content(content: Any) -> str:
         return ""
 
 
-_ANTHROPIC_REQUIRED_MAX_TOKENS = 2048  # Anthropic requires max_tokens; use this if unspecified
+_ANTHROPIC_REQUIRED_MAX_TOKENS = 2048
 
 
 class _LoopState:
@@ -60,8 +60,6 @@ class _LoopState:
             "model": self.config.model,
             "messages": self.messages,
         }
-        # Anthropic API requires max_tokens on every call. If not provided in
-        # Config, use a conservative fallback. Prefer setting ALLOY_MAX_TOKENS.
         mt = (
             int(self.config.max_tokens)
             if self.config.max_tokens is not None

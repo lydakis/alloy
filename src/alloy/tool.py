@@ -38,8 +38,6 @@ class ToolSpec:
                 try:
                     schema = to_json_schema(ann)
                 except ValueError:
-                    # For tool parameters, allow open-ended objects when a dict is annotated
-                    # even though strict structured OUTPUTS disallow them.
                     schema = {"type": "object"}
             if not isinstance(schema, dict):
                 schema = {"type": "string"}

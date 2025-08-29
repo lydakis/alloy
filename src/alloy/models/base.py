@@ -34,7 +34,6 @@ class ModelBackend:
     ) -> Iterable[str]:
         raise NotImplementedError
 
-    # Async variants
     async def acomplete(
         self,
         prompt: str,
@@ -59,7 +58,6 @@ class ModelBackend:
 def get_backend(model: str | None) -> ModelBackend:
     if not model:
         raise ConfigurationError("No model configured. Call alloy.configure(model=...) first.")
-    # Development helper: allow a fake backend for offline/examples via env flag
     if os.environ.get("ALLOY_BACKEND", "").lower() == "fake":
 
         class _Fake(ModelBackend):
@@ -104,7 +102,6 @@ def get_backend(model: str | None) -> ModelBackend:
 
         return _Fake()
     name = model.lower()
-    # Check explicit provider prefixes first to avoid substring collisions
     if name.startswith("ollama:") or name.startswith("local:"):
         from .ollama import OllamaBackend
 
@@ -117,7 +114,6 @@ def get_backend(model: str | None) -> ModelBackend:
         from .gemini import GeminiBackend
 
         return GeminiBackend()
-    # OpenAI routing
     if name.startswith("gpt") or name.startswith("openai") or "gpt-" in name:
         from .openai import OpenAIBackend
 

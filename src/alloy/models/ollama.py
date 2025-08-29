@@ -10,7 +10,6 @@ from .base import ModelBackend
 def _extract_model_name(model: str | None) -> str:
     if not model:
         return ""
-    # Accept prefixes like "ollama:phi3"
     if model.startswith("ollama:"):
         return model.split(":", 1)[1]
     if model.startswith("local:"):
@@ -46,7 +45,6 @@ class OllamaBackend(ModelBackend):
         if not model_name:
             raise ConfigurationError("Ollama model not specified (use model='ollama:<name>')")
 
-        # If a primitive schema is provided, bias toward strict JSON output
         if isinstance(output_schema, dict):
             t = output_schema.get("type")
             if t in ("number", "integer", "boolean", "string"):
@@ -61,7 +59,6 @@ class OllamaBackend(ModelBackend):
                     f"matching the required type. No code fences or extra text.\nExample: {example}"
                 )
 
-        # Use chat API for consistency with role/content messaging
         messages = [{"role": "user", "content": prompt}]
         try:
             res = ollama.chat(model=model_name, messages=messages)
@@ -69,7 +66,6 @@ class OllamaBackend(ModelBackend):
             content = (
                 msg.get("content", "") if isinstance(msg, dict) else getattr(msg, "content", "")
             )
-            # If primitive schema expected, attempt strict JSON extraction; if it fails, re-ask once
             if isinstance(output_schema, dict):
                 t = output_schema.get("type")
                 if t in ("number", "integer", "boolean", "string"):
@@ -81,7 +77,6 @@ class OllamaBackend(ModelBackend):
                             return str(data["value"])
                     except Exception:
                         pass
-                    # One retry: append assistant content and a strict user instruction
                     messages.append({"role": "assistant", "content": content or ""})
                     strict = (
                         "Return only a JSON object with a single key 'value' matching the required type. "

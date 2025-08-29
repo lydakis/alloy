@@ -40,7 +40,7 @@ class Config:
 
 
 _BUILTIN_DEFAULTS: Config = Config(model="gpt-5-mini")
-_global_config: Config = Config()  # explicit-only (all None until set via configure)
+_global_config: Config = Config()
 _context_config: contextvars.ContextVar[Config | None] = contextvars.ContextVar(
     "alloy_context_config", default=None
 )

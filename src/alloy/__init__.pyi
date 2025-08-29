@@ -11,7 +11,6 @@ from typing import (
     Generic,
 )
 
-# Public API re-exports (for type checkers)
 from .errors import CommandError, ToolError, ConfigurationError, ToolLoopLimitExceeded
 
 P = ParamSpec("P")
@@ -27,7 +26,6 @@ class AsyncCommandFn(Protocol, Generic[P, T_co]):
     def stream(self, *args: P.args, **kwargs: P.kwargs) -> AsyncIterable[str]: ...
     def async_(self, *args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T_co]: ...
 
-# Decorator protocol returning appropriate wrapper based on function type
 class _CommandDecorator(Protocol, Generic[T_co]):
     @overload
     def __call__(self, __func: Callable[P, str], /) -> SyncCommandFn[P, T_co]: ...
@@ -36,8 +34,6 @@ class _CommandDecorator(Protocol, Generic[T_co]):
         self, __func: Callable[P, Coroutine[Any, Any, str]], /
     ) -> AsyncCommandFn[P, T_co]: ...
 
-# Decorator overloads for sync/async
-# Explicit output type
 @overload
 def command(
     __func: Callable[P, str],
@@ -66,8 +62,6 @@ def command(
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
 ) -> AsyncCommandFn[P, T_co]: ...
-
-# Output omitted (defaults to str)
 @overload
 def command(
     __func: Callable[P, str],
@@ -96,8 +90,6 @@ def command(
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
 ) -> AsyncCommandFn[P, str]: ...
-
-# Decorator factory (called as @command(...))
 @overload
 def command(
     *,
@@ -149,7 +141,6 @@ class _AskNamespace:
         **overrides: Any,
     ) -> AsyncIterable[str]: ...
 
-# Runtime values provided by the package
 def tool(__func: Callable[..., Any] | None = ..., /, **kwargs: Any) -> Any: ...
 def require(
     predicate: Callable[[Any], bool], message: str
@@ -159,7 +150,6 @@ def ensure(
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]: ...
 def configure(**kwargs: Any) -> None: ...
 
-# Implementation provided at runtime
 ask: _AskNamespace
 
 __all__ = [
