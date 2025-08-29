@@ -110,3 +110,25 @@ def test_gemini_tools_optional_param_is_omittable():
     out = use_add()
     assert isinstance(out, int)
     assert out == 3
+
+
+@requires_gemini
+def test_gemini_typed_dict_output():
+    configure(model=model_env or "gemini-2.5-flash", temperature=0.2)
+    from typing import TypedDict
+
+    class Product(TypedDict):
+        name: str
+        price: float
+
+    @command(output=Product)
+    def make() -> str:
+        return (
+            "Return a Product JSON with name='Test' and price=9.99. "
+            "Numbers must be numeric literals (no currency symbols)."
+        )
+
+    out = make()
+    assert isinstance(out, dict)
+    assert out.get("name")
+    assert isinstance(out.get("price"), (int, float)) and out["price"] > 0

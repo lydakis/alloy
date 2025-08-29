@@ -19,7 +19,7 @@ requires_ollama = pytest.mark.skipif(
 
 @requires_ollama
 def test_ollama_placeholder_tools_not_supported():
-    configure(model=model_env or "ollama:phi3", temperature=0.1)
+    configure(model=model_env or "ollama:gpt-oss", temperature=0.1)
 
     @tool
     def add(a: int, b: int = 1) -> int:
@@ -31,3 +31,26 @@ def test_ollama_placeholder_tools_not_supported():
 
     with pytest.raises(ConfigurationError):
         _ = use_add()
+
+
+@requires_ollama
+def test_ollama_typed_dict_not_supported_raises_commanderror():
+    from alloy import CommandError
+
+    configure(model=model_env or "ollama:gpt-oss", temperature=0.1)
+
+    from typing import TypedDict
+
+    class Product(TypedDict):
+        name: str
+        price: float
+
+    @command(output=Product)
+    def make() -> str:
+        return (
+            "Return a Product JSON with name='Test' and price=9.99. "
+            "Numbers must be numeric literals (no currency symbols)."
+        )
+
+    with pytest.raises(CommandError):
+        _ = make()

@@ -25,6 +25,23 @@ def extract_person(text: str) -> str:
 print(extract_person("Ada, ada@example.com"))
 ```
 
+TypedDict outputs
+```python
+from typing import TypedDict
+from alloy import command
+
+class Product(TypedDict):
+    name: str
+    price: float
+
+@command(output=Product)
+def make() -> str:
+    return "Return a Product with name='Test' and price=9.99 (numeric literal)."
+
+out = make()
+assert isinstance(out, dict)
+```
+
 Validation errors
 ```python
 from alloy import CommandError

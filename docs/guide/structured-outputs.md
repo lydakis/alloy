@@ -10,8 +10,8 @@ Alloy enforces outputs using provider structured outputs. A JSON Schema is sent 
 
 - Primitives (str, int, float, bool):
   - Providers require an object root. Alloy wraps primitives as `{ "value": <primitive> }` and unwraps `value` before parsing.
-- Dataclasses (objects):
-  - A JSON Schema is generated from the dataclass. All fields are required and `additionalProperties: false` is set.
+- Dataclasses & TypedDict (objects):
+  - A JSON Schema is generated from the type. In strict mode, all fields are required and `additionalProperties: false` is set.
 - Arrays: `list[T]` is supported when `T` maps to a concrete schema as above.
 
 There is no prompt shaping. Output shape is enforced only via structured outputs.
@@ -33,9 +33,6 @@ Some types cannot produce a strict JSON Schema under provider constraints:
 - Optional/Union types are not supported yet.
 
 Use a concrete schema instead, such as a `@dataclass` or `TypedDict` with known fields.
-
-Planned
-- TypedDict outputs with strict schemas (equivalent to dataclasses).
 
 ## Errors and diagnostics
 

@@ -251,7 +251,7 @@ def _to_spec(func: Callable[..., Any]) -> ToolSpec:
 
 def _is_instance_of(value: Any, tp: Any) -> bool:
     try:
-        from .types import is_dataclass_type
+        from .types import is_dataclass_type, is_typeddict_type
         from typing import get_origin
     except Exception:
         return isinstance(value, tp)
@@ -261,6 +261,8 @@ def _is_instance_of(value: Any, tp: Any) -> bool:
         return isinstance(value, tp)
     if is_dataclass_type(tp):
         return isinstance(value, tp)
+    if is_typeddict_type(tp):
+        return isinstance(value, dict)
     origin = get_origin(tp)
     if origin is list:
         return isinstance(value, list)

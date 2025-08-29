@@ -55,6 +55,30 @@ def to_json_schema(tp: Any, strict: bool = True) -> dict | None:
         }
         return schema
 
+    if is_typeddict_type(tp):
+        props: dict[str, dict] = {}
+        required: list[str] = []
+        hints = _get_type_hints(tp)
+        required_keys = set(getattr(tp, "__required_keys__", set()))
+        optional_keys = set(getattr(tp, "__optional_keys__", set()))
+        if not required_keys and not optional_keys:
+            total = getattr(tp, "__total__", True)
+            if total:
+                required_keys = set(hints.keys())
+            else:
+                optional_keys = set(hints.keys())
+        for name, f_type in hints.items():
+            f_schema = to_json_schema(f_type, strict=strict) or {"type": "string"}
+            props[name] = f_schema
+            if strict or (name in required_keys):
+                required.append(name)
+        return {
+            "type": "object",
+            "properties": props,
+            "required": required,
+            "additionalProperties": False,
+        }
+
     return None
 
 
@@ -130,6 +154,13 @@ def _coerce(tp: Any, value: Any) -> Any:
                 ft = hints.get(f.name, f.type)
                 kwargs[f.name] = _coerce(ft, value[f.name])
         return tp(**kwargs)
+    if is_typeddict_type(tp) and isinstance(value, dict):
+        out: dict[str, Any] = {}
+        hints = _get_type_hints(tp)
+        for k, t in hints.items():
+            if k in value:
+                out[k] = _coerce(t, value[k])
+        return out
     return value
 
 
@@ -146,6 +177,22 @@ def is_dataclass_type(tp: Any) -> bool:
         return is_dataclass(tp)
     except Exception:
         return False
+
+
+def is_typeddict_type(tp: Any) -> bool:
+    try:
+        from typing_extensions import is_typeddict as _is_td  # type: ignore
+
+        return bool(_is_td(tp))
+    except Exception:
+        try:
+            return bool(
+                hasattr(tp, "__annotations__")
+                and hasattr(tp, "__total__")
+                and (hasattr(tp, "__required_keys__") or hasattr(tp, "__optional_keys__"))
+            )
+        except Exception:
+            return False
 
 
 def _primitive_name(tp: Any) -> str:

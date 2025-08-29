@@ -96,6 +96,30 @@ def test_openai_tools_optional_param_is_omittable():
 
 
 @requires_openai
+def test_openai_typed_dict_output():
+    from typing import TypedDict
+
+    model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))
+    configure(model=model, temperature=0.2)
+
+    class Product(TypedDict):
+        name: str
+        price: float
+
+    @command(output=Product)
+    def make() -> str:
+        return (
+            "Return a Product JSON with name='Test' and price=9.99. "
+            "Numbers must be numeric literals (no currency symbols)."
+        )
+
+    out = make()
+    assert isinstance(out, dict)
+    assert out.get("name")
+    assert isinstance(out.get("price"), (int, float)) and out["price"] > 0
+
+
+@requires_openai
 @pytest.mark.asyncio
 async def test_openai_async_streaming_text_only():
     model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))

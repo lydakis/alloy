@@ -84,6 +84,23 @@ result = analyze("Alloy is amazing!")
 print(result.score)  # 0.95
 ```
 
+TypedDict outputs are supported too:
+
+```python
+from typing import TypedDict
+from alloy import command
+
+class Product(TypedDict):
+    name: str
+    price: float
+
+@command(output=Product)
+def make() -> str:
+    return "Return a Product with name='Test' and price=9.99 (numeric literal)."
+
+print(make()["price"])  # 9.99
+```
+
 **Tools + Contracts** — Safe multi‑step workflows
 
 ```python

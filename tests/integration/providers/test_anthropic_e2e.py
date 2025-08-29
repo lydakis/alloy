@@ -176,6 +176,28 @@ def test_anthropic_tools_optional_param_is_omittable():
 
 
 @requires_anthropic
+def test_anthropic_typed_dict_output():
+    configure(model=model_env or "claude-sonnet-4-20250514", temperature=0.2)
+    from typing import TypedDict
+
+    class Product(TypedDict):
+        name: str
+        price: float
+
+    @command(output=Product)
+    def make() -> str:
+        return (
+            "Return a Product JSON with name='Test' and price=9.99. "
+            "Numbers must be numeric literals (no currency symbols)."
+        )
+
+    out = make()
+    assert isinstance(out, dict)
+    assert out.get("name")
+    assert isinstance(out.get("price"), (int, float)) and out["price"] > 0
+
+
+@requires_anthropic
 @pytest.mark.asyncio
 async def test_anthropic_async_streaming_text_only():
     configure(model=model_env or "claude-sonnet-4-20250514", temperature=0)

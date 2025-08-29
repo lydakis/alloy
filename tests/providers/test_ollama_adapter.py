@@ -17,7 +17,9 @@ def test_ollama_raises_on_tools(monkeypatch):
         return "ok"
 
     with pytest.raises(Exception):
-        be.complete("prompt", tools=[noop], output_schema=None, config=Config(model="ollama:phi3"))
+        be.complete(
+            "prompt", tools=[noop], output_schema=None, config=Config(model="ollama:gpt-oss")
+        )
 
 
 def test_ollama_stream_not_implemented():
@@ -25,4 +27,4 @@ def test_ollama_stream_not_implemented():
 
     be = OllamaBackend()
     with pytest.raises(Exception):
-        list(be.stream("p", tools=None, output_schema=None, config=Config(model="ollama:phi3")))
+        list(be.stream("p", tools=None, output_schema=None, config=Config(model="ollama:gpt-oss")))
