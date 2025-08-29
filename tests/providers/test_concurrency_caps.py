@@ -1,6 +1,5 @@
 import concurrent.futures
 import json
-import pytest
 
 from alloy.config import Config
 from alloy.models.openai import OpenAIBackend
@@ -71,7 +70,9 @@ def test_openai_concurrency_cap(monkeypatch):
             return _Resp(calls_left=(self.count == 1))
 
     client = _Client()
-    be._client_sync = type("C", (), {"responses": type("R", (), {"create": client.responses_create})()})()
+    be._client_sync = type(
+        "C", (), {"responses": type("R", (), {"create": client.responses_create})()}
+    )()
 
     monkeypatch.setattr(be, "_get_sync_client", lambda: be._client_sync)
 
@@ -114,7 +115,9 @@ def test_anthropic_concurrency_cap(monkeypatch):
             return _Resp(use=(self.count == 1))
 
     client = _Client()
-    be._client_sync = type("C", (), {"messages": type("M", (), {"create": client.messages_create})()})()
+    be._client_sync = type(
+        "C", (), {"messages": type("M", (), {"create": client.messages_create})()}
+    )()
     monkeypatch.setattr(be, "_get_sync_client", lambda: be._client_sync)
 
     cfg = Config(model="claude-3", parallel_tools_max=2)
@@ -136,10 +139,18 @@ def test_gemini_concurrency_cap(monkeypatch):
     class _Resp:
         def __init__(self, with_calls=True):
             self.text = ""
-            self.function_calls = [
-                type("FC", (), {"function_call": type("I", (), {"name": "_echo", "args": {"x": i}})()})
-                for i in range(5)
-            ] if with_calls else []
+            self.function_calls = (
+                [
+                    type(
+                        "FC",
+                        (),
+                        {"function_call": type("I", (), {"name": "_echo", "args": {"x": i}})()},
+                    )
+                    for i in range(5)
+                ]
+                if with_calls
+                else []
+            )
 
     class _Client:
         class models:
@@ -153,7 +164,9 @@ def test_gemini_concurrency_cap(monkeypatch):
             return _Resp(with_calls=(self.count == 1))
 
     client = _Client()
-    be._client = type("C", (), {"models": type("M", (), {"generate_content": client.models_generate_content})()})()
+    be._client = type(
+        "C", (), {"models": type("M", (), {"generate_content": client.models_generate_content})()}
+    )()
     monkeypatch.setattr(be, "_get_client", lambda: be._client)
 
     cfg = Config(model="gemini-2.5-flash", parallel_tools_max=4)

@@ -2,7 +2,7 @@ import pytest
 
 from alloy.models.anthropic import AnthropicBackend
 from alloy.config import Config
-from alloy.errors import ConfigurationError
+from alloy import ConfigurationError
 
 
 class _FakeAnthropicStream:
@@ -58,6 +58,7 @@ async def test_anthropic_astream_disallows_tools_and_schema(monkeypatch):
 
 def test_anthropic_stream_yields_text(monkeypatch):
     be = AnthropicBackend()
+
     class _SyncStream:
         def __init__(self, chunks):
             self._chunks = chunks
@@ -73,13 +74,14 @@ def test_anthropic_stream_yields_text(monkeypatch):
             def _gen():
                 for c in self._chunks:
                     yield c
+
             return _gen()
 
     class _SyncClient:
         class messages:
             @staticmethod
             def stream(**kwargs):
-                return _SyncStream(["Hello ", "Claude"]) 
+                return _SyncStream(["Hello ", "Claude"])
 
     be._client_sync = _SyncClient()
     monkeypatch.setattr(be, "_get_sync_client", lambda: be._client_sync)

@@ -2,7 +2,7 @@ import pytest
 
 from alloy.models.ollama import OllamaBackend
 from alloy.config import Config
-from alloy.errors import ConfigurationError
+from alloy import ConfigurationError
 
 
 @pytest.mark.asyncio

@@ -1,7 +1,7 @@
 import pytest
 
 from alloy.config import Config
-from alloy.errors import ConfigurationError
+from alloy import ConfigurationError
 
 
 class _OAIFakeStream:
@@ -71,7 +71,9 @@ async def test_astream_equivalence(monkeypatch, provider, expected):
 
                 return _gen()
 
-        be._client_async = type("C", (), {"messages": type("M", (), {"stream": staticmethod(lambda **_: _Stream())})()})()
+        be._client_async = type(
+            "C", (), {"messages": type("M", (), {"stream": staticmethod(lambda **_: _Stream())})()}
+        )()
         monkeypatch.setattr(be, "_get_async_client", lambda: be._client_async)
         cfg = Config(model="claude-3")
         aiter = await be.astream("prompt", tools=None, output_schema=None, config=cfg)
@@ -94,7 +96,19 @@ async def test_astream_equivalence(monkeypatch, provider, expected):
         be._client = type(
             "C",
             (),
-            {"aio": type("A", (), {"models": type("M", (), {"generate_content_stream": staticmethod(_generate_content_stream)})()})()},
+            {
+                "aio": type(
+                    "A",
+                    (),
+                    {
+                        "models": type(
+                            "M",
+                            (),
+                            {"generate_content_stream": staticmethod(_generate_content_stream)},
+                        )()
+                    },
+                )()
+            },
         )()
         monkeypatch.setattr(be, "_get_client", lambda: be._client)
         cfg = Config(model="gemini-2.5-flash")
@@ -135,4 +149,3 @@ async def test_astream_gating_equivalence(monkeypatch, provider):
         await be.astream("prompt", tools=[lambda: None], output_schema=None, config=cfg)
     with pytest.raises(ConfigurationError):
         await be.astream("prompt", tools=None, output_schema={"type": "string"}, config=cfg)
-

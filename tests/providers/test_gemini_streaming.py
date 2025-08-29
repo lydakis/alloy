@@ -2,7 +2,7 @@ import pytest
 
 from alloy.models.gemini import GeminiBackend
 from alloy.config import Config
-from alloy.errors import ConfigurationError
+from alloy import ConfigurationError
 
 
 class _Chunk:
@@ -49,6 +49,7 @@ async def test_gemini_astream_disallows_tools_and_schema(monkeypatch):
 
 def test_gemini_stream_yields_text(monkeypatch):
     be = GeminiBackend()
+
     class _SyncChunk:
         def __init__(self, text: str):
             self.text = text

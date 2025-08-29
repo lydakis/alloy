@@ -2,7 +2,7 @@ import pytest
 
 from alloy.models.openai import OpenAIBackend
 from alloy.config import Config
-from alloy.errors import ConfigurationError
+from alloy import ConfigurationError
 
 
 class _FakeStream:
@@ -61,6 +61,7 @@ async def test_openai_astream_disallows_schema(monkeypatch):
 
 def test_openai_stream_yields_text(monkeypatch):
     be = OpenAIBackend()
+
     # Reuse the same fake client for sync stream
     class _SyncFakeResponses:
         @staticmethod
@@ -69,6 +70,7 @@ def test_openai_stream_yields_text(monkeypatch):
                 {"type": "response.output_text.delta", "delta": "Sync "},
                 {"type": "response.output_text.delta", "delta": "stream"},
             ]
+
             # Provide context manager with __enter__/__exit__ and __iter__
             class _Ctx:
                 def __enter__(self_inner):
