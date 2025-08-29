@@ -7,7 +7,11 @@ import concurrent.futures
 import asyncio
 
 from ..config import Config, DEFAULT_PARALLEL_TOOLS_MAX
-from ..errors import ConfigurationError, ToolError, ToolLoopLimitExceeded
+from ..errors import (
+    ConfigurationError,
+    ToolError,
+    create_tool_loop_exception,
+)
 from .base import ModelBackend
 
 
@@ -124,6 +128,7 @@ class _LoopState:
         self.prev_id: str | None = None
         self.pending: list[dict[str, Any]] | None = None
         self.exceeded_tool_limit: bool = False
+        self.last_response_text: str = ""
 
     def build_kwargs(self) -> dict[str, object]:
         return _prepare_request_kwargs(
@@ -136,6 +141,8 @@ class _LoopState:
         )
 
     def after_response(self, resp: Any) -> tuple[bool, str]:
+        response_text = _extract_text_from_response(resp)
+        self.last_response_text = response_text
         self.prev_id = _get(resp, "id", self.prev_id)
         calls = _extract_tool_calls(resp)
         if calls and self.tool_defs is not None:
@@ -143,7 +150,7 @@ class _LoopState:
             limit = self.config.max_tool_turns
             if isinstance(limit, int) and limit >= 0 and self.turns > limit:
                 self.exceeded_tool_limit = True
-                return True, _extract_text_from_response(resp)
+                return True, response_text
             _ptm_val = self.config.parallel_tools_max
             ptm: int = (
                 _ptm_val
@@ -152,9 +159,11 @@ class _LoopState:
             )
             self.pending = _process_tool_calls(calls, self.tool_map, parallel_tools_max=ptm)
             return False, ""
-        return True, _extract_text_from_response(resp)
+        return True, response_text
 
     async def after_response_async(self, resp: Any) -> tuple[bool, str]:
+        response_text = _extract_text_from_response(resp)
+        self.last_response_text = response_text
         self.prev_id = _get(resp, "id", self.prev_id)
         calls = _extract_tool_calls(resp)
         if calls and self.tool_defs is not None:
@@ -162,7 +171,7 @@ class _LoopState:
             limit = self.config.max_tool_turns
             if isinstance(limit, int) and limit >= 0 and self.turns > limit:
                 self.exceeded_tool_limit = True
-                return True, _extract_text_from_response(resp)
+                return True, response_text
             _ptm_val = self.config.parallel_tools_max
             ptm: int = (
                 _ptm_val
@@ -171,7 +180,7 @@ class _LoopState:
             )
             self.pending = await _aprocess_tool_calls(calls, self.tool_map, parallel_tools_max=ptm)
             return False, ""
-        return True, _extract_text_from_response(resp)
+        return True, response_text
 
 
 def _is_temp_limited(model: str | None) -> bool:
@@ -344,9 +353,10 @@ class OpenAIBackend(ModelBackend):
             done, out = state.after_response(resp)
             if done:
                 if state.exceeded_tool_limit:
-                    lim = state.config.max_tool_turns
-                    raise ToolLoopLimitExceeded(
-                        f"Exceeded tool-call turn limit (max_tool_turns={lim}). No final answer produced."
+                    raise create_tool_loop_exception(
+                        max_turns=state.config.max_tool_turns,
+                        turns_taken=state.turns,
+                        partial_text=state.last_response_text,
                     )
                 if (
                     state.text_format
@@ -417,9 +427,10 @@ class OpenAIBackend(ModelBackend):
             done, out = await state.after_response_async(resp)
             if done:
                 if state.exceeded_tool_limit:
-                    lim = state.config.max_tool_turns
-                    raise ToolLoopLimitExceeded(
-                        f"Exceeded tool-call turn limit (max_tool_turns={lim}). No final answer produced."
+                    raise create_tool_loop_exception(
+                        max_turns=state.config.max_tool_turns,
+                        turns_taken=state.turns,
+                        partial_text=state.last_response_text,
                     )
                 if (
                     state.text_format

@@ -71,8 +71,11 @@ def test_openai_raises_on_tool_limit(monkeypatch):
     def hello() -> str:
         return "Say OK"
 
-    with pytest.raises(ToolLoopLimitExceeded):
+    with pytest.raises(ToolLoopLimitExceeded) as ei:
         hello()
+    msg = str(ei.value)
+    assert "max_tool_turns=1" in msg
+    assert "turns_taken=" in msg
 
     fc = _FakeOpenAI.last
     assert fc is not None

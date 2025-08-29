@@ -7,7 +7,11 @@ import json
 import concurrent.futures
 
 from ..config import Config, DEFAULT_PARALLEL_TOOLS_MAX
-from ..errors import ConfigurationError, ToolLoopLimitExceeded, ToolError
+from ..errors import (
+    ConfigurationError,
+    ToolError,
+    create_tool_loop_exception,
+)
 from .base import ModelBackend
 
 _ANTHROPIC_REQUIRED_MAX_TOKENS = 2048
@@ -153,6 +157,7 @@ class _LoopState:
             {"role": "user", "content": [{"type": "text", "text": prompt}]}
         ]
         self.exceeded_tool_limit: bool = False
+        self.last_response_text: str = ""
         if prefill:
             self.messages.append(
                 {"role": "assistant", "content": [{"type": "text", "text": prefill}]}
@@ -179,13 +184,19 @@ class _LoopState:
 
     def after_response(self, resp: Any) -> tuple[bool, str]:
         content = getattr(resp, "content", []) or []
+        response_text = _extract_text_from_response(resp)
+        self.last_response_text = (
+            f"{self.prefill}{response_text}"
+            if self.prefill and isinstance(response_text, str)
+            else response_text
+        )
         tool_calls = _extract_tool_calls(resp)
         if tool_calls and self.tool_defs is not None:
             self.turns += 1
             limit = self.config.max_tool_turns
             if isinstance(limit, int) and limit >= 0 and self.turns > limit:
                 self.exceeded_tool_limit = True
-                return True, _extract_text_from_response(resp)
+                return True, self.last_response_text
             self.messages.append({"role": "assistant", "content": content})
 
             if len(tool_calls) <= 1:
@@ -211,20 +222,26 @@ class _LoopState:
                     {"role": "assistant", "content": [{"type": "text", "text": self.prefill}]}
                 )
             return False, ""
-        text_out = _extract_text_from_response(resp)
+        text_out = response_text
         if self.prefill:
             return True, f"{self.prefill}{text_out}"
         return True, text_out
 
     async def after_response_async(self, resp: Any) -> tuple[bool, str]:
         content = getattr(resp, "content", []) or []
+        response_text = _extract_text_from_response(resp)
+        self.last_response_text = (
+            f"{self.prefill}{response_text}"
+            if self.prefill and isinstance(response_text, str)
+            else response_text
+        )
         tool_calls = _extract_tool_calls(resp)
         if tool_calls and self.tool_defs is not None:
             self.turns += 1
             limit = self.config.max_tool_turns
             if isinstance(limit, int) and limit >= 0 and self.turns > limit:
                 self.exceeded_tool_limit = True
-                return True, _extract_text_from_response(resp)
+                return True, self.last_response_text
             self.messages.append({"role": "assistant", "content": content})
 
             if len(tool_calls) <= 1:
@@ -255,7 +272,7 @@ class _LoopState:
                     {"role": "assistant", "content": [{"type": "text", "text": self.prefill}]}
                 )
             return False, ""
-        text_out = _extract_text_from_response(resp)
+        text_out = response_text
         if self.prefill:
             return True, f"{self.prefill}{text_out}"
         return True, text_out
@@ -495,9 +512,10 @@ class AnthropicBackend(ModelBackend):
             done, out = state.after_response(resp)
             if done:
                 if state.exceeded_tool_limit:
-                    lim = state.config.max_tool_turns
-                    raise ToolLoopLimitExceeded(
-                        f"Exceeded tool-call turn limit (max_tool_turns={lim}). No final answer produced."
+                    raise create_tool_loop_exception(
+                        max_turns=state.config.max_tool_turns,
+                        turns_taken=state.turns,
+                        partial_text=state.last_response_text,
                     )
                 if state.prefill and state.tool_defs is not None:
                     out2 = _finalize_json_output(client, state)
@@ -514,9 +532,10 @@ class AnthropicBackend(ModelBackend):
             done, out = await state.after_response_async(resp)
             if done:
                 if state.exceeded_tool_limit:
-                    lim = state.config.max_tool_turns
-                    raise ToolLoopLimitExceeded(
-                        f"Exceeded tool-call turn limit (max_tool_turns={lim}). No final answer produced."
+                    raise create_tool_loop_exception(
+                        max_turns=state.config.max_tool_turns,
+                        turns_taken=state.turns,
+                        partial_text=state.last_response_text,
                     )
                 if state.prefill and state.tool_defs is not None:
                     out2 = await _afinalize_json_output(client, state)

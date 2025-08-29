@@ -42,7 +42,7 @@ def test_anthropic_raises_on_tool_limit(monkeypatch):
     be = AnthropicBackend()
     be._Anthropic = lambda: _FakeClient()
 
-    with pytest.raises(ToolLoopLimitExceeded):
+    with pytest.raises(ToolLoopLimitExceeded) as ei:
         be.complete(
             "prompt",
             tools=[foo],
@@ -53,5 +53,8 @@ def test_anthropic_raises_on_tool_limit(monkeypatch):
             },
             config=Config(model="claude-sonnet-4-20250514", max_tool_turns=0),
         )
+    msg = str(ei.value)
+    assert "max_tool_turns=0" in msg
+    assert "turns_taken=" in msg
 
     assert len(calls) == 1

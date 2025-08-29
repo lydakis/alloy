@@ -7,7 +7,12 @@ import concurrent.futures
 import asyncio
 
 from ..config import Config, DEFAULT_PARALLEL_TOOLS_MAX
-from ..errors import ConfigurationError, ToolLoopLimitExceeded, ToolError
+from ..errors import (
+    ConfigurationError,
+    ToolLoopLimitExceeded,
+    ToolError,
+    create_tool_loop_exception,
+)
 from .base import ModelBackend
 
 
@@ -164,6 +169,7 @@ class _LoopState:
         decls = []
         self.tool_map: dict[str, Any] = {}
         self.exceeded_tool_limit: bool = False
+        self.last_response_text: str = ""
         for tl in tools:
             spec = tl.spec.as_schema()
             params = spec.get("parameters") if isinstance(spec, dict) else None
@@ -211,6 +217,8 @@ class _LoopState:
         return calls
 
     def after_response(self, res: Any) -> tuple[bool, str]:
+        response_text = _extract_text_from_response(res)
+        self.last_response_text = response_text
         calls = self._extract_tool_calls(res)
 
         if calls:
@@ -218,7 +226,7 @@ class _LoopState:
             limit = self.config.max_tool_turns
             if isinstance(limit, int) and limit >= 0 and self.turns > limit:
                 self.exceeded_tool_limit = True
-                return True, _extract_text_from_response(res)
+                return True, response_text
             candidates = getattr(res, "candidates", None)
             if isinstance(candidates, list) and candidates:
                 content0 = getattr(candidates[0], "content", None)
@@ -252,9 +260,11 @@ class _LoopState:
                 )
                 self.history.append(self.T.Content(role="tool", parts=[resp_part]))
             return False, ""
-        return True, _extract_text_from_response(res)
+        return True, response_text
 
     async def after_response_async(self, res: Any) -> tuple[bool, str]:
+        response_text = _extract_text_from_response(res)
+        self.last_response_text = response_text
         calls = self._extract_tool_calls(res)
 
         if calls:
@@ -262,7 +272,7 @@ class _LoopState:
             limit = self.config.max_tool_turns
             if isinstance(limit, int) and limit >= 0 and self.turns > limit:
                 self.exceeded_tool_limit = True
-                return True, _extract_text_from_response(res)
+                return True, response_text
             candidates = getattr(res, "candidates", None)
             if isinstance(candidates, list) and candidates:
                 content0 = getattr(candidates[0], "content", None)
@@ -387,8 +397,17 @@ class GeminiBackend(ModelBackend):
                 if done:
                     if state.exceeded_tool_limit:
                         lim = config.max_tool_turns
+                        partial = (state.last_response_text or "").strip()
+                        msg = f"Exceeded tool-call turn limit (max_tool_turns={lim}, turns_taken={state.turns})."
+                        if partial:
+                            msg += f" Partial response: {partial[:500]}"
+                        else:
+                            msg += " No final answer produced."
                         raise ToolLoopLimitExceeded(
-                            f"Exceeded tool-call turn limit (max_tool_turns={lim}). No final answer produced."
+                            msg,
+                            max_turns=lim,
+                            turns_taken=state.turns,
+                            partial_text=state.last_response_text,
                         )
                     if (output_schema is not None) and (
                         config.auto_finalize_missing_output is not False
@@ -505,9 +524,10 @@ class GeminiBackend(ModelBackend):
                 done, text = await state.after_response_async(res)
                 if done:
                     if state.exceeded_tool_limit:
-                        lim = config.max_tool_turns
-                        raise ToolLoopLimitExceeded(
-                            f"Exceeded tool-call turn limit (max_tool_turns={lim}). No final answer produced."
+                        raise create_tool_loop_exception(
+                            max_turns=config.max_tool_turns,
+                            turns_taken=state.turns,
+                            partial_text=state.last_response_text,
                         )
                     if (output_schema is not None) and (
                         config.auto_finalize_missing_output is not False
