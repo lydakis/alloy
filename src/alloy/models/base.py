@@ -204,27 +204,43 @@ def get_backend(model: str | None) -> ModelBackend:
     if os.environ.get("ALLOY_BACKEND", "").lower() == "fake":
 
         class _Fake(ModelBackend):
+            def _fake_from_schema(self, schema: object) -> object:
+                if not isinstance(schema, dict):
+                    return "demo"
+                t = (schema.get("type") or "").lower()
+                if t == "object":
+                    props = (
+                        schema.get("properties", {})
+                        if isinstance(schema.get("properties"), dict)
+                        else {}
+                    )
+                    required = (
+                        schema.get("required", [])
+                        if isinstance(schema.get("required"), list)
+                        else []
+                    )
+                    keys = list(required) if required else list(props.keys())
+                    out: dict[str, object] = {}
+                    for k in keys:
+                        out[k] = self._fake_from_schema(props.get(k, {}))
+                    return out
+                if t == "array":
+                    return []
+                if t == "number":
+                    return 0.0
+                if t == "integer":
+                    return 0
+                if t == "boolean":
+                    return True
+                if t == "null":
+                    return None
+                return "demo"
+
             def complete(
                 self, prompt: str, *, tools=None, output_schema=None, config: Config
             ) -> str:
                 if isinstance(output_schema, dict) and output_schema.get("type") == "object":
-                    props = output_schema.get("properties", {})
-                    obj: dict[str, object] = {}
-                    for k, v in props.items():
-                        t = v.get("type")
-                        if t == "number":
-                            obj[k] = 0.0
-                        elif t == "integer":
-                            obj[k] = 0
-                        elif t == "boolean":
-                            obj[k] = True
-                        elif t == "array":
-                            obj[k] = []
-                        elif t == "object":
-                            obj[k] = {}
-                        else:
-                            obj[k] = "demo"
-                    return json.dumps(obj)
+                    return json.dumps(self._fake_from_schema(output_schema))
                 return "42"
 
             def stream(self, prompt: str, *, tools=None, output_schema=None, config: Config):
