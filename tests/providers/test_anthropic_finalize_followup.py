@@ -49,7 +49,7 @@ def test_anthropic_finalize_followup_after_tools(monkeypatch):
             "properties": {"x": {"type": "string"}},
             "required": ["x"],
         },
-        config=Config(model="claude-sonnet-4-20250514"),
+        config=Config(model="claude-sonnet-4-20250514", auto_finalize_missing_output=True),
     )
     assert isinstance(out, str)
     assert len(calls) >= 2

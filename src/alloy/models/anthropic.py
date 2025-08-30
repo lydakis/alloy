@@ -334,7 +334,11 @@ class AnthropicBackend(ModelBackend):
             prefill=prefill,
         )
         out = self.run_tool_loop(client, state)
-        if state.prefill and state.tool_defs is not None:
+        if (
+            state.prefill
+            and state.tool_defs is not None
+            and bool(config.auto_finalize_missing_output)
+        ):
             out2 = _finalize_json_output(client, state)
             if isinstance(out2, str) and out2:
                 return out2
@@ -396,7 +400,11 @@ class AnthropicBackend(ModelBackend):
             prefill=prefill,
         )
         out = await self.arun_tool_loop(client, state)
-        if state.prefill and state.tool_defs is not None:
+        if (
+            state.prefill
+            and state.tool_defs is not None
+            and bool(config.auto_finalize_missing_output)
+        ):
             out2 = await _afinalize_json_output(client, state)
             if isinstance(out2, str) and out2:
                 return out2

@@ -59,7 +59,7 @@ print(extract_price("This item costs $49.99."))  # -> 49.99
 
 ## Provider notes
 
-- OpenAI: Uses Responses `text={"format": {"type": "json_schema", ...}}` and unwraps primitives from `{"value": ...}`. When tool calls complete but no final structured output is present, Alloy may issue one follow‑up turn (no tools) using the same schema to request the final answer. This is controlled by `auto_finalize_missing_output` (env `ALLOY_AUTO_FINALIZE_MISSING_OUTPUT`, default on). If still missing, the command raises.
+- OpenAI: Uses Responses `text={"format": {"type": "json_schema", ...}}` and unwraps primitives from `{"value": ...}`. When tool calls complete but no final structured output is present, Alloy can optionally issue one follow‑up turn (no tools) using the same schema to request the final answer. This is controlled by `auto_finalize_missing_output` (env `ALLOY_AUTO_FINALIZE_MISSING_OUTPUT`, default off). If disabled or still missing, the command raises.
 - Anthropic/Gemini: Use their respective structured-output mechanisms with a JSON Schema.
-- Some providers may require a final follow‑up turn to produce a structured response when tools are used. When `auto_finalize_missing_output` is enabled (default), Alloy performs a single follow‑up turn without tools to request the final structured answer.
+- Some providers may require a final follow‑up turn to produce a structured response when tools are used. When `auto_finalize_missing_output` is enabled (opt‑in), Alloy performs a single follow‑up turn without tools to request the final structured answer.
 - Ollama: No native structured outputs; strict mode not applied.

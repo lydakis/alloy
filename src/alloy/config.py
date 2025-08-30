@@ -24,7 +24,7 @@ class Config:
     retry: int | None = None
     retry_on: type[BaseException] | None = None
     max_tool_turns: int | None = 10
-    auto_finalize_missing_output: bool | None = True
+    auto_finalize_missing_output: bool | None = False
     parallel_tools_max: int | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 

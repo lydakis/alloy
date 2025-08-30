@@ -355,7 +355,7 @@ class GeminiBackend(ModelBackend):
             prompt=prompt,
         )
         out = self.run_tool_loop(client, state)
-        if (output_schema is not None) and (config.auto_finalize_missing_output is not False):
+        if (output_schema is not None) and bool(config.auto_finalize_missing_output):
             if tools_present or not out.strip():
                 text2 = _finalize_json_output(self._Types, client, model_name, state.history, cfg)
                 return _unwrap_value_if_needed(text2, wrapped_primitive)
@@ -456,7 +456,7 @@ class GeminiBackend(ModelBackend):
             prompt=prompt,
         )
         out = await self.arun_tool_loop(client, state)
-        if (output_schema is not None) and (config.auto_finalize_missing_output is not False):
+        if (output_schema is not None) and bool(config.auto_finalize_missing_output):
             if tools_present or not out.strip():
                 text2 = await _afinalize_json_output(
                     self._Types, client, model_name, state.history, cfg

@@ -3,12 +3,15 @@ from __future__ import annotations
 from collections.abc import Iterable, AsyncIterable
 from typing import Any
 import json
+import logging
 
 from ..config import Config
 from ..errors import (
     ConfigurationError,
 )
 from .base import ModelBackend, BaseLoopState, ToolCall, ToolResult
+
+log = logging.getLogger(__name__)
 
 
 def _build_text_format(output_schema: dict | None) -> dict | None:
@@ -219,8 +222,18 @@ def _prepare_request_kwargs(
         kwargs["tools"] = tool_defs
     if text_format is not None:
         kwargs["text"] = {"format": text_format}
-    if (config.temperature is not None) and not _is_temp_limited(config.model):
-        kwargs["temperature"] = config.temperature
+    if config.temperature is not None:
+        if _is_temp_limited(config.model):
+            try:
+                log.debug(
+                    "Ignoring temperature=%s for reasoning model '%s' due to provider constraints",
+                    config.temperature,
+                    config.model,
+                )
+            except Exception:
+                pass
+        else:
+            kwargs["temperature"] = config.temperature
     if config.max_tokens is not None:
         kwargs["max_output_tokens"] = config.max_tokens
     return kwargs
@@ -311,7 +324,7 @@ class OpenAIBackend(ModelBackend):
             tool_map=tool_map,
         )
         out = self.run_tool_loop(client, state)
-        if text_format and (config.auto_finalize_missing_output is not False) and not out.strip():
+        if text_format and bool(config.auto_finalize_missing_output) and not out.strip():
             return _finalize_json_output(client, state)
         return out
 
@@ -372,7 +385,7 @@ class OpenAIBackend(ModelBackend):
             tool_map=tool_map,
         )
         out = await self.arun_tool_loop(client, state)
-        if text_format and (config.auto_finalize_missing_output is not False) and not out.strip():
+        if text_format and bool(config.auto_finalize_missing_output) and not out.strip():
             return await _afinalize_json_output(client, state)
         return out
 

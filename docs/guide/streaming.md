@@ -9,6 +9,8 @@ Understand current text‑only streaming and the preview for sequence‑of‑obj
 - Text‑only streaming.
 - Commands that use tools or non‑string outputs do not stream via Alloy.
 
+> Warning: Streaming supports text only; tools and structured outputs are not supported.
+
 APIs
 ```python
 from alloy import ask, command

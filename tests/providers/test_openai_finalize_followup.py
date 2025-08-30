@@ -40,7 +40,7 @@ def test_openai_finalize_one_shot(monkeypatch):
     monkeypatch.setattr(_cmd_mod, "get_backend", lambda model: be)
     monkeypatch.setattr(_ask_mod, "get_backend", lambda model: be)
 
-    configure(model="gpt-5-mini")
+    configure(model="gpt-5-mini", auto_finalize_missing_output=True)
 
     @command(output=str)
     def hello() -> str:

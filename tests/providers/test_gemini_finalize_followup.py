@@ -90,7 +90,7 @@ def test_gemini_finalize_followup_after_tools(monkeypatch):
             "properties": {"x": {"type": "string"}},
             "required": ["x"],
         },
-        config=Config(model="gemini-1.5-pro"),
+        config=Config(model="gemini-1.5-pro", auto_finalize_missing_output=True),
     )
     assert isinstance(out, str) and out.strip()
     assert len(calls) >= 3

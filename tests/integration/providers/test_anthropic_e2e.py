@@ -202,7 +202,7 @@ def test_anthropic_typed_dict_output():
 async def test_anthropic_async_streaming_text_only():
     configure(model=model_env or "claude-sonnet-4-20250514", temperature=0)
     chunks = []
-    aiter = await ask.stream_async("Say 'hello world' exactly once.")
+    aiter = ask.stream_async("Say 'hello world' exactly once.")
     async for ch in aiter:
         chunks.append(ch)
         if len("".join(chunks)) >= 5:

@@ -125,7 +125,7 @@ async def test_openai_async_streaming_text_only():
     model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))
     configure(model=model, temperature=0)
     chunks = []
-    aiter = await ask.stream_async("Say 'hello world' exactly once.")
+    aiter = ask.stream_async("Say 'hello world' exactly once.")
     async for ch in aiter:
         chunks.append(ch)
         if len("".join(chunks)) >= 5:
