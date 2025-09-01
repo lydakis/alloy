@@ -58,3 +58,13 @@ Release notes and highlights. See full changelog for details.
   - Tool schemas are now non-strict and respect Python defaults: parameters with defaults are optional; nested dataclasses propagate optionality.
 - Streaming: simplified policy — text-only across providers; commands with tools or non-string outputs do not stream; use provider SDKs for complex streaming.
 - Gemini: backend refactor with non-streaming tool loop and strict finalize; streaming remains text-only.
+# What’s New
+
+## 0.2.2 — Shared loop, Gemini alignment, and streaming fix
+
+- Centralized tool loop and provider state (`BaseLoopState`), migrated OpenAI/Anthropic/Gemini.
+- Gemini now always uses the shared loop; finalize parity with Anthropic/OpenAI preserved.
+- `ask.stream_async()` returns an `AsyncIterable[str]` directly (no await at call site).
+- Providers finalize structured outputs only when `auto_finalize_missing_output=True` (default on).
+- OpenAI: reasoning models ignore temperature; Alloy drops it and logs a debug line.
+- Fake backend: stricter schema fill (nested required properties) to mirror provider strict mode.

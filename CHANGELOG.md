@@ -7,6 +7,19 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [0.2.2] - 2025-08-29
+### Highlights
+- Shared tool loop: centralized control flow via `BaseLoopState` with a unified `run_tool_loop`/`arun_tool_loop`. OpenAI (Responses), Anthropic, and Gemini migrated; Gemini now always uses the shared loop regardless of tools.
+- Streaming API: `ask.stream_async()` returns an `AsyncIterable[str]` directly (no await at call site), aligning with the docs and stubs.
+- Structured outputs: providers perform a single finalize shot only when `auto_finalize_missing_output=True` (default remains on). Turn‑limit semantics and text‑only streaming preserved.
+- OpenAI: drop temperature for reasoning models (`gpt-5`, `o1`, `o3`) and log a debug line when ignored.
+- Fake backend: fills nested required properties from the schema for stricter parity with provider strict mode.
+
+### Docs
+- Added contributor note on the shared loop and `BaseLoopState` contract (Architecture → Provider Abstraction).
+- Streaming guide: added a clear warning for text‑only streaming.
+- Configuration: clarified provider extras (tool choice settings) and finalize behavior.
+
 ### Tests / CI
 - Align test suite with design: unit, providers (SDK‑patched), integration (providers + scenarios), parity_live (serial), examples.
 - Add autouse config reset fixture, `ScriptedFakeBackend`, and provider patch helper.
