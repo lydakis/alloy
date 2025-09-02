@@ -12,6 +12,7 @@ from .base import (
     ToolCall,
     ToolResult,
     should_finalize_structured_output,
+    serialize_tool_payload,
 )
 
 
@@ -150,13 +151,7 @@ class OllamaLoopState(BaseLoopState[Any]):
             self.messages.append(self._last_assistant_content)
         for call, res in zip(calls, results):
             payload = res.value if res.ok else (res.error or "")
-            if isinstance(payload, str):
-                content = payload
-            else:
-                try:
-                    content = json.dumps(payload)
-                except Exception:
-                    content = str(payload)
+            content = serialize_tool_payload(payload)
             self.messages.append({"role": "tool", "content": content, "tool_name": call.name or ""})
 
     def _build_chat_kwargs(self, use_format: bool, stream: bool = False) -> dict[str, Any]:
@@ -225,7 +220,7 @@ class OllamaOpenAIChatLoopState(BaseLoopState[Any]):
         extra = getattr(self.config, "extra", {}) or {}
         choice = None
         if isinstance(extra, dict):
-            choice = extra.get("openai_tool_choice", extra.get("tool_choice"))
+            choice = extra.get("tool_choice") or extra.get("ollama_tool_choice")
         if isinstance(choice, (str, dict)):
             kwargs["tool_choice"] = choice
         res = cli.chat.completions.create(**kwargs)
@@ -252,7 +247,7 @@ class OllamaOpenAIChatLoopState(BaseLoopState[Any]):
         extra = getattr(self.config, "extra", {}) or {}
         choice = None
         if isinstance(extra, dict):
-            choice = extra.get("openai_tool_choice", extra.get("tool_choice"))
+            choice = extra.get("tool_choice") or extra.get("ollama_tool_choice")
         if isinstance(choice, (str, dict)):
             kwargs["tool_choice"] = choice
         res = await cli.chat.completions.create(**kwargs)
@@ -385,7 +380,7 @@ class OllamaBackend(ModelBackend):
                     raise
                 raise ConfigurationError(str(e)) from e
         else:
-            client = self._get_client()
+            client = self._get_sync_client()
             state_native = OllamaLoopState(
                 prompt=prompt,
                 config=config,
@@ -453,7 +448,7 @@ class OllamaBackend(ModelBackend):
 
             return gen()
         else:
-            client = self._get_client()
+            client = self._get_sync_client()
             kwargs: dict[str, Any] = {
                 "model": model_name,
                 "messages": messages,
@@ -608,7 +603,7 @@ class OllamaBackend(ModelBackend):
 
             return agen()
 
-    def _get_client(self) -> Any:
+    def _get_sync_client(self) -> Any:
         if self._ollama_module is None:
             try:
                 import ollama

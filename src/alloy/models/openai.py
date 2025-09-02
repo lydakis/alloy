@@ -14,6 +14,7 @@ from .base import (
     ToolCall,
     ToolResult,
     should_finalize_structured_output,
+    serialize_tool_payload,
 )
 
 
@@ -127,7 +128,7 @@ class OpenAILoopState(BaseLoopState[Any]):
         extra = getattr(self.config, "extra", {}) or {}
         choice = None
         if isinstance(extra, dict):
-            choice = extra.get("openai_tool_choice", extra.get("tool_choice"))
+            choice = extra.get("tool_choice") or extra.get("openai_tool_choice")
         if isinstance(choice, (str, dict)):
             kwargs["tool_choice"] = choice
         else:
@@ -179,13 +180,7 @@ class OpenAILoopState(BaseLoopState[Any]):
         pending: list[dict[str, Any]] = []
         for call, res in zip(calls, results):
             payload = res.value if res.ok else res.error
-            if isinstance(payload, str):
-                out_json = payload
-            else:
-                try:
-                    out_json = json.dumps(payload)
-                except Exception:
-                    out_json = str(payload)
+            out_json = serialize_tool_payload(payload)
             pending.append(
                 {"type": "function_call_output", "call_id": call.id or "", "output": out_json}
             )

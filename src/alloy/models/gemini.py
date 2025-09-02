@@ -236,13 +236,17 @@ class GeminiLoopState(BaseLoopState[Any]):
             return
         extra = getattr(self.config, "extra", {}) or {}
         try:
-            mode_raw = None
-            if isinstance(extra, dict):
-                mode_raw = extra.get("gemini_tool_mode", extra.get("tool_choice"))
-            mode = str(mode_raw).upper() if isinstance(mode_raw, str) else ""
+            tc = None
             allowed = None
             if isinstance(extra, dict):
-                allowed = extra.get("gemini_allowed_function_names", extra.get("allowed_tools"))
+                tc = extra.get("tool_choice") or extra.get("gemini_tool_choice")
+                allowed = extra.get("allowed_tools") or extra.get("gemini_allowed_tools")
+            mode_raw = None
+            if isinstance(tc, dict):
+                mode_raw = tc.get("type")
+            elif isinstance(tc, str):
+                mode_raw = tc
+            mode = str(mode_raw).upper() if isinstance(mode_raw, str) else ""
             if mode in ("AUTO", "ANY", "NONE"):
                 fcfg = T.FunctionCallingConfig(
                     mode=mode,
@@ -259,7 +263,8 @@ class GeminiBackend(ModelBackend):
     def __init__(self) -> None:
         self._GenAIClient: Any | None = None
         self._Types: Any | None = None
-        self._client: Any | None = None
+        self._client_sync: Any | None = None
+        self._client_async: Any | None = None
         try:
             from google import genai as _genai
             from google.genai import types as _types
@@ -277,7 +282,7 @@ class GeminiBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> str:
-        client: Any = self._get_client()
+        client: Any = self._get_sync_client()
         model_name = config.model
         if not model_name:
             raise ConfigurationError(
@@ -317,12 +322,12 @@ class GeminiBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> Iterable[str]:
-        _ = self._get_client()
+        _ = self._get_sync_client()
         if tools or output_schema is not None:
             raise ConfigurationError(
                 "Streaming supports text only; tools and structured outputs are not supported"
             )
-        client: Any = self._client
+        client: Any = self._client_sync
         model_name = config.model
         if not model_name:
             raise ConfigurationError(
@@ -353,7 +358,7 @@ class GeminiBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> str:
-        client: Any = self._get_client()
+        client: Any = self._get_sync_client()
         model_name = config.model
         if not model_name:
             raise ConfigurationError(
@@ -395,12 +400,12 @@ class GeminiBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> AsyncIterable[str]:
-        _ = self._get_client()
+        _ = self._get_sync_client()
         if tools or output_schema is not None:
             raise ConfigurationError(
                 "Streaming supports text only; tools and structured outputs are not supported"
             )
-        client: Any = self._client
+        client: Any = self._client_sync
         model_name = config.model
         if not model_name:
             raise ConfigurationError(
@@ -420,12 +425,16 @@ class GeminiBackend(ModelBackend):
 
         return agen()
 
-    def _get_client(self) -> Any:
+    def _get_sync_client(self) -> Any:
         if self._GenAIClient is None:
             raise ConfigurationError("Google GenAI SDK not installed. Install `alloy[gemini]`.")
-        if self._client is None:
-            self._client = self._GenAIClient()
-        return self._client
+        if self._client_sync is None:
+            self._client_sync = self._GenAIClient()
+        return self._client_sync
+
+    def _get_async_client(self) -> Any:
+        # Gemini uses the same client with an `.aio` surface for async calls.
+        return self._get_sync_client()
 
 
 def _response_text(res: Any) -> str:

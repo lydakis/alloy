@@ -18,7 +18,7 @@ Anthropic (Claude)
 ```bash
 export ANTHROPIC_API_KEY=...
 export ALLOY_MODEL=claude-sonnet-4-20250514
-# Anthropic requires max_tokens; Alloy uses 512 if unset
+# Anthropic requires max_tokens; Alloy uses 2048 if unset
 ```
 
 Google Gemini
@@ -44,7 +44,7 @@ export ALLOY_BACKEND=fake
 | Provider | Text | Tools | Structured Outputs | Streaming Text | Streaming + Tools | Streaming + Structured | Notes |
 |---|---|---|---|---|---|---|---|
 | OpenAI | Yes | Yes | Yes | Yes | No | No | Uses Responses API; auto-finalize missing structured output on OpenAI when enabled. |
-| Anthropic (Claude) | Yes | Yes | Yes | Yes | No | No | Requires `max_tokens` (Alloy uses 512 if unset). |
+| Anthropic (Claude) | Yes | Yes | Yes | Yes | No | No | Requires `max_tokens` (Alloy uses 2048 if unset). |
 | Google Gemini | Yes | Yes | Yes | Yes | No | No | Requires `max_tool_turns` configured; uses `google-genai`. |
 | Ollama (local) | Yes | Yes | Yes | Yes | No | No | Two APIs: native `/api/chat` (JSON Schema via `format`, full Ollama options) and OpenAI‑compatible Chat Completions. Default is native; config auto‑routes `ollama:*gpt-oss*` to compat unless overridden via `extra["ollama_api"]`. |
 | Fake (offline) | Yes | No | Yes (deterministic stub) | Yes | No | No | Offline backend for CI/examples; not for production. |

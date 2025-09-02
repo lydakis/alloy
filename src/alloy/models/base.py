@@ -256,6 +256,15 @@ def should_finalize_structured_output(text: str, schema: dict | None) -> bool:
         return True
 
 
+def serialize_tool_payload(payload: object) -> str:
+    if isinstance(payload, str):
+        return payload
+    try:
+        return json.dumps(payload)
+    except Exception:
+        return str(payload)
+
+
 def get_backend(model: str | None) -> ModelBackend:
     if not model:
         raise ConfigurationError("No model configured. Call alloy.configure(model=...) first.")

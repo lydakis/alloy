@@ -39,15 +39,35 @@ from alloy import configure
 configure(model="gpt-5-mini", temperature=0.2)
 ```
 
-## Provider-Specific Extras (advanced)
+## Provider Extras (advanced)
 
-Pass provider knobs via `Config.extra` or `ALLOY_EXTRA_JSON`.
+Pass provider knobs via `Config.extra` or `ALLOY_EXTRA_JSON`. Use generic keys first; provider‑prefixed fallbacks are supported for backward compatibility.
 
-| Provider | Key | Type | Example | Notes |
-|----------|-----|------|---------|-------|
-| OpenAI | `openai_tool_choice` | str or dict | `"auto"`, `"required"`, or a function spec dict | Overrides default tool choice (`auto`) when tools are present |
-| Anthropic | `anthropic_tool_choice` | dict | `{ "type": "auto" | "any" | "tool" | "none" }` | See Anthropic docs; `disable_parallel_tool_use` supported via `anthropic_disable_parallel_tool_use: true` |
-| Gemini | `gemini_tool_mode` | str | `"AUTO"`, `"ANY"`, `"NONE"` | Also supports `gemini_allowed_function_names: ["name1", "name2"]` |
-| Ollama | `ollama_api` | str | `"native"` or `"openai_chat"` | Select the API strategy. Default is `native` (Ollama SDK `/api/chat`); config auto‑routes `ollama:*gpt-oss*` to `openai_chat` unless explicitly set. |
+Primary keys
+- `tool_choice`: str or dict
+  - Examples: `"auto"`, `"any"`, `"none"`, or provider‑native dicts (e.g., Anthropic `{ "type": "auto" }`).
+- `allowed_tools`: list[str]
+  - Used by Gemini to restrict callable function names.
+- `disable_parallel_tool_use`: bool
+  - Used by Anthropic to prevent parallel tool execution.
+- `ollama_api`: str
+  - `"native"` or `"openai_chat"` — selects Ollama strategy.
+
+Provider fallbacks (optional)
+- OpenAI: `openai_tool_choice`
+- Anthropic: `anthropic_tool_choice`, `anthropic_disable_parallel_tool_use`
+- Gemini: `gemini_tool_choice`, `gemini_allowed_tools`
+- Ollama (OpenAI‑chat shim): `ollama_tool_choice`
+
+Examples
+```bash
+# Using ALLOY_EXTRA_JSON (shell)
+export ALLOY_EXTRA_JSON='{
+  "tool_choice": "auto",
+  "disable_parallel_tool_use": true,
+  "allowed_tools": ["get_weather", "get_time"],
+  "ollama_api": "native"
+}'
+```
 
 Keep the main API minimal; prefer defaults unless you need explicit control.

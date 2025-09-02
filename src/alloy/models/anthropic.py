@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable, AsyncIterable
 from typing import Any
-import json
 
 from ..config import Config
 from ..errors import (
@@ -14,6 +13,7 @@ from .base import (
     ToolCall,
     ToolResult,
     should_finalize_structured_output,
+    serialize_tool_payload,
 )
 
 _ANTHROPIC_REQUIRED_MAX_TOKENS = 2048
@@ -161,7 +161,7 @@ class AnthropicLoopState(BaseLoopState[Any]):
         extra = getattr(self.config, "extra", {}) or {}
         choice: dict[str, Any] = {"type": "auto"}
         if isinstance(extra, dict):
-            override = extra.get("anthropic_tool_choice") or extra.get("tool_choice")
+            override = extra.get("tool_choice") or extra.get("anthropic_tool_choice")
             if isinstance(override, dict) and override.get("type") in {
                 "auto",
                 "any",
@@ -169,9 +169,9 @@ class AnthropicLoopState(BaseLoopState[Any]):
                 "none",
             }:
                 choice = dict(override)
-            dptu = extra.get("anthropic_disable_parallel_tool_use")
+            dptu = extra.get("disable_parallel_tool_use")
             if dptu is None:
-                dptu = extra.get("disable_parallel_tool_use")
+                dptu = extra.get("anthropic_disable_parallel_tool_use")
             if isinstance(dptu, bool) and choice.get("type") in {"auto", "any", "tool"}:
                 choice["disable_parallel_tool_use"] = dptu
         kwargs["tool_choice"] = choice
@@ -239,13 +239,7 @@ class AnthropicLoopState(BaseLoopState[Any]):
         blocks_out: list[dict[str, Any]] = []
         for call, res in zip(calls, results):
             payload = res.value if res.ok else res.error
-            if isinstance(payload, str):
-                result_text = payload
-            else:
-                try:
-                    result_text = json.dumps(payload)
-                except Exception:
-                    result_text = str(payload)
+            result_text = serialize_tool_payload(payload)
             block: dict[str, Any] = {
                 "type": "tool_result",
                 "tool_use_id": str(call.id or ""),
