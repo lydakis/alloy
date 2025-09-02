@@ -428,14 +428,22 @@ class OllamaBackend(ModelBackend):
             it = client.chat(**kwargs)
 
             def gen() -> Iterable[str]:
-                for chunk in it:
+                try:
+                    for chunk in it:
+                        try:
+                            msg = getattr(chunk, "message", None)
+                            piece = getattr(msg, "content", None)
+                            if isinstance(piece, str) and piece:
+                                yield piece
+                        except Exception:
+                            continue
+                finally:
                     try:
-                        msg = getattr(chunk, "message", None)
-                        piece = getattr(msg, "content", None)
-                        if isinstance(piece, str) and piece:
-                            yield piece
+                        close = getattr(it, "close", None)
+                        if callable(close):
+                            close()
                     except Exception:
-                        continue
+                        pass
 
             return gen()
 
@@ -556,14 +564,22 @@ class OllamaBackend(ModelBackend):
             stream = await client.chat(**kwargs)
 
             async def agen() -> AsyncIterable[str]:
-                async for chunk in stream:
+                try:
+                    async for chunk in stream:
+                        try:
+                            msg = getattr(chunk, "message", None)
+                            piece = getattr(msg, "content", None)
+                            if isinstance(piece, str) and piece:
+                                yield piece
+                        except Exception:
+                            continue
+                finally:
                     try:
-                        msg = getattr(chunk, "message", None)
-                        piece = getattr(msg, "content", None)
-                        if isinstance(piece, str) and piece:
-                            yield piece
+                        aclose = getattr(stream, "aclose", None)
+                        if callable(aclose):
+                            await aclose()
                     except Exception:
-                        continue
+                        pass
 
             return agen()
 

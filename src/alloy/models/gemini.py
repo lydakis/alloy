@@ -289,10 +289,18 @@ class GeminiBackend(ModelBackend):
             raise ConfigurationError(str(e)) from e
 
         def gen():
-            for chunk in stream:
-                txt = getattr(chunk, "text", "") or ""
-                if txt:
-                    yield txt
+            try:
+                for chunk in stream:
+                    txt = getattr(chunk, "text", "") or ""
+                    if txt:
+                        yield txt
+            finally:
+                try:
+                    close = getattr(stream, "close", None)
+                    if callable(close):
+                        close()
+                except Exception:
+                    pass
 
         return gen()
 
@@ -364,10 +372,18 @@ class GeminiBackend(ModelBackend):
         )
 
         async def agen():
-            async for chunk in stream_ctx:
-                txt = getattr(chunk, "text", "") or ""
-                if txt:
-                    yield txt
+            try:
+                async for chunk in stream_ctx:
+                    txt = getattr(chunk, "text", "") or ""
+                    if txt:
+                        yield txt
+            finally:
+                try:
+                    aclose = getattr(stream_ctx, "aclose", None)
+                    if callable(aclose):
+                        await aclose()
+                except Exception:
+                    pass
 
         return agen()
 
