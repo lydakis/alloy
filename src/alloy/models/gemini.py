@@ -14,6 +14,7 @@ from .base import (
     ToolCall,
     ToolResult,
     should_finalize_structured_output,
+    build_tools_common,
 )
 
 
@@ -467,21 +468,9 @@ def _extract_text_from_response(res: Any) -> str:
 
 
 def _build_tools(tools: list | None, T: Any) -> tuple[list[Any] | None, dict[str, Any]]:
-    if not tools:
-        return None, {}
-    decls: list[Any] = []
-    tool_map: dict[str, Any] = {}
-    for tl in tools:
-        spec = tl.spec.as_schema()
-        params = spec.get("parameters") if isinstance(spec, dict) else None
-        if not isinstance(params, dict):
-            params = {"type": "object"}
-        decls.append(
-            T.FunctionDeclaration(
-                name=tl.spec.name,
-                description=tl.spec.description,
-                parameters=_schema_to_gemini(T, params),
-            )
+    def _fmt(name: str, description: str, params: dict[str, Any]) -> Any:
+        return T.FunctionDeclaration(
+            name=name, description=description, parameters=_schema_to_gemini(T, params)
         )
-        tool_map[tl.spec.name] = tl
-    return decls, tool_map
+
+    return build_tools_common(tools, _fmt)

@@ -14,26 +14,17 @@ from .base import (
     ToolResult,
     should_finalize_structured_output,
     serialize_tool_payload,
+    build_tools_common,
 )
 
 _ANTHROPIC_REQUIRED_MAX_TOKENS = 2048
 
 
 def _build_tools(tools: list | None) -> tuple[list[dict] | None, dict[str, Any]]:
-    if not tools:
-        return None, {}
-    tool_defs = [
-        {
-            "name": t.spec.name,
-            "description": t.spec.description,
-            "input_schema": (
-                t.spec.as_schema().get("parameters") if hasattr(t, "spec") else {"type": "object"}
-            ),
-        }
-        for t in tools
-    ]
-    tool_map = {t.spec.name: t for t in tools}
-    return tool_defs, tool_map
+    def _fmt(name: str, description: str, params: dict[str, Any]) -> dict[str, Any]:
+        return {"name": name, "description": description, "input_schema": params}
+
+    return build_tools_common(tools, _fmt)
 
 
 def _extract_text_from_response(resp: Any) -> str:

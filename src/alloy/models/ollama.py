@@ -13,6 +13,7 @@ from .base import (
     ToolResult,
     should_finalize_structured_output,
     serialize_tool_payload,
+    build_tools_common,
 )
 
 
@@ -27,27 +28,17 @@ def _extract_model_name(model: str | None) -> str:
 
 
 def _build_tools(tools: list | None) -> tuple[list[dict] | None, dict[str, Any]]:
-    if not tools:
-        return None, {}
-    tool_defs: list[dict] = []
-    tool_map: dict[str, Any] = {}
-    for t in tools:
-        spec = t.spec.as_schema()
-        params = spec.get("parameters") if isinstance(spec, dict) else None
-        if not isinstance(params, dict):
-            params = {"type": "object"}
-        tool_defs.append(
-            {
-                "type": "function",
-                "function": {
-                    "name": t.spec.name,
-                    "description": t.spec.description,
-                    "parameters": params,
-                },
-            }
-        )
-        tool_map[t.spec.name] = t
-    return tool_defs, tool_map
+    def _fmt(name: str, description: str, params: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "type": "function",
+            "function": {
+                "name": name,
+                "description": description,
+                "parameters": params,
+            },
+        }
+
+    return build_tools_common(tools, _fmt)
 
 
 def _wrap_schema_for_primitives(schema: dict | None) -> dict | None:

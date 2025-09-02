@@ -265,6 +265,24 @@ def serialize_tool_payload(payload: object) -> str:
         return str(payload)
 
 
+def build_tools_common(
+    tools: list | None,
+    formatter: Callable[[str, str, dict[str, Any]], Any],
+) -> tuple[list[Any] | None, dict[str, Any]]:
+    if not tools:
+        return None, {}
+    defs: list[Any] = []
+    tool_map: dict[str, Any] = {}
+    for t in tools:
+        spec = t.spec.as_schema()
+        params = spec.get("parameters") if isinstance(spec, dict) else None
+        if not isinstance(params, dict):
+            params = {"type": "object"}
+        defs.append(formatter(t.spec.name, t.spec.description, params))
+        tool_map[t.spec.name] = t
+    return defs, tool_map
+
+
 def get_backend(model: str | None) -> ModelBackend:
     if not model:
         raise ConfigurationError("No model configured. Call alloy.configure(model=...) first.")
