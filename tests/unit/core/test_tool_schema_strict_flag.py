@@ -39,6 +39,5 @@ def test_tool_schema_respects_defaults_nested_dataclass():
     assert cfg_schema.get("type") == "object"
     assert set(cfg_schema.get("required", [])) == {"name"}
 
-    # Also verify direct call with strict=False yields same
     cfg2 = to_json_schema(Config, strict=False)
     assert cfg2 and set(cfg2.get("required", [])) == {"name"}

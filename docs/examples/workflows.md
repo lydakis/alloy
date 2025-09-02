@@ -33,6 +33,7 @@ print(process_order({"id": 123, "amount": 99.99}))
 Expected: a short message indicating the steps; contracts guide the model.
 
 ## Links (GitHub)
+
 - [Routing/triage](https://github.com/lydakis/alloy/blob/main/examples/50-composition/02_routing_triage.py)
 - [Recursive analysis](https://github.com/lydakis/alloy/blob/main/examples/50-composition/03_recursive_analysis.py)
 - [Translator network](https://github.com/lydakis/alloy/blob/main/examples/50-composition/04_translator_network.py)

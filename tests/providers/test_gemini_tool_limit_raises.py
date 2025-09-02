@@ -127,7 +127,7 @@ async def test_gemini_async_raises_on_tool_limit(monkeypatch):
     class _FakeClient:
         class models:
             @staticmethod
-            def generate_content(*, model, contents, config=None):  # pragma: no cover
+            def generate_content(*, model, contents, config=None):
                 return _RespCalls(False)
 
         class aio:

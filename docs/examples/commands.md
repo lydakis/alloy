@@ -26,6 +26,7 @@ print(res.title)
 Expected: a structured object with `title` and 3–5 `key_points`.
 
 ## Links (GitHub)
+
 - [First command](https://github.com/lydakis/alloy/blob/main/examples/10-commands/01_first_command.py)
 - [Async command](https://github.com/lydakis/alloy/blob/main/examples/10-commands/03_async_command.py)
 - [Typed dataclass output](https://github.com/lydakis/alloy/blob/main/examples/20-typed/02_dataclass_output.py)

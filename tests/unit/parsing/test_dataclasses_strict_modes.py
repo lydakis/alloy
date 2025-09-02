@@ -14,7 +14,7 @@ class Output:
 
 
 def test_to_json_schema_strict_true_all_fields_required():
-    schema = to_json_schema(Output)  # default strict=True
+    schema = to_json_schema(Output)
     assert schema and schema.get("type") == "object"
     assert schema.get("required") == ["result", "score"]
 

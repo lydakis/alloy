@@ -33,7 +33,7 @@ def main() -> int:
     for url, out_path in targets.items():
         try:
             data = fetch(url)
-        except Exception as e:  # noqa: BLE001 - keep it simple for CI logs
+        except Exception as e:
             print(f"[brand-sync] skip {url}: {e}")
             continue
 

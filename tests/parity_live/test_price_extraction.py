@@ -32,6 +32,7 @@ class Price:
         ("openai", "gpt-5-mini"),
         ("anthropic", "claude-sonnet-4-20250514"),
         ("gemini", "gemini-2.5-flash"),
+        ("ollama", os.getenv("ALLOY_OLLAMA_PARITY_MODEL", "ollama:llama3.2")),
     ],
 )
 @pytest.mark.parametrize("text,_", CASES, ids=[c[0] for c in CASES])
@@ -41,11 +42,30 @@ def test_price_parity(provider, model, text, _, monkeypatch):
         "anthropic": "ANTHROPIC_API_KEY",
         "gemini": "GOOGLE_API_KEY",
     }
-    key = req.get(provider)
-    if key and not os.getenv(key):
-        pytest.skip(f"Missing {key}")
+    if provider == "ollama":
+        try:
+            import importlib.util as _iu
 
-    configure(model=model, temperature=0)
+            if _iu.find_spec("ollama") is None:
+                pytest.skip("Ollama SDK not installed")
+            import ollama as _ollama
+
+            _ = _ollama.list()
+        except Exception:
+            pytest.skip("Ollama server not running; set ALLOY_OLLAMA_PARITY_MODEL or start Ollama")
+    else:
+        key = req.get(provider)
+        if key and not os.getenv(key):
+            pytest.skip(f"Missing {key}")
+
+    if provider == "ollama":
+        configure(
+            model=model,
+            temperature=0,
+            extra={"ollama_api": os.getenv("ALLOY_OLLAMA_API", "native")},
+        )
+    else:
+        configure(model=model, temperature=0)
 
     @command(output=Price)
     def extract_price(s: str) -> str:

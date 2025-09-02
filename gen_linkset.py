@@ -4,7 +4,6 @@ import mkdocs_gen_files
 
 
 def to_dir_url(site: str, path: str) -> str:
-    # path is something like 'index.md', 'foo.md', 'foo/index.md', 'docs/bar.md'
     if path.endswith(".markdown"):
         stem = path[: -len(".markdown")]
     else:

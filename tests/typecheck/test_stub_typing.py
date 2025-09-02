@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Iterable, AsyncIterable, Awaitable, Callable
 
-# Typing-only assertions for the public API surface.
 
 if TYPE_CHECKING:
     from dataclasses import dataclass
@@ -37,7 +36,6 @@ if TYPE_CHECKING:
 
     price: float = get_price("the price is 5.99")
 
-    # Default typing when output omitted -> str (sync)
     @command
     def summarize(text: str) -> str:
         return f"Summarize: {text}"
@@ -53,7 +51,6 @@ if TYPE_CHECKING:
     expects_aiter(generate.stream())
     expects_awaitable_str(generate.async_())
 
-    # Default typing when output omitted -> str (async)
     @command
     async def a_summarize() -> str:
         return "hi"

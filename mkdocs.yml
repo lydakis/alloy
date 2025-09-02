@@ -119,6 +119,7 @@ nav:
       - typing.md
       - observability.md
       - tool_recipes.md
+      - testing.md
   - API Reference:
       - Top-level: api/alloy.md
       - Ask: api/ask.md

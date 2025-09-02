@@ -7,7 +7,6 @@ pytestmark = pytest.mark.unit
 
 
 def test_empty_stream_returns_no_chunks(fake_backend):
-    # No scripted events → empty stream
     chunks_ask = list(ask.stream("hello", model="gpt-5-mini"))
     assert chunks_ask == []
 

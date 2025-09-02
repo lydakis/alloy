@@ -29,10 +29,8 @@ def test_typed_dict_total_false_optional_fields():
         timeout: int
         retries: int
 
-    # Strict: require all
     schema_strict = to_json_schema(OptionalConfig, strict=True)
     assert set(schema_strict.get("required", [])) == {"timeout", "retries"}
-    # Non-strict: none required
     schema_loose = to_json_schema(OptionalConfig, strict=False)
     assert schema_loose.get("required", []) == []
 

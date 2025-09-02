@@ -11,7 +11,6 @@ import logging
 
 log = logging.getLogger(__name__)
 
-# Default cap for parallel tool execution across providers
 DEFAULT_PARALLEL_TOOLS_MAX: int = 8
 
 
@@ -153,6 +152,15 @@ def get_config(overrides: dict[str, Any] | None = None) -> Config:
                 parallel_tools_max=_BUILTIN_DEFAULTS.parallel_tools_max
                 or DEFAULT_PARALLEL_TOOLS_MAX,
             )
+        try:
+            model_l = (cfg.model or "").lower()
+            if model_l.startswith("ollama:") and "gpt-oss" in model_l:
+                ex = dict(cfg.extra or {})
+                if "ollama_api" not in ex:
+                    ex["ollama_api"] = "openai_chat"
+                    cfg = replace(cfg, extra=ex)
+        except Exception:
+            pass
         return cfg
     overrides = dict(overrides)
     if "system" in overrides and "default_system" not in overrides:
@@ -169,4 +177,13 @@ def get_config(overrides: dict[str, Any] | None = None) -> Config:
             cfg,
             parallel_tools_max=_BUILTIN_DEFAULTS.parallel_tools_max or DEFAULT_PARALLEL_TOOLS_MAX,
         )
+    try:
+        model_l = (cfg.model or "").lower()
+        if model_l.startswith("ollama:") and "gpt-oss" in model_l:
+            ex = dict(cfg.extra or {})
+            if "ollama_api" not in ex:
+                ex["ollama_api"] = "openai_chat"
+                cfg = replace(cfg, extra=ex)
+    except Exception:
+        pass
     return cfg

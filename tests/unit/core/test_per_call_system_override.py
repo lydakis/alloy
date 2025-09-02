@@ -18,7 +18,6 @@ class FakeBackend(ModelBackend):
 
 def test_ask_per_call_system_alias(monkeypatch):
     fb = FakeBackend()
-    # Patch the ask module's get_backend to return our fake instance
     ask_mod = importlib.import_module("alloy.ask")
     monkeypatch.setattr(ask_mod, "get_backend", lambda model: fb)
 

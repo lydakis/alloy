@@ -6,8 +6,10 @@ from alloy import ConfigurationError
 
 
 @pytest.mark.asyncio
-async def test_ollama_astream_not_implemented():
+async def test_ollama_astream_disallows_tools_and_typed_outputs():
     be = OllamaBackend()
     cfg = Config(model="ollama:gpt-oss")
     with pytest.raises(ConfigurationError):
-        await be.astream("prompt", tools=None, output_schema=None, config=cfg)
+        await be.astream("prompt", tools=[lambda: None], output_schema=None, config=cfg)
+    with pytest.raises(ConfigurationError):
+        await be.astream("prompt", tools=None, output_schema={"type": "string"}, config=cfg)

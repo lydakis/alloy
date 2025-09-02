@@ -23,6 +23,7 @@ print(analyze("Alloy makes typed AI functions feel like normal Python."))
 Expected: a short analysis referencing the word count.
 
 ## Links (GitHub)
+
 - [Simple tool](https://github.com/lydakis/alloy/blob/main/examples/30-tools/01_simple_tool.py)
 - [Parallel tool calls](https://github.com/lydakis/alloy/blob/main/examples/30-tools/03_parallel_tools.py)
 - [Tool recipes](https://github.com/lydakis/alloy/blob/main/examples/30-tools/04_tool_recipes.py)

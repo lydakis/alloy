@@ -13,6 +13,23 @@ from .base import ModelBackend, BaseLoopState, ToolCall, ToolResult
 _ANTHROPIC_REQUIRED_MAX_TOKENS = 2048
 
 
+def _build_tools(tools: list | None) -> tuple[list[dict] | None, dict[str, Any]]:
+    if not tools:
+        return None, {}
+    tool_defs = [
+        {
+            "name": t.spec.name,
+            "description": t.spec.description,
+            "input_schema": (
+                t.spec.as_schema().get("parameters") if hasattr(t, "spec") else {"type": "object"}
+            ),
+        }
+        for t in tools
+    ]
+    tool_map = {t.spec.name: t for t in tools}
+    return tool_defs, tool_map
+
+
 def _extract_text_from_response(resp: Any) -> str:
     try:
         parts = []
@@ -235,79 +252,6 @@ class AnthropicBackend(ModelBackend):
         except Exception:
             pass
 
-    def _get_sync_client(self) -> Any:
-        if self._Anthropic is None:
-            raise ConfigurationError(
-                "Anthropic SDK not installed. Run `pip install alloy[anthropic]`."
-            )
-        if self._client_sync is None:
-            self._client_sync = self._Anthropic()
-        return self._client_sync
-
-    def _get_async_client(self) -> Any:
-        if self._AsyncAnthropic is None:
-            raise ConfigurationError(
-                "Anthropic SDK not installed. Run `pip install alloy[anthropic]`."
-            )
-        if self._client_async is None:
-            self._client_async = self._AsyncAnthropic()
-        return self._client_async
-
-    def _prepare_conversation(
-        self, tools: list | None, output_schema: dict | None
-    ) -> tuple[list[dict[str, Any]] | None, dict[str, Any], str | None, str | None]:
-        tool_defs: list[dict[str, Any]] | None = None
-        tool_map: dict[str, Any] = {}
-        if tools:
-            tool_defs = [
-                {
-                    "name": t.spec.name,
-                    "description": t.spec.description,
-                    "input_schema": (
-                        t.spec.as_schema().get("parameters")
-                        if hasattr(t, "spec")
-                        else {"type": "object"}
-                    ),
-                }
-                for t in tools
-            ]
-            tool_map = {t.spec.name: t for t in tools}
-
-        prefill: str | None = None
-        system_hint: str | None = None
-        if output_schema and isinstance(output_schema, dict):
-
-            def _prefill_from_schema(s: dict) -> str:
-                t = s.get("type")
-                if t == "object":
-                    return "{"
-                return '{"value":'
-
-            t = output_schema.get("type")
-            if t == "object":
-                prefill = _prefill_from_schema(output_schema)
-                props = (
-                    output_schema.get("properties", {})
-                    if isinstance(output_schema.get("properties"), dict)
-                    else {}
-                )
-                keys = ", ".join(sorted(props.keys()))
-                system_hint = (
-                    "Return only a JSON object that exactly matches the required schema. "
-                    f"Use these keys: {keys}. Use numbers for numeric fields without symbols. No extra text."
-                )
-            elif t in ("number", "integer", "boolean"):
-                prefill = _prefill_from_schema(output_schema)
-                system_hint = (
-                    'Return only a JSON object of the form {"value": <value>} where <value> is the required type. '
-                    "No extra text before or after the JSON."
-                )
-            else:
-                prefill = None
-                system_hint = None
-
-        return tool_defs, tool_map, prefill, system_hint
-
     def complete(
         self,
         prompt: str,
@@ -440,6 +384,64 @@ class AnthropicBackend(ModelBackend):
                         yield text
 
         return agen()
+
+    def _get_sync_client(self) -> Any:
+        if self._Anthropic is None:
+            raise ConfigurationError(
+                "Anthropic SDK not installed. Run `pip install alloy[anthropic]`."
+            )
+        if self._client_sync is None:
+            self._client_sync = self._Anthropic()
+        return self._client_sync
+
+    def _get_async_client(self) -> Any:
+        if self._AsyncAnthropic is None:
+            raise ConfigurationError(
+                "Anthropic SDK not installed. Run `pip install alloy[anthropic]`."
+            )
+        if self._client_async is None:
+            self._client_async = self._AsyncAnthropic()
+        return self._client_async
+
+    def _prepare_conversation(
+        self, tools: list | None, output_schema: dict | None
+    ) -> tuple[list[dict[str, Any]] | None, dict[str, Any], str | None, str | None]:
+        tool_defs, tool_map = _build_tools(tools)
+
+        prefill: str | None = None
+        system_hint: str | None = None
+        if output_schema and isinstance(output_schema, dict):
+
+            def _prefill_from_schema(s: dict) -> str:
+                t = s.get("type")
+                if t == "object":
+                    return "{"
+                return '{"value":'
+
+            t = output_schema.get("type")
+            if t == "object":
+                prefill = _prefill_from_schema(output_schema)
+                props = (
+                    output_schema.get("properties", {})
+                    if isinstance(output_schema.get("properties"), dict)
+                    else {}
+                )
+                keys = ", ".join(sorted(props.keys()))
+                system_hint = (
+                    "Return only a JSON object that exactly matches the required schema. "
+                    f"Use these keys: {keys}. Use numbers for numeric fields without symbols. No extra text."
+                )
+            elif t in ("number", "integer", "boolean"):
+                prefill = _prefill_from_schema(output_schema)
+                system_hint = (
+                    'Return only a JSON object of the form {"value": <value>} where <value> is the required type. '
+                    "No extra text before or after the JSON."
+                )
+            else:
+                prefill = None
+                system_hint = None
+
+        return tool_defs, tool_map, prefill, system_hint
 
     def _prepare_stream_kwargs(self, prompt: str, config: Config) -> dict[str, Any]:
         kwargs: dict[str, Any] = {

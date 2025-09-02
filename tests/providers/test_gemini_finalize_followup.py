@@ -94,6 +94,5 @@ def test_gemini_finalize_followup_after_tools(monkeypatch):
     )
     assert isinstance(out, str) and out.strip()
     assert len(calls) >= 3
-    # Finalize (third) call config should not include tools/automatic_function_calling
     last_cfg = calls[-1][1]["config"] or {}
     assert "tools" not in last_cfg and "automatic_function_calling" not in last_cfg

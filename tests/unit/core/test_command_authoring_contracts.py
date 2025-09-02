@@ -11,7 +11,6 @@ pytestmark = [pytest.mark.unit, pytest.mark.contracts]
 
 
 def test_rejects_non_str_function_return_annotation():
-    # Intentionally wrong authoring: command functions must be annotated -> str.
     def bad() -> int:
         return 1
 

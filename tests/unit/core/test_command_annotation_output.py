@@ -20,7 +20,6 @@ class _SyncBackend(ModelBackend):
         output_schema: dict[str, t.Any] | None = None,
         config: Config,
     ) -> str:
-        # If asking for an object (dataclass), return matching JSON; else a number
         if (
             output_schema
             and isinstance(output_schema, dict)

@@ -46,10 +46,17 @@ export ALLOY_BACKEND=fake
 | OpenAI | Yes | Yes | Yes | Yes | No | No | Uses Responses API; auto-finalize missing structured output on OpenAI when enabled. |
 | Anthropic (Claude) | Yes | Yes | Yes | Yes | No | No | Requires `max_tokens` (Alloy uses 512 if unset). |
 | Google Gemini | Yes | Yes | Yes | Yes | No | No | Requires `max_tool_turns` configured; uses `google-genai`. |
-| Ollama (local) | Yes | No | Limited | No | No | No | No native structured outputs; primitives best-effort via JSON prompt; streaming and tools not implemented in scaffold. |
+| Ollama (local) | Yes | Yes | Yes | Yes | No | No | Two APIs: native `/api/chat` (JSON Schema via `format`, full Ollama options) and OpenAI‑compatible Chat Completions. Default is native; config auto‑routes `ollama:*gpt-oss*` to compat unless overridden via `extra["ollama_api"]`. |
 | Fake (offline) | Yes | No | Yes (deterministic stub) | Yes | No | No | Offline backend for CI/examples; not for production. |
 
 Note: “Streaming + Structured” means sequence‑of‑objects only (e.g., `list[T]`); Alloy does not stream partial object deltas.
+
+### Ollama specifics
+
+- API selection: `extra["ollama_api"] = "native" | "openai_chat"`. Default: `native`; config auto‑routes `ollama:*gpt-oss*` to `openai_chat` unless explicitly set.
+- Native API advantages: strict structured outputs with `format={JSON Schema}`, Ollama‑specific options (e.g., `num_predict`, `num_ctx`).
+- OpenAI‑compat advantages: drop‑in with OpenAI clients (e.g., gpt‑oss). Some Ollama knobs are not exposed here.
+- Limitations: streaming is text‑only (no tools or structured outputs while streaming). Tool calling requires a tool‑capable model.
 
 ---
 

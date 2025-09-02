@@ -47,7 +47,7 @@ def test_command_sync_parsing_and_retry(monkeypatch):
 
     result = extract_price("$9.99")
     assert isinstance(result, float)
-    assert result == 12.5  # from FakeBackend
+    assert result == 12.5
 
 
 def test_command_structured_dataclass(monkeypatch):

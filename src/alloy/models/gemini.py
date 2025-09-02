@@ -57,7 +57,7 @@ def _schema_to_gemini(T: Any, s: dict[str, Any]) -> Any:
 
 
 def _finalize_json_output(
-    T: Any, client: Any, model_name: str, history: list[Any], cfg: dict[str, object]
+    T: Any, client: Any, model_name: str, messages: list[Any], cfg: dict[str, object]
 ) -> str:
     if T is None:
         raise ConfigurationError("Google GenAI SDK types not available")
@@ -78,7 +78,7 @@ def _finalize_json_output(
 
     def _finalize_once(msg: Any) -> tuple[str, Any]:
         res = client.models.generate_content(
-            model=model_name, contents=history + [msg], config=cfg2 or None
+            model=model_name, contents=messages + [msg], config=cfg2 or None
         )
         txt = _extract_text_from_response(res)
         parsed = getattr(res, "parsed", None)
@@ -103,7 +103,7 @@ def _finalize_json_output(
 
 
 async def _afinalize_json_output(
-    T: Any, client: Any, model_name: str, history: list[Any], cfg: dict[str, object]
+    T: Any, client: Any, model_name: str, messages: list[Any], cfg: dict[str, object]
 ) -> str:
     if T is None:
         raise ConfigurationError("Google GenAI SDK types not available")
@@ -124,7 +124,7 @@ async def _afinalize_json_output(
 
     async def _finalize_once(msg: Any) -> tuple[str, Any]:
         res = await client.aio.models.generate_content(
-            model=model_name, contents=history + [msg], config=cfg2 or None
+            model=model_name, contents=messages + [msg], config=cfg2 or None
         )
         txt = _extract_text_from_response(res)
         parsed = getattr(res, "parsed", None)
@@ -160,58 +160,25 @@ class GeminiLoopState(BaseLoopState[Any]):
         super().__init__(config, {})
         self.T = types_mod
         self.cfg = dict(cfg)
-        decls = []
-        self.tool_map: dict[str, Any] = {}
-        for tl in tools:
-            spec = tl.spec.as_schema()
-            params = spec.get("parameters") if isinstance(spec, dict) else None
-            if not isinstance(params, dict):
-                params = {"type": "object"}
-            decls.append(
-                self.T.FunctionDeclaration(
-                    name=tl.spec.name,
-                    description=tl.spec.description,
-                    parameters=_schema_to_gemini(self.T, params),
-                )
-            )
-            self.tool_map[tl.spec.name] = tl
-        self.cfg["tools"] = [self.T.Tool(function_declarations=decls)]
+        decls, self.tool_map = _build_tools(tools, self.T)
+        if decls:
+            self.cfg["tools"] = [self.T.Tool(function_declarations=decls)]
         self.cfg["automatic_function_calling"] = self.T.AutomaticFunctionCallingConfig(disable=True)
-        self.history: list[Any] = [
+        self.messages: list[Any] = [
             self.T.Content(role="user", parts=[self.T.Part.from_text(text=prompt)])
         ]
         self._last_assistant_content: Any | None = None
 
-    def _apply_tool_choice(self) -> None:
-        T = self.T
-        if T is None:
-            return
-        extra = getattr(self.config, "extra", {}) or {}
-        try:
-            mode_raw = extra.get("gemini_tool_mode") if isinstance(extra, dict) else None
-            mode = str(mode_raw).upper() if isinstance(mode_raw, str) else ""
-            allowed = (
-                extra.get("gemini_allowed_function_names") if isinstance(extra, dict) else None
-            )
-            if mode in ("AUTO", "ANY", "NONE"):
-                fcfg = T.FunctionCallingConfig(
-                    mode=mode,
-                    allowed_function_names=allowed if isinstance(allowed, list) else None,
-                )
-                self.cfg["tool_config"] = T.ToolConfig(function_calling_config=fcfg)
-        except Exception:
-            return
-
     def make_request(self, client: Any) -> Any:
         self._apply_tool_choice()
         return client.models.generate_content(
-            model=self.config.model, contents=self.history, config=self.cfg or None
+            model=self.config.model, contents=self.messages, config=self.cfg or None
         )
 
     async def amake_request(self, client: Any) -> Any:
         self._apply_tool_choice()
         return await client.aio.models.generate_content(
-            model=self.config.model, contents=self.history, config=self.cfg or None
+            model=self.config.model, contents=self.messages, config=self.cfg or None
         )
 
     def extract_text(self, response: Any) -> str:
@@ -250,14 +217,34 @@ class GeminiLoopState(BaseLoopState[Any]):
 
     def add_tool_results(self, calls: list[ToolCall], results: list[ToolResult]) -> None:
         if self._last_assistant_content is not None:
-            self.history.append(self._last_assistant_content)
+            self.messages.append(self._last_assistant_content)
         for call, res in zip(calls, results):
             payload = res.value if res.ok else res.error
             response_obj = payload if isinstance(payload, (dict, list)) else {"result": payload}
             resp_part = self.T.Part.from_function_response(
                 name=(call.name or "unknown"), response=response_obj
             )
-            self.history.append(self.T.Content(role="tool", parts=[resp_part]))
+            self.messages.append(self.T.Content(role="tool", parts=[resp_part]))
+
+    def _apply_tool_choice(self) -> None:
+        T = self.T
+        if T is None:
+            return
+        extra = getattr(self.config, "extra", {}) or {}
+        try:
+            mode_raw = extra.get("gemini_tool_mode") if isinstance(extra, dict) else None
+            mode = str(mode_raw).upper() if isinstance(mode_raw, str) else ""
+            allowed = (
+                extra.get("gemini_allowed_function_names") if isinstance(extra, dict) else None
+            )
+            if mode in ("AUTO", "ANY", "NONE"):
+                fcfg = T.FunctionCallingConfig(
+                    mode=mode,
+                    allowed_function_names=allowed if isinstance(allowed, list) else None,
+                )
+                self.cfg["tool_config"] = T.ToolConfig(function_calling_config=fcfg)
+        except Exception:
+            return
 
 
 class GeminiBackend(ModelBackend):
@@ -275,54 +262,6 @@ class GeminiBackend(ModelBackend):
             self._Types = _types
         except Exception:
             pass
-
-    def _get_client(self) -> Any:
-        if self._GenAIClient is None:
-            raise ConfigurationError("Google GenAI SDK not installed. Install `alloy[gemini]`.")
-        if self._client is None:
-            self._client = self._GenAIClient()
-        return self._client
-
-    @staticmethod
-    def _prepare_tool_config(T: Any, config: Config) -> Any | None:
-        try:
-            extra = getattr(config, "extra", {}) or {}
-            mode_raw = extra.get("gemini_tool_mode", "")
-            mode = str(mode_raw).upper() if isinstance(mode_raw, str) else ""
-            allowed = extra.get("gemini_allowed_function_names")
-            if mode in ("AUTO", "ANY", "NONE"):
-                fcfg = T.FunctionCallingConfig(
-                    mode=mode,
-                    allowed_function_names=allowed if isinstance(allowed, list) else None,
-                )
-                return T.ToolConfig(function_calling_config=fcfg)
-        except Exception:
-            return None
-        return None
-
-    def _apply_tool_choice(
-        self, cfg: dict[str, object], tools_present: bool, extra: Any, tool_turns: int
-    ) -> None:
-        if not tools_present:
-            cfg.pop("tool_config", None)
-            return
-        T = self._Types
-        if T is None:
-            return
-        try:
-            mode_raw = extra.get("gemini_tool_mode") if isinstance(extra, dict) else None
-            mode = str(mode_raw).upper() if isinstance(mode_raw, str) else ""
-            allowed = (
-                extra.get("gemini_allowed_function_names") if isinstance(extra, dict) else None
-            )
-            if mode in ("AUTO", "ANY", "NONE"):
-                fcfg = T.FunctionCallingConfig(
-                    mode=mode,
-                    allowed_function_names=allowed if isinstance(allowed, list) else None,
-                )
-                cfg["tool_config"] = T.ToolConfig(function_calling_config=fcfg)
-        except Exception:
-            return
 
     def complete(
         self,
@@ -357,7 +296,7 @@ class GeminiBackend(ModelBackend):
         out = self.run_tool_loop(client, state)
         if (output_schema is not None) and bool(config.auto_finalize_missing_output):
             if tools_present or not out.strip():
-                text2 = _finalize_json_output(self._Types, client, model_name, state.history, cfg)
+                text2 = _finalize_json_output(self._Types, client, model_name, state.messages, cfg)
                 return _unwrap_value_if_needed(text2, wrapped_primitive)
         return _unwrap_value_if_needed(out, wrapped_primitive)
 
@@ -459,7 +398,7 @@ class GeminiBackend(ModelBackend):
         if (output_schema is not None) and bool(config.auto_finalize_missing_output):
             if tools_present or not out.strip():
                 text2 = await _afinalize_json_output(
-                    self._Types, client, model_name, state.history, cfg
+                    self._Types, client, model_name, state.messages, cfg
                 )
                 return _unwrap_value_if_needed(text2, wrapped_primitive)
         return _unwrap_value_if_needed(out, wrapped_primitive)
@@ -525,6 +464,54 @@ class GeminiBackend(ModelBackend):
 
         return agen()
 
+    def _get_client(self) -> Any:
+        if self._GenAIClient is None:
+            raise ConfigurationError("Google GenAI SDK not installed. Install `alloy[gemini]`.")
+        if self._client is None:
+            self._client = self._GenAIClient()
+        return self._client
+
+    @staticmethod
+    def _prepare_tool_config(T: Any, config: Config) -> Any | None:
+        try:
+            extra = getattr(config, "extra", {}) or {}
+            mode_raw = extra.get("gemini_tool_mode", "")
+            mode = str(mode_raw).upper() if isinstance(mode_raw, str) else ""
+            allowed = extra.get("gemini_allowed_function_names")
+            if mode in ("AUTO", "ANY", "NONE"):
+                fcfg = T.FunctionCallingConfig(
+                    mode=mode,
+                    allowed_function_names=allowed if isinstance(allowed, list) else None,
+                )
+                return T.ToolConfig(function_calling_config=fcfg)
+        except Exception:
+            return None
+        return None
+
+    def _apply_tool_choice(
+        self, cfg: dict[str, object], tools_present: bool, extra: Any, tool_turns: int
+    ) -> None:
+        if not tools_present:
+            cfg.pop("tool_config", None)
+            return
+        T = self._Types
+        if T is None:
+            return
+        try:
+            mode_raw = extra.get("gemini_tool_mode") if isinstance(extra, dict) else None
+            mode = str(mode_raw).upper() if isinstance(mode_raw, str) else ""
+            allowed = (
+                extra.get("gemini_allowed_function_names") if isinstance(extra, dict) else None
+            )
+            if mode in ("AUTO", "ANY", "NONE"):
+                fcfg = T.FunctionCallingConfig(
+                    mode=mode,
+                    allowed_function_names=allowed if isinstance(allowed, list) else None,
+                )
+                cfg["tool_config"] = T.ToolConfig(function_calling_config=fcfg)
+        except Exception:
+            return
+
 
 def _response_text(res: Any) -> str:
     txt = getattr(res, "text", None)
@@ -568,3 +555,24 @@ def _unwrap_value_if_needed(text: str, wrapped_primitive: bool) -> str:
         except Exception:
             return text
     return text
+
+
+def _build_tools(tools: list | None, T: Any) -> tuple[list[Any] | None, dict[str, Any]]:
+    if not tools:
+        return None, {}
+    decls: list[Any] = []
+    tool_map: dict[str, Any] = {}
+    for tl in tools:
+        spec = tl.spec.as_schema()
+        params = spec.get("parameters") if isinstance(spec, dict) else None
+        if not isinstance(params, dict):
+            params = {"type": "object"}
+        decls.append(
+            T.FunctionDeclaration(
+                name=tl.spec.name,
+                description=tl.spec.description,
+                parameters=_schema_to_gemini(T, params),
+            )
+        )
+        tool_map[tl.spec.name] = tl
+    return decls, tool_map

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, AsyncIterable
 from dataclasses import dataclass
 from typing import Any, Callable, Generic, TypeVar
+import inspect
 import abc
 import concurrent.futures
 import asyncio
@@ -107,12 +108,43 @@ class ModelBackend:
         if not fn:
             return ToolResult(call.id, ok=False, error=f"Tool '{call.name}' not available")
         try:
-            out = fn(**call.args) if isinstance(call.args, dict) else fn(call.args)
+            args = call.args
+            try:
+                target_fn = getattr(getattr(fn, "spec", None), "func", None)
+                if target_fn and isinstance(args, dict):
+                    sig = inspect.signature(target_fn)
+                    coerced: dict[str, Any] = {}
+                    for name, value in args.items():
+                        param = sig.parameters.get(name)
+                        ann = param.annotation if param is not None else inspect._empty
+                        coerced[name] = self._coerce_value(value, ann)
+                    args = coerced
+            except Exception:
+                pass
+            out = fn(**args) if isinstance(args, dict) else fn(args)
             return ToolResult(call.id, ok=True, value=out)
         except ToolError as e:
             return ToolResult(call.id, ok=False, error=str(e))
         except Exception as e:
             return ToolResult(call.id, ok=False, error=f"{type(e).__name__}: {e}")
+
+    @staticmethod
+    def _coerce_value(value: Any, annotation: Any) -> Any:
+        try:
+            if annotation is int:
+                return int(value)
+            if annotation is float:
+                return float(value)
+            if annotation is bool:
+                if isinstance(value, bool):
+                    return value
+                s = str(value).strip().lower()
+                return s in ("true", "1", "yes", "y", "t", "on")
+            if annotation is str:
+                return str(value)
+        except Exception:
+            return value
+        return value
 
     def execute_tools(
         self,

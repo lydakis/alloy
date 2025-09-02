@@ -39,7 +39,6 @@ def _echo(x: int = 1) -> int:
 
 def test_openai_concurrency_cap(monkeypatch):
     be = OpenAIBackend()
-    # Patch the thread pool to capture max_workers
     recorded = {}
 
     def _pool_ctor(max_workers):
@@ -79,7 +78,6 @@ def test_openai_concurrency_cap(monkeypatch):
     cfg = Config(model="gpt-5-mini", parallel_tools_max=3)
     out = be.complete("prompt", tools=[_echo], output_schema=None, config=cfg)
     assert isinstance(out, str)
-    # Should cap at min(5, 3) = 3
     assert recorded.get("max_workers") == 3
 
 

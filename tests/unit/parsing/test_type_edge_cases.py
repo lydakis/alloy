@@ -24,7 +24,6 @@ def test_optional_field_missing_vs_none():
 
 
 def test_nested_generic_collections_parse():
-    # Nested arrays of ints (supported); open-ended dicts are intentionally disallowed
     tp = list[list[int]]
     raw = '[["1", 2, 3], [4, "5"]]'
     out = parse_output(tp, raw)
