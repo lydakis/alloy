@@ -6,7 +6,13 @@ import json
 
 from ..config import Config
 from ..errors import ConfigurationError
-from .base import ModelBackend, BaseLoopState, ToolCall, ToolResult
+from .base import (
+    ModelBackend,
+    BaseLoopState,
+    ToolCall,
+    ToolResult,
+    should_finalize_structured_output,
+)
 
 
 def _extract_model_name(model: str | None) -> str:
@@ -171,12 +177,6 @@ class OllamaLoopState(BaseLoopState[Any]):
             "stream": bool(stream),
         }
         system_text = self.config.default_system or ""
-        if self.tool_defs is not None:
-            hint = (
-                "When a function tool is available, always call it to perform the requested action. "
-                "Do not compute internally. If a tool returns a plain message, output that message exactly."
-            )
-            system_text = f"{system_text}\n\n{hint}" if system_text else hint
         if system_text:
             kwargs["messages"] = [{"role": "system", "content": system_text}] + kwargs["messages"]
         opts: dict[str, Any] = {}
@@ -211,16 +211,6 @@ class OllamaOpenAIChatLoopState(BaseLoopState[Any]):
         self.messages: list[dict[str, Any]] = []
         if config.default_system:
             self.messages.append({"role": "system", "content": str(config.default_system)})
-        if self.tool_defs is not None:
-            self.messages.append(
-                {
-                    "role": "system",
-                    "content": (
-                        "When a function tool is available, always call it to perform the requested action. "
-                        "Do not compute internally. If a tool returns a plain message, output that message exactly."
-                    ),
-                }
-            )
         self.messages.append({"role": "user", "content": prompt})
         self._last_assistant_content: dict[str, Any] | None = None
 
@@ -232,6 +222,12 @@ class OllamaOpenAIChatLoopState(BaseLoopState[Any]):
         }
         if self.tool_defs is not None:
             kwargs["tools"] = self.tool_defs
+        extra = getattr(self.config, "extra", {}) or {}
+        choice = None
+        if isinstance(extra, dict):
+            choice = extra.get("openai_tool_choice", extra.get("tool_choice"))
+        if isinstance(choice, (str, dict)):
+            kwargs["tool_choice"] = choice
         res = cli.chat.completions.create(**kwargs)
         return res
 
@@ -253,6 +249,12 @@ class OllamaOpenAIChatLoopState(BaseLoopState[Any]):
         }
         if self.tool_defs is not None:
             kwargs["tools"] = self.tool_defs
+        extra = getattr(self.config, "extra", {}) or {}
+        choice = None
+        if isinstance(extra, dict):
+            choice = extra.get("openai_tool_choice", extra.get("tool_choice"))
+        if isinstance(choice, (str, dict)):
+            kwargs["tool_choice"] = choice
         res = await cli.chat.completions.create(**kwargs)
         return res
 
@@ -364,7 +366,7 @@ class OllamaBackend(ModelBackend):
                 if (
                     isinstance(output_schema, dict)
                     and bool(config.auto_finalize_missing_output)
-                    and not out.strip()
+                    and should_finalize_structured_output(out, output_schema)
                 ):
                     state_oai.messages.append(
                         {
@@ -395,8 +397,7 @@ class OllamaBackend(ModelBackend):
             try:
                 out = self.run_tool_loop(client, state_native)
                 if isinstance(output_schema, dict) and bool(config.auto_finalize_missing_output):
-                    top = str(output_schema.get("type") or "").lower()
-                    if top and top != "string":
+                    if should_finalize_structured_output(out, output_schema):
                         return self._finalize_json_output(client, state_native)
                 return out
             except Exception as e:
@@ -416,7 +417,7 @@ class OllamaBackend(ModelBackend):
     ) -> Iterable[str]:
         if tools or output_schema:
             raise ConfigurationError(
-                "Ollama streaming supports text-only prompts (no tools, no typed outputs)"
+                "Streaming supports text only; tools and structured outputs are not supported"
             )
         model_name = _extract_model_name(config.model)
         if not model_name:
@@ -511,7 +512,7 @@ class OllamaBackend(ModelBackend):
             if (
                 isinstance(output_schema, dict)
                 and bool(config.auto_finalize_missing_output)
-                and not (out or "").strip()
+                and should_finalize_structured_output(out, output_schema)
             ):
                 state_oai.messages.append(
                     {
@@ -534,10 +535,12 @@ class OllamaBackend(ModelBackend):
                 output_schema=output_schema if isinstance(output_schema, dict) else None,
             )
             out = await self.arun_tool_loop(client, state_native)
-            if isinstance(output_schema, dict) and bool(config.auto_finalize_missing_output):
-                top = str(output_schema.get("type") or "").lower()
-                if (not (out or "").strip()) or (top and top != "string"):
-                    return await self._afinalize_json_output(client, state_native)
+            if (
+                isinstance(output_schema, dict)
+                and bool(config.auto_finalize_missing_output)
+                and should_finalize_structured_output(out, output_schema)
+            ):
+                return await self._afinalize_json_output(client, state_native)
             return out
 
     async def astream(
@@ -550,7 +553,7 @@ class OllamaBackend(ModelBackend):
     ) -> AsyncIterable[str]:
         if tools or output_schema:
             raise ConfigurationError(
-                "Ollama streaming supports text-only prompts (no tools, no typed outputs)"
+                "Streaming supports text only; tools and structured outputs are not supported"
             )
         model_name = _extract_model_name(config.model)
         if not model_name:

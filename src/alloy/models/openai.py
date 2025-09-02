@@ -8,7 +8,13 @@ from ..config import Config
 from ..errors import (
     ConfigurationError,
 )
-from .base import ModelBackend, BaseLoopState, ToolCall, ToolResult
+from .base import (
+    ModelBackend,
+    BaseLoopState,
+    ToolCall,
+    ToolResult,
+    should_finalize_structured_output,
+)
 
 
 def _build_text_format(output_schema: dict | None) -> dict | None:
@@ -97,14 +103,6 @@ def _extract_text_from_response(resp: Any) -> str:
     return "".join(parts)
 
 
-def _has_any_output(resp: Any) -> bool:
-    parsed = _get(resp, "output_parsed", None)
-    if parsed is not None:
-        return True
-    text = _extract_text_from_response(resp)
-    return bool(text and text.strip())
-
-
 class OpenAILoopState(BaseLoopState[Any]):
     def __init__(
         self,
@@ -127,7 +125,9 @@ class OpenAILoopState(BaseLoopState[Any]):
             kwargs.pop("tool_choice", None)
             return
         extra = getattr(self.config, "extra", {}) or {}
-        choice = extra.get("openai_tool_choice") if isinstance(extra, dict) else None
+        choice = None
+        if isinstance(extra, dict):
+            choice = extra.get("openai_tool_choice", extra.get("tool_choice"))
         if isinstance(choice, (str, dict)):
             kwargs["tool_choice"] = choice
         else:
@@ -194,7 +194,7 @@ class OpenAILoopState(BaseLoopState[Any]):
 
 def _is_temp_limited(model: str | None) -> bool:
     m = (model or "").lower()
-    return ("gpt-5" in m) or m.startswith("o1") or m.startswith("o3")
+    return ("gpt-5" in m) or m.startswith("o1") or m.startswith("o3") or m.startswith("o4")
 
 
 def _prepare_request_kwargs(
@@ -280,18 +280,6 @@ class OpenAIBackend(ModelBackend):
         except Exception:
             pass
 
-    def _apply_tool_choice(
-        self, kwargs: dict[str, Any], tools_present: bool, extra: Any, tool_turns: int
-    ) -> None:
-        if not tools_present:
-            kwargs.pop("tool_choice", None)
-            return
-        choice = extra.get("openai_tool_choice") if isinstance(extra, dict) else None
-        if isinstance(choice, (str, dict)):
-            kwargs["tool_choice"] = choice
-        else:
-            kwargs["tool_choice"] = "auto"
-
     def complete(
         self,
         prompt: str,
@@ -311,7 +299,12 @@ class OpenAIBackend(ModelBackend):
             tool_map=tool_map,
         )
         out = self.run_tool_loop(client, state)
-        if text_format and bool(config.auto_finalize_missing_output) and not out.strip():
+        if (
+            text_format
+            and isinstance(output_schema, dict)
+            and bool(config.auto_finalize_missing_output)
+            and should_finalize_structured_output(out, output_schema)
+        ):
             return _finalize_json_output(client, state)
         return out
 
@@ -372,7 +365,12 @@ class OpenAIBackend(ModelBackend):
             tool_map=tool_map,
         )
         out = await self.arun_tool_loop(client, state)
-        if text_format and bool(config.auto_finalize_missing_output) and not out.strip():
+        if (
+            text_format
+            and isinstance(output_schema, dict)
+            and bool(config.auto_finalize_missing_output)
+            and should_finalize_structured_output(out, output_schema)
+        ):
             return await _afinalize_json_output(client, state)
         return out
 

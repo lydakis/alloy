@@ -8,7 +8,13 @@ from ..config import Config
 from ..errors import (
     ConfigurationError,
 )
-from .base import ModelBackend, BaseLoopState, ToolCall, ToolResult
+from .base import (
+    ModelBackend,
+    BaseLoopState,
+    ToolCall,
+    ToolResult,
+    should_finalize_structured_output,
+)
 
 _ANTHROPIC_REQUIRED_MAX_TOKENS = 2048
 
@@ -58,15 +64,21 @@ def _finalize_json_output(client: Any, state: "AnthropicLoopState") -> str | Non
             ],
         }
     )
-    state.messages.append(
-        {"role": "assistant", "content": [{"type": "text", "text": state.prefill}]}
-    )
+    if state.prefill:
+        state.messages.append(
+            {"role": "assistant", "content": [{"type": "text", "text": state.prefill}]}
+        )
     kwargs2 = state._base_kwargs()
     kwargs2.pop("tools", None)
     kwargs2.pop("tool_choice", None)
     resp2 = client.messages.create(**kwargs2)
     out2 = _extract_text_from_response(resp2)
-    return f"{state.prefill}{out2}" if out2 else None
+    if not out2:
+        return None
+    t = out2.lstrip()
+    if t.startswith("{") or t.startswith("["):
+        return out2
+    return f"{state.prefill}{out2}"
 
 
 async def _afinalize_json_output(client: Any, state: "AnthropicLoopState") -> str | None:
@@ -81,15 +93,21 @@ async def _afinalize_json_output(client: Any, state: "AnthropicLoopState") -> st
             ],
         }
     )
-    state.messages.append(
-        {"role": "assistant", "content": [{"type": "text", "text": state.prefill}]}
-    )
+    if state.prefill:
+        state.messages.append(
+            {"role": "assistant", "content": [{"type": "text", "text": state.prefill}]}
+        )
     kwargs2 = state._base_kwargs()
     kwargs2.pop("tools", None)
     kwargs2.pop("tool_choice", None)
     resp2 = await client.messages.create(**kwargs2)
     out2 = _extract_text_from_response(resp2)
-    return f"{state.prefill}{out2}" if out2 else None
+    if not out2:
+        return None
+    t = out2.lstrip()
+    if t.startswith("{") or t.startswith("["):
+        return out2
+    return f"{state.prefill}{out2}"
 
 
 def _extract_tool_calls(resp: Any) -> list[dict[str, Any]]:
@@ -143,7 +161,7 @@ class AnthropicLoopState(BaseLoopState[Any]):
         extra = getattr(self.config, "extra", {}) or {}
         choice: dict[str, Any] = {"type": "auto"}
         if isinstance(extra, dict):
-            override = extra.get("anthropic_tool_choice")
+            override = extra.get("anthropic_tool_choice") or extra.get("tool_choice")
             if isinstance(override, dict) and override.get("type") in {
                 "auto",
                 "any",
@@ -152,6 +170,8 @@ class AnthropicLoopState(BaseLoopState[Any]):
             }:
                 choice = dict(override)
             dptu = extra.get("anthropic_disable_parallel_tool_use")
+            if dptu is None:
+                dptu = extra.get("disable_parallel_tool_use")
             if isinstance(dptu, bool) and choice.get("type") in {"auto", "any", "tool"}:
                 choice["disable_parallel_tool_use"] = dptu
         kwargs["tool_choice"] = choice
@@ -187,7 +207,12 @@ class AnthropicLoopState(BaseLoopState[Any]):
 
     def extract_text(self, response: Any) -> str:
         txt = _extract_text_from_response(response)
-        return f"{self.prefill}{txt}" if self.prefill and isinstance(txt, str) else txt
+        if not (self.prefill and isinstance(txt, str)):
+            return txt
+        t = txt.lstrip()
+        if t.startswith("{") or t.startswith("["):
+            return txt
+        return f"{self.prefill}{txt}"
 
     def extract_tool_calls(self, response: Any) -> list[ToolCall] | None:
         self._last_assistant_content = getattr(response, "content", None) or []
@@ -230,7 +255,7 @@ class AnthropicLoopState(BaseLoopState[Any]):
                 block["is_error"] = True
             blocks_out.append(block)
         self.messages.append({"role": "user", "content": blocks_out})
-        if self.prefill:
+        if self.prefill and all(r.ok for r in results):
             self.messages.append(
                 {"role": "assistant", "content": [{"type": "text", "text": self.prefill}]}
             )
@@ -278,14 +303,17 @@ class AnthropicBackend(ModelBackend):
             prefill=prefill,
         )
         out = self.run_tool_loop(client, state)
-        if (
-            state.prefill
-            and state.tool_defs is not None
-            and bool(config.auto_finalize_missing_output)
-        ):
-            out2 = _finalize_json_output(client, state)
-            if isinstance(out2, str) and out2:
-                return out2
+        if isinstance(output_schema, dict) and bool(config.auto_finalize_missing_output):
+            top = (output_schema.get("type") or "").lower()
+            need_finalize = (
+                should_finalize_structured_output(out, output_schema)
+                if top != "string"
+                else (not out.strip())
+            )
+            if need_finalize:
+                out2 = _finalize_json_output(client, state)
+                if isinstance(out2, str) and out2:
+                    return out2
         return out
 
     def stream(
@@ -344,14 +372,17 @@ class AnthropicBackend(ModelBackend):
             prefill=prefill,
         )
         out = await self.arun_tool_loop(client, state)
-        if (
-            state.prefill
-            and state.tool_defs is not None
-            and bool(config.auto_finalize_missing_output)
-        ):
-            out2 = await _afinalize_json_output(client, state)
-            if isinstance(out2, str) and out2:
-                return out2
+        if isinstance(output_schema, dict) and bool(config.auto_finalize_missing_output):
+            top = (output_schema.get("type") or "").lower()
+            need_finalize = (
+                should_finalize_structured_output(out, output_schema)
+                if top != "string"
+                else (not out.strip())
+            )
+            if need_finalize:
+                out2 = await _afinalize_json_output(client, state)
+                if isinstance(out2, str) and out2:
+                    return out2
         return out
 
     async def astream(
@@ -418,7 +449,7 @@ class AnthropicBackend(ModelBackend):
                     return "{"
                 return '{"value":'
 
-            t = output_schema.get("type")
+            t = (output_schema.get("type") or "").lower()
             if t == "object":
                 prefill = _prefill_from_schema(output_schema)
                 props = (
@@ -431,12 +462,17 @@ class AnthropicBackend(ModelBackend):
                     "Return only a JSON object that exactly matches the required schema. "
                     f"Use these keys: {keys}. Use numbers for numeric fields without symbols. No extra text."
                 )
-            elif t in ("number", "integer", "boolean"):
-                prefill = _prefill_from_schema(output_schema)
-                system_hint = (
-                    'Return only a JSON object of the form {"value": <value>} where <value> is the required type. '
-                    "No extra text before or after the JSON."
-                )
+            elif t in ("number", "integer", "boolean", "string", "array"):
+                tools_present = tool_defs is not None
+                if not tools_present:
+                    prefill = _prefill_from_schema(output_schema)
+                    system_hint = (
+                        'Return only a JSON object of the form {"value": <value>} where <value> matches the required type. '
+                        + "No extra text before or after the JSON."
+                    )
+                else:
+                    prefill = None
+                    system_hint = None
             else:
                 prefill = None
                 system_hint = None

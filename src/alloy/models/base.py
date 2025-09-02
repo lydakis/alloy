@@ -230,6 +230,32 @@ class ModelBackend:
             state.add_tool_results(calls, results)
 
 
+def should_finalize_structured_output(text: str, schema: dict | None) -> bool:
+    """Return True if a finalize turn should be attempted for typed outputs.
+
+    Finalize when a schema is provided and the current text is empty or not
+    valid JSON (after stripping optional code fences). This is a lightweight
+    validity check; providers perform the strict parse.
+    """
+    if not isinstance(schema, dict):
+        return False
+    s = (text or "").strip()
+    if not s:
+        return True
+    if s.startswith("```"):
+        nl = s.find("\n")
+        if nl != -1:
+            s = s[nl + 1 :]
+        if s.endswith("```"):
+            s = s[:-3]
+        s = s.strip()
+    try:
+        json.loads(s)
+        return False
+    except Exception:
+        return True
+
+
 def get_backend(model: str | None) -> ModelBackend:
     if not model:
         raise ConfigurationError("No model configured. Call alloy.configure(model=...) first.")
@@ -305,7 +331,14 @@ def get_backend(model: str | None) -> ModelBackend:
         from .gemini import GeminiBackend
 
         return GeminiBackend()
-    if name.startswith("gpt") or name.startswith("openai") or "gpt-" in name:
+    if (
+        name.startswith("gpt")
+        or name.startswith("openai")
+        or "gpt-" in name
+        or name.startswith("o1")
+        or name.startswith("o3")
+        or name.startswith("o4")
+    ):
         from .openai import OpenAIBackend
 
         return OpenAIBackend()

@@ -8,10 +8,16 @@ from ..config import Config
 from ..errors import (
     ConfigurationError,
 )
-from .base import ModelBackend, BaseLoopState, ToolCall, ToolResult
+from .base import (
+    ModelBackend,
+    BaseLoopState,
+    ToolCall,
+    ToolResult,
+    should_finalize_structured_output,
+)
 
 
-def _prepare_config(config: Config, output_schema: dict | None) -> tuple[dict[str, object], bool]:
+def _prepare_config(config: Config, output_schema: dict | None) -> dict[str, object]:
     cfg: dict[str, object] = {}
     if config.default_system:
         cfg["system_instruction"] = str(config.default_system)
@@ -19,7 +25,6 @@ def _prepare_config(config: Config, output_schema: dict | None) -> tuple[dict[st
         cfg["temperature"] = float(config.temperature)
     if config.max_tokens is not None:
         cfg["max_output_tokens"] = int(config.max_tokens)
-    wrapped_primitive = False
     if output_schema and isinstance(output_schema, dict):
         schema: dict[str, object] = output_schema
         if schema.get("type") != "object":
@@ -28,10 +33,9 @@ def _prepare_config(config: Config, output_schema: dict | None) -> tuple[dict[st
                 "properties": {"value": output_schema},
                 "required": ["value"],
             }
-            wrapped_primitive = True
         cfg["response_mime_type"] = "application/json"
         cfg["response_json_schema"] = schema
-    return cfg, wrapped_primitive
+    return cfg
 
 
 def _schema_to_gemini(T: Any, s: dict[str, Any]) -> Any:
@@ -232,11 +236,13 @@ class GeminiLoopState(BaseLoopState[Any]):
             return
         extra = getattr(self.config, "extra", {}) or {}
         try:
-            mode_raw = extra.get("gemini_tool_mode") if isinstance(extra, dict) else None
+            mode_raw = None
+            if isinstance(extra, dict):
+                mode_raw = extra.get("gemini_tool_mode", extra.get("tool_choice"))
             mode = str(mode_raw).upper() if isinstance(mode_raw, str) else ""
-            allowed = (
-                extra.get("gemini_allowed_function_names") if isinstance(extra, dict) else None
-            )
+            allowed = None
+            if isinstance(extra, dict):
+                allowed = extra.get("gemini_allowed_function_names", extra.get("allowed_tools"))
             if mode in ("AUTO", "ANY", "NONE"):
                 fcfg = T.FunctionCallingConfig(
                     mode=mode,
@@ -277,7 +283,7 @@ class GeminiBackend(ModelBackend):
             raise ConfigurationError(
                 "A model name must be specified in the configuration for the Gemini backend."
             )
-        cfg, wrapped_primitive = _prepare_config(config, output_schema)
+        cfg = _prepare_config(config, output_schema)
         T = self._Types
         if T is None:
             raise ConfigurationError("Google GenAI SDK types not available")
@@ -294,39 +300,14 @@ class GeminiBackend(ModelBackend):
             prompt=prompt,
         )
         out = self.run_tool_loop(client, state)
-        if (output_schema is not None) and bool(config.auto_finalize_missing_output):
-            if tools_present or not out.strip():
-                text2 = _finalize_json_output(self._Types, client, model_name, state.messages, cfg)
-                return _unwrap_value_if_needed(text2, wrapped_primitive)
-        return _unwrap_value_if_needed(out, wrapped_primitive)
-
-        try:
-            res_new = client.models.generate_content(
-                model=model_name, contents=prompt, config=cfg or None
-            )
-            text = _extract_text_from_response(res_new)
-            should_finalize = (
-                output_schema is not None
-                and (config.auto_finalize_missing_output is not False)
-                and not text.strip()
-            )
-            if should_finalize:
-                T = self._Types
-                if T is None:
-                    raise ConfigurationError("Google GenAI SDK types not available")
-                user_content = T.Content(role="user", parts=[T.Part.from_text(text=prompt)])
-                candidates = getattr(res_new, "candidates", None)
-                assistant_content = (
-                    getattr(candidates[0], "content", None)
-                    if isinstance(candidates, list) and candidates
-                    else None
-                )
-                history = [c for c in [user_content, assistant_content] if c is not None]
-                text2 = _finalize_json_output(self._Types, client, model_name, history, cfg)
-                return _unwrap_value_if_needed(text2, wrapped_primitive)
-            return _unwrap_value_if_needed(text, wrapped_primitive)
-        except Exception as e:
-            raise ConfigurationError(str(e)) from e
+        if (
+            isinstance(output_schema, dict)
+            and bool(config.auto_finalize_missing_output)
+            and should_finalize_structured_output(out, output_schema)
+        ):
+            text2 = _finalize_json_output(self._Types, client, model_name, state.messages, cfg)
+            return text2
+        return out
 
     def stream(
         self,
@@ -347,7 +328,7 @@ class GeminiBackend(ModelBackend):
             raise ConfigurationError(
                 "A model name must be specified in the configuration for the Gemini backend."
             )
-        cfg, _wrapped = _prepare_config(config, None)
+        cfg = _prepare_config(config, None)
 
         try:
             stream = client.models.generate_content_stream(
@@ -378,7 +359,7 @@ class GeminiBackend(ModelBackend):
             raise ConfigurationError(
                 "A model name must be specified in the configuration for the Gemini backend."
             )
-        cfg, wrapped_primitive = _prepare_config(config, output_schema)
+        cfg = _prepare_config(config, output_schema)
         T = self._Types
         if T is None:
             raise ConfigurationError("Google GenAI SDK types not available")
@@ -395,41 +376,16 @@ class GeminiBackend(ModelBackend):
             prompt=prompt,
         )
         out = await self.arun_tool_loop(client, state)
-        if (output_schema is not None) and bool(config.auto_finalize_missing_output):
-            if tools_present or not out.strip():
-                text2 = await _afinalize_json_output(
-                    self._Types, client, model_name, state.messages, cfg
-                )
-                return _unwrap_value_if_needed(text2, wrapped_primitive)
-        return _unwrap_value_if_needed(out, wrapped_primitive)
-
-        try:
-            res = await client.aio.models.generate_content(
-                model=model_name, contents=prompt, config=cfg or None
+        if (
+            isinstance(output_schema, dict)
+            and bool(config.auto_finalize_missing_output)
+            and should_finalize_structured_output(out, output_schema)
+        ):
+            text2 = await _afinalize_json_output(
+                self._Types, client, model_name, state.messages, cfg
             )
-            text = _extract_text_from_response(res)
-            should_finalize = (
-                output_schema is not None
-                and (config.auto_finalize_missing_output is not False)
-                and not text.strip()
-            )
-            if should_finalize:
-                T = self._Types
-                if T is None:
-                    raise ConfigurationError("Google GenAI SDK types not available")
-                user_content = T.Content(role="user", parts=[T.Part.from_text(text=prompt)])
-                candidates = getattr(res, "candidates", None)
-                assistant_content = (
-                    getattr(candidates[0], "content", None)
-                    if isinstance(candidates, list) and candidates
-                    else None
-                )
-                history = [c for c in [user_content, assistant_content] if c is not None]
-                text2 = await _afinalize_json_output(self._Types, client, model_name, history, cfg)
-                return _unwrap_value_if_needed(text2, wrapped_primitive)
-            return _unwrap_value_if_needed(text, wrapped_primitive)
-        except Exception as e:
-            raise ConfigurationError(str(e)) from e
+            return text2
+        return out
 
     async def astream(
         self,
@@ -450,7 +406,7 @@ class GeminiBackend(ModelBackend):
             raise ConfigurationError(
                 "A model name must be specified in the configuration for the Gemini backend."
             )
-        cfg, _wrapped = _prepare_config(config, None)
+        cfg = _prepare_config(config, None)
 
         stream_ctx = await client.aio.models.generate_content_stream(
             model=model_name, contents=prompt, config=cfg or None
@@ -470,47 +426,6 @@ class GeminiBackend(ModelBackend):
         if self._client is None:
             self._client = self._GenAIClient()
         return self._client
-
-    @staticmethod
-    def _prepare_tool_config(T: Any, config: Config) -> Any | None:
-        try:
-            extra = getattr(config, "extra", {}) or {}
-            mode_raw = extra.get("gemini_tool_mode", "")
-            mode = str(mode_raw).upper() if isinstance(mode_raw, str) else ""
-            allowed = extra.get("gemini_allowed_function_names")
-            if mode in ("AUTO", "ANY", "NONE"):
-                fcfg = T.FunctionCallingConfig(
-                    mode=mode,
-                    allowed_function_names=allowed if isinstance(allowed, list) else None,
-                )
-                return T.ToolConfig(function_calling_config=fcfg)
-        except Exception:
-            return None
-        return None
-
-    def _apply_tool_choice(
-        self, cfg: dict[str, object], tools_present: bool, extra: Any, tool_turns: int
-    ) -> None:
-        if not tools_present:
-            cfg.pop("tool_config", None)
-            return
-        T = self._Types
-        if T is None:
-            return
-        try:
-            mode_raw = extra.get("gemini_tool_mode") if isinstance(extra, dict) else None
-            mode = str(mode_raw).upper() if isinstance(mode_raw, str) else ""
-            allowed = (
-                extra.get("gemini_allowed_function_names") if isinstance(extra, dict) else None
-            )
-            if mode in ("AUTO", "ANY", "NONE"):
-                fcfg = T.FunctionCallingConfig(
-                    mode=mode,
-                    allowed_function_names=allowed if isinstance(allowed, list) else None,
-                )
-                cfg["tool_config"] = T.ToolConfig(function_calling_config=fcfg)
-        except Exception:
-            return
 
 
 def _response_text(res: Any) -> str:
@@ -540,21 +455,6 @@ def _extract_text_from_response(res: Any) -> str:
         except Exception:
             return str(parsed)
     return _response_text(res)
-
-
-def _unwrap_value_if_needed(text: str, wrapped_primitive: bool) -> str:
-    if not wrapped_primitive or not text:
-        return text
-    try:
-        data = json.loads(text)
-    except Exception:
-        return text
-    if isinstance(data, dict) and "value" in data:
-        try:
-            return str(data["value"])
-        except Exception:
-            return text
-    return text
 
 
 def _build_tools(tools: list | None, T: Any) -> tuple[list[Any] | None, dict[str, Any]]:
