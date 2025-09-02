@@ -25,8 +25,8 @@ class _FakeGeminiClient:
 @pytest.mark.asyncio
 async def test_gemini_astream_yields_text(monkeypatch):
     be = GeminiBackend()
-    be._client = _FakeGeminiClient()
-    monkeypatch.setattr(be, "_get_client", lambda: be._client)
+    be._client_sync = _FakeGeminiClient()
+    monkeypatch.setattr(be, "_get_sync_client", lambda: be._client_sync)
     cfg = Config(model="gemini-2.5-flash")
     aiter = await be.astream("prompt", tools=None, output_schema=None, config=cfg)
     out: list[str] = []
@@ -38,8 +38,8 @@ async def test_gemini_astream_yields_text(monkeypatch):
 @pytest.mark.asyncio
 async def test_gemini_astream_disallows_tools_and_schema(monkeypatch):
     be = GeminiBackend()
-    be._client = _FakeGeminiClient()
-    monkeypatch.setattr(be, "_get_client", lambda: be._client)
+    be._client_sync = _FakeGeminiClient()
+    monkeypatch.setattr(be, "_get_sync_client", lambda: be._client_sync)
     cfg = Config(model="gemini-2.5-flash")
     with pytest.raises(ConfigurationError):
         await be.astream("prompt", tools=[lambda: None], output_schema=None, config=cfg)
@@ -60,8 +60,8 @@ def test_gemini_stream_yields_text(monkeypatch):
             def generate_content_stream(*, model, contents, config=None):
                 return [_SyncChunk("Sync "), _SyncChunk("Gemini")]
 
-    be._client = _SyncClient()
-    monkeypatch.setattr(be, "_get_client", lambda: be._client)
+    be._client_sync = _SyncClient()
+    monkeypatch.setattr(be, "_get_sync_client", lambda: be._client_sync)
     cfg = Config(model="gemini-2.5-flash")
     chunks = list(be.stream("prompt", tools=None, output_schema=None, config=cfg))
     assert "".join(chunks) == "Sync Gemini"

@@ -93,7 +93,7 @@ async def test_astream_equivalence(monkeypatch, provider, expected):
         async def _generate_content_stream(**_kwargs):
             return _gen()
 
-        be._client = type(
+        be._client_sync = type(
             "C",
             (),
             {
@@ -110,7 +110,7 @@ async def test_astream_equivalence(monkeypatch, provider, expected):
                 )()
             },
         )()
-        monkeypatch.setattr(be, "_get_client", lambda: be._client)
+        monkeypatch.setattr(be, "_get_sync_client", lambda: be._client_sync)
         cfg = Config(model="gemini-2.5-flash")
         aiter = await be.astream("prompt", tools=None, output_schema=None, config=cfg)
 
@@ -141,8 +141,8 @@ async def test_astream_gating_equivalence(monkeypatch, provider):
         from alloy.models.gemini import GeminiBackend
 
         be = GeminiBackend()
-        be._client = object()
-        monkeypatch.setattr(be, "_get_client", lambda: be._client)
+        be._client_sync = object()
+        monkeypatch.setattr(be, "_get_sync_client", lambda: be._client_sync)
         cfg = Config(model="gemini-2.5-flash")
 
     with pytest.raises(ConfigurationError):

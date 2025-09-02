@@ -18,7 +18,7 @@ def test_ollama_accepts_tools_native(monkeypatch):
             return {"message": {"role": "assistant", "content": "ok"}, "done": True}
 
     be = OllamaBackend()
-    monkeypatch.setattr(be, "_get_client", lambda: _FakeClient())
+    monkeypatch.setattr(be, "_get_sync_client", lambda: _FakeClient())
 
     @tool
     def noop() -> str:
@@ -46,7 +46,7 @@ def test_ollama_stream_text_native(monkeypatch):
             return [_Chunk("Hello"), _Chunk(" world")]
 
     be = OllamaBackend()
-    monkeypatch.setattr(be, "_get_client", lambda: _FakeClient())
+    monkeypatch.setattr(be, "_get_sync_client", lambda: _FakeClient())
     out = "".join(
         be.stream("p", tools=None, output_schema=None, config=Config(model="ollama:llama3"))
     )
@@ -78,7 +78,7 @@ def test_ollama_serializes_tools_and_calls(monkeypatch):
             return {"message": {"role": "assistant", "content": "3"}, "done": True}
 
     be = OllamaBackend()
-    monkeypatch.setattr(be, "_get_client", lambda: _FakeClient())
+    monkeypatch.setattr(be, "_get_sync_client", lambda: _FakeClient())
 
     @tool
     def add(a: int, b: int = 1) -> int:
@@ -120,7 +120,7 @@ def test_ollama_finalize_followup(monkeypatch):
             }
 
     be = OllamaBackend()
-    monkeypatch.setattr(be, "_get_client", lambda: _FakeClient())
+    monkeypatch.setattr(be, "_get_sync_client", lambda: _FakeClient())
 
     out = be.complete(
         "Return an object with x='ok'",
@@ -159,7 +159,7 @@ def test_ollama_tool_limit_raises(monkeypatch):
             }
 
     be = OllamaBackend()
-    monkeypatch.setattr(be, "_get_client", lambda: _FakeClient())
+    monkeypatch.setattr(be, "_get_sync_client", lambda: _FakeClient())
 
     _cmd_mod = importlib.import_module("alloy.command")
     _ask_mod = importlib.import_module("alloy.ask")

@@ -6,7 +6,7 @@ from alloy import tool
 
 def test_ensure_object_schema_wraps_primitives():
     assert ensure_object_schema(None) is None
-    assert ensure_object_schema("not-a-dict") is None  # type: ignore[arg-type]
+    assert ensure_object_schema("not-a-dict") is None
 
     obj = {"type": "object", "properties": {"x": {"type": "string"}}, "required": ["x"]}
     assert ensure_object_schema(obj) == obj

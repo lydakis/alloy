@@ -162,10 +162,10 @@ def test_gemini_concurrency_cap(monkeypatch):
             return _Resp(with_calls=(self.count == 1))
 
     client = _Client()
-    be._client = type(
+    be._client_sync = type(
         "C", (), {"models": type("M", (), {"generate_content": client.models_generate_content})()}
     )()
-    monkeypatch.setattr(be, "_get_client", lambda: be._client)
+    monkeypatch.setattr(be, "_get_sync_client", lambda: be._client_sync)
 
     cfg = Config(model="gemini-2.5-flash", parallel_tools_max=4)
     out = be.complete("prompt", tools=[_echo], output_schema=None, config=cfg)

@@ -233,13 +233,32 @@ class ModelBackend:
 def should_finalize_structured_output(text: str, schema: dict | None) -> bool:
     """Return True if a finalize turn should be attempted for typed outputs.
 
-    Finalize when a schema is provided and the current text is empty or not
-    valid JSON (after stripping optional code fences). This is a lightweight
-    validity check; providers perform the strict parse.
+    Rules:
+    - If no schema, do not finalize.
+    - If schema (or its wrapped form) represents a string, finalize only if the
+      current text is empty. Non-empty text is considered final for strings.
+    - Otherwise, finalize when the current text is empty or not valid JSON
+      (after stripping optional code fences).
     """
     if not isinstance(schema, dict):
         return False
+
+    def _is_string_schema_or_wrapper(s: dict[str, Any]) -> bool:
+        t = (s.get("type") or "").lower()
+        if t == "string":
+            return True
+        if t == "object":
+            props = s.get("properties") if isinstance(s.get("properties"), dict) else None
+            if isinstance(props, dict):
+                vs = props.get("value")
+                if isinstance(vs, dict) and (vs.get("type") or "").lower() == "string":
+                    return True
+        return False
+
     s = (text or "").strip()
+    if _is_string_schema_or_wrapper(schema):
+        return not bool(s)
+
     if not s:
         return True
     if s.startswith("```"):
