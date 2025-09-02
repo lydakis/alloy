@@ -44,20 +44,22 @@ configure(model="gpt-5-mini", temperature=0.2)
 Pass provider knobs via `Config.extra` or `ALLOY_EXTRA_JSON`. Use generic keys first; provider‑prefixed fallbacks are supported for backward compatibility.
 
 Primary keys
-- `tool_choice`: str or dict
-  - Examples: `"auto"`, `"any"`, `"none"`, or provider‑native dicts (e.g., Anthropic `{ "type": "auto" }`).
-- `allowed_tools`: list[str]
-  - Used by Gemini to restrict callable function names.
-- `disable_parallel_tool_use`: bool
-  - Used by Anthropic to prevent parallel tool execution.
-- `ollama_api`: str
-  - `"native"` or `"openai_chat"` — selects Ollama strategy.
+
+| Key | Type | Example | Notes |
+|-----|------|---------|-------|
+| `tool_choice` | str or dict | `"auto"`, `"any"`, `"none"` or provider dicts (e.g., `{ "type": "auto" }`) | Controls tool-calling behavior when tools are present |
+| `allowed_tools` | list[str] | `["get_weather", "get_time"]` | Restrict callable tools (used by Gemini) |
+| `disable_parallel_tool_use` | bool | `true` | Prevent parallel tool execution (Anthropic) |
+| `ollama_api` | str | `"native"` or `"openai_chat"` | Select Ollama strategy |
 
 Provider fallbacks (optional)
-- OpenAI: `openai_tool_choice`
-- Anthropic: `anthropic_tool_choice`, `anthropic_disable_parallel_tool_use`
-- Gemini: `gemini_tool_choice`, `gemini_allowed_tools`
-- Ollama (OpenAI‑chat shim): `ollama_tool_choice`
+
+| Provider | Fallback Key(s) | Notes |
+|----------|------------------|-------|
+| OpenAI | `openai_tool_choice` | Mirrors `tool_choice` |
+| Anthropic | `anthropic_tool_choice`, `anthropic_disable_parallel_tool_use` | Mirrors `tool_choice` and `disable_parallel_tool_use` |
+| Gemini | `gemini_tool_choice`, `gemini_allowed_tools` | Mirrors `tool_choice` and `allowed_tools` |
+| Ollama (OpenAI‑chat) | `ollama_tool_choice` | Mirrors `tool_choice` |
 
 Examples
 ```bash
