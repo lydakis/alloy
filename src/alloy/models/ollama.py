@@ -14,6 +14,7 @@ from .base import (
     should_finalize_structured_output,
     serialize_tool_payload,
     build_tools_common,
+    ensure_object_schema,
 )
 
 
@@ -39,18 +40,6 @@ def _build_tools(tools: list | None) -> tuple[list[dict] | None, dict[str, Any]]
         }
 
     return build_tools_common(tools, _fmt)
-
-
-def _wrap_schema_for_primitives(schema: dict | None) -> dict | None:
-    if not isinstance(schema, dict):
-        return None
-    if (schema.get("type") or "").lower() != "object":
-        return {
-            "type": "object",
-            "properties": {"value": schema},
-            "required": ["value"],
-        }
-    return schema
 
 
 def _strip_code_fences(text: str) -> str:
@@ -171,7 +160,9 @@ class OllamaLoopState(BaseLoopState[Any]):
         if self.tool_defs is not None:
             kwargs["tools"] = self.tool_defs
         if use_format and isinstance(self.output_schema, dict):
-            kwargs["format"] = _wrap_schema_for_primitives(self.output_schema)
+            obj = ensure_object_schema(self.output_schema)
+            if isinstance(obj, dict):
+                kwargs["format"] = obj
         return kwargs
 
 
@@ -340,32 +331,25 @@ class OllamaBackend(ModelBackend):
                 tool_map=tool_map,
                 output_schema=output_schema if isinstance(output_schema, dict) else None,
             )
-            try:
-                oai_client = self._get_openai_client()
-                out = self.run_tool_loop(oai_client, state_oai)
-                if isinstance(output_schema, dict):
-                    out = _strip_code_fences(out)
-                if (
-                    isinstance(output_schema, dict)
-                    and bool(config.auto_finalize_missing_output)
-                    and should_finalize_structured_output(out, output_schema)
-                ):
-                    state_oai.messages.append(
-                        {
-                            "role": "user",
-                            "content": "Respond ONLY with the JSON object matching the required schema.",
-                        }
-                    )
-                    out2 = self.run_tool_loop(oai_client, state_oai)
-                    out2 = _strip_code_fences(out2)
-                    return out2 if out2.strip() else out
-                return out
-            except Exception as e:
-                from ..errors import ToolLoopLimitExceeded
-
-                if isinstance(e, ToolLoopLimitExceeded):
-                    raise
-                raise ConfigurationError(str(e)) from e
+            oai_client = self._get_openai_client()
+            out = self.run_tool_loop(oai_client, state_oai)
+            if isinstance(output_schema, dict):
+                out = _strip_code_fences(out)
+            if (
+                isinstance(output_schema, dict)
+                and bool(config.auto_finalize_missing_output)
+                and should_finalize_structured_output(out, output_schema)
+            ):
+                state_oai.messages.append(
+                    {
+                        "role": "user",
+                        "content": "Respond ONLY with the JSON object matching the required schema.",
+                    }
+                )
+                out2 = self.run_tool_loop(oai_client, state_oai)
+                out2 = _strip_code_fences(out2)
+                return out2 if out2.strip() else out
+            return out
         else:
             client = self._get_sync_client()
             state_native = OllamaLoopState(
@@ -376,18 +360,11 @@ class OllamaBackend(ModelBackend):
                 tool_map=tool_map,
                 output_schema=output_schema if isinstance(output_schema, dict) else None,
             )
-            try:
-                out = self.run_tool_loop(client, state_native)
-                if isinstance(output_schema, dict) and bool(config.auto_finalize_missing_output):
-                    if should_finalize_structured_output(out, output_schema):
-                        return self._finalize_json_output(client, state_native)
-                return out
-            except Exception as e:
-                from ..errors import ToolLoopLimitExceeded
-
-                if isinstance(e, ToolLoopLimitExceeded):
-                    raise
-                raise ConfigurationError(str(e)) from e
+            out = self.run_tool_loop(client, state_native)
+            if isinstance(output_schema, dict) and bool(config.auto_finalize_missing_output):
+                if should_finalize_structured_output(out, output_schema):
+                    return self._finalize_json_output(client, state_native)
+            return out
 
     def stream(
         self,

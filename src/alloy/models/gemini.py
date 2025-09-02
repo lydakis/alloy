@@ -15,6 +15,7 @@ from .base import (
     ToolResult,
     should_finalize_structured_output,
     build_tools_common,
+    ensure_object_schema,
 )
 
 
@@ -27,15 +28,10 @@ def _prepare_config(config: Config, output_schema: dict | None) -> dict[str, obj
     if config.max_tokens is not None:
         cfg["max_output_tokens"] = int(config.max_tokens)
     if output_schema and isinstance(output_schema, dict):
-        schema: dict[str, object] = output_schema
-        if schema.get("type") != "object":
-            schema = {
-                "type": "object",
-                "properties": {"value": output_schema},
-                "required": ["value"],
-            }
-        cfg["response_mime_type"] = "application/json"
-        cfg["response_json_schema"] = schema
+        obj = ensure_object_schema(output_schema)
+        if isinstance(obj, dict):
+            cfg["response_mime_type"] = "application/json"
+            cfg["response_json_schema"] = obj
     return cfg
 
 

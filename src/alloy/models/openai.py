@@ -16,19 +16,17 @@ from .base import (
     should_finalize_structured_output,
     serialize_tool_payload,
     build_tools_common,
+    ensure_object_schema,
 )
 
 
 def _build_text_format(output_schema: dict | None) -> dict | None:
     if not output_schema or not isinstance(output_schema, dict):
         return None
-    schema = dict(output_schema)
-    if schema.get("type") != "object":
-        schema = {
-            "type": "object",
-            "properties": {"value": output_schema},
-            "required": ["value"],
-        }
+    obj = ensure_object_schema(output_schema)
+    if not isinstance(obj, dict):
+        return None
+    schema = dict(obj)
     if "additionalProperties" not in schema:
         schema["additionalProperties"] = False
     return {"type": "json_schema", "name": "alloy_output", "schema": schema, "strict": True}

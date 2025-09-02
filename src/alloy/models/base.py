@@ -270,6 +270,19 @@ STRICT_JSON_ONLY_MSG = (
 )
 
 
+def ensure_object_schema(schema: dict | None) -> dict | None:
+    """Return a JSON Schema object, wrapping primitives as {"value": <schema>}.
+
+    If `schema` is None or not a dict, returns None.
+    """
+    if not isinstance(schema, dict):
+        return None
+    top = (schema.get("type") or "").lower()
+    if top == "object":
+        return schema
+    return {"type": "object", "properties": {"value": schema}, "required": ["value"]}
+
+
 def build_tools_common(
     tools: list | None,
     formatter: Callable[[str, str, dict[str, Any]], Any],
