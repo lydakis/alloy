@@ -22,6 +22,7 @@ Release notes and highlights. See full changelog for details.
   - Client getters standardized (`_get_sync_client` / `_get_async_client`).
   - Streaming: robust close/aclose for Gemini and Ollama streams; OpenAI/Anthropic already use context managers.
   - Anthropic: skip JSON prefill after tool errors so plain messages surface.
+  - Ollama (headline): dual API support — native `/api/chat` and OpenAI‑compatible Chat Completions (`openai_chat`). Auto‑routes `ollama:*gpt-oss*` to `openai_chat` unless overridden via `extra["ollama_api"]`. Tools supported in both paths; native path supports strict `format={JSON Schema}` for structured outputs.
   - Ollama: remove broad exception wrapping in `complete()`; runtime errors propagate consistently.
 
 - Docs & tests
