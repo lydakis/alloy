@@ -7,6 +7,24 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-09-02
+### Highlights
+- Finalize centralization: one canonical rule in `should_finalize_structured_output` handles strings (including wrapped primitives) vs. non-strings. Providers defer to it; string outputs finalize only when empty.
+- Shared helpers: `build_tools_common` for uniform tool-schema building; `ensure_object_schema` for wrapping primitives into `{ "value": ... }` across providers.
+- Config extras normalization: generic-first keys with provider-prefixed fallbacks (`tool_choice`, `allowed_tools`, `disable_parallel_tool_use`, `ollama_api`).
+- Client naming consistency: use `_get_sync_client` / `_get_async_client` in all providers; tests updated accordingly.
+- Streaming cleanup: robust `close()`/`aclose()` handling for Gemini and Ollama streams; OpenAI/Anthropic already use context managers.
+- Anthropic: skip JSON prefill after tool errors so plain tool messages surface; parity with OpenAI tests.
+- Ollama: remove broad exception wrapping in `complete()`; runtime errors now propagate consistently.
+
+### Docs
+- Configuration guide: provider extras as tables (primary keys and fallbacks); clarified finalize behavior and streaming policy.
+- Production guide: clarified error surfaces (ConfigurationError, CommandError, ToolError, ToolLoopLimitExceeded) and retry semantics.
+
+### Tests
+- Updated provider tests to patch new client getters; fixed Gemini and Ollama adapters accordingly.
+- Added unit tests for `ensure_object_schema` and `build_tools_common`.
+
 ## [0.2.2] - 2025-08-29
 ### Highlights
 - Shared tool loop: centralized control flow via `BaseLoopState` with a unified `run_tool_loop`/`arun_tool_loop`. OpenAI (Responses), Anthropic, and Gemini migrated; Gemini now always uses the shared loop regardless of tools.
@@ -110,7 +128,8 @@ Semantic Versioning.
 - OpenAI backend (structured outputs, tools), Anthropic, Gemini, Ollama
 - Retries, streaming, env-based config, src layout, tests, CI
 
-[Unreleased]: https://github.com/lydakis/alloy-py/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/lydakis/alloy-py/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/lydakis/alloy-py/releases/tag/v0.3.0
 [0.2.1]: https://github.com/lydakis/alloy-py/releases/tag/v0.2.1
 [0.2.0]: https://github.com/lydakis/alloy-py/releases/tag/v0.2.0
 [0.1.4]: https://github.com/lydakis/alloy-py/releases/tag/v0.1.4

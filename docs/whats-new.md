@@ -5,6 +5,39 @@ Release notes and highlights. See full changelog for details.
 - [Changelog](https://github.com/lydakis/alloy/blob/main/CHANGELOG.md)
 - [Releases](https://github.com/lydakis/alloy/releases)
 
+## 0.3.0 (2025-09-02)
+
+- Finalize centralization
+  - One canonical rule in `should_finalize_structured_output` handles strings (including wrapped primitives) vs. non-strings.
+  - Providers defer to it; string outputs finalize only when empty.
+
+- Shared helpers
+  - `build_tools_common` for uniform tool-schema building across providers.
+  - `ensure_object_schema` wraps primitives into `{ "value": ... }` consistently.
+
+- Config extras (generic-first)
+  - Use `tool_choice`, `allowed_tools`, `disable_parallel_tool_use`, `ollama_api`; provider-prefixed fallbacks supported.
+
+- Provider parity & cleanup
+  - Client getters standardized (`_get_sync_client` / `_get_async_client`).
+  - Streaming: robust close/aclose for Gemini and Ollama streams; OpenAI/Anthropic already use context managers.
+  - Anthropic: skip JSON prefill after tool errors so plain messages surface.
+  - Ollama: remove broad exception wrapping in `complete()`; runtime errors propagate consistently.
+
+- Docs & tests
+  - Configuration extras presented as tables; production guide clarifies error surfaces and retries.
+  - Tests updated for new getters; added unit tests for base helpers.
+
+## 0.2.2 (2025-08-29)
+
+- Shared loop & Gemini alignment
+  - Centralized tool loop and provider state (`BaseLoopState`) migrated across OpenAI/Anthropic/Gemini.
+  - Gemini now always uses the shared loop; finalize parity with Anthropic/OpenAI preserved.
+- Streaming API: `ask.stream_async()` returns an `AsyncIterable[str]` directly (no await at call site).
+- Structured outputs: providers finalize only when `auto_finalize_missing_output=True` (default on).
+- OpenAI: reasoning models ignore temperature; Alloy drops it and logs a debug line.
+- Fake backend: stricter schema fill (nested required properties) to mirror provider strict mode.
+
 ## 0.2.0 (2025-08-26)
 
 - Cross‑provider streaming policy
@@ -44,27 +77,3 @@ Release notes and highlights. See full changelog for details.
 - DBC: `ToolError` messages surface back to the model (OpenAI/Anthropic) for early corrective feedback; unit + integration tests; docs + examples.
 - Docs: Typing page, Equivalence Guide, Tool Recipes, patterns examples; standardized imports and decorator style.
 - Tooling: pre-commit enforcement for imports and decorator style in code + docs.
-
-## Unreleased
-
-- OpenAI: migrate to Responses API; shared request builder; centralized tool-call processing; safer output assembly.
-- Structured Outputs (strict mode):
-  - Only provider-enforced JSON Schema; no prompt shaping.
-  - Fail fast for open-ended objects (`dict`, `dict[...]`, `list[dict]`) with a clear `ConfigurationError` directing users to a concrete schema (dataclass/TypedDict).
-  - Dataclasses: all fields required; `additionalProperties: false`.
-- Types: forward-ref dataclass coercion; unified parse path; cached type-hints; native typing.
-- Commands: helper mixin for parse/retry; consistent error chaining; retry docs clarified (total attempts).
-- Docs: updated “Enforcing Outputs” to describe strict-mode behavior and limitations.
-  - Tool schemas are now non-strict and respect Python defaults: parameters with defaults are optional; nested dataclasses propagate optionality.
-- Streaming: simplified policy — text-only across providers; commands with tools or non-string outputs do not stream; use provider SDKs for complex streaming.
-- Gemini: backend refactor with non-streaming tool loop and strict finalize; streaming remains text-only.
-# What’s New
-
-## 0.2.2 — Shared loop, Gemini alignment, and streaming fix
-
-- Centralized tool loop and provider state (`BaseLoopState`), migrated OpenAI/Anthropic/Gemini.
-- Gemini now always uses the shared loop; finalize parity with Anthropic/OpenAI preserved.
-- `ask.stream_async()` returns an `AsyncIterable[str]` directly (no await at call site).
-- Providers finalize structured outputs only when `auto_finalize_missing_output=True` (default on).
-- OpenAI: reasoning models ignore temperature; Alloy drops it and logs a debug line.
-- Fake backend: stricter schema fill (nested required properties) to mirror provider strict mode.
