@@ -148,14 +148,10 @@ class OllamaLoopState(BaseLoopState[Any]):
     def _build_chat_kwargs(self, use_format: bool, stream: bool = False) -> dict[str, Any]:
         msgs = list(self.messages)
         if use_format and isinstance(self.output_schema, dict):
+            from .base import STRICT_JSON_ONLY_MSG
+
             msgs = msgs + [
-                {
-                    "role": "user",
-                    "content": (
-                        "Respond ONLY with the JSON object matching the required schema. "
-                        "No extra text or code fences."
-                    ),
-                }
+                {"role": "user", "content": (STRICT_JSON_ONLY_MSG)},
             ]
         kwargs: dict[str, Any] = {
             "model": self.model_name,
@@ -201,7 +197,7 @@ class OllamaOpenAIChatLoopState(BaseLoopState[Any]):
         self._last_assistant_content: dict[str, Any] | None = None
 
     def make_request(self, client: Any) -> Any:
-        cli = client if client is not None else self._client()
+        cli = client if client is not None else self._get_openai_client()
         kwargs: dict[str, Any] = {
             "model": self.model_name,
             "messages": self.messages,
@@ -293,7 +289,7 @@ class OllamaOpenAIChatLoopState(BaseLoopState[Any]):
                 {"role": "tool", "tool_call_id": call.id or "", "content": content}
             )
 
-    def _client(self):
+    def _get_openai_client(self):
         try:
             from openai import OpenAI
 

@@ -44,16 +44,10 @@ def _extract_text_from_response(resp: Any) -> str:
 
 
 def _finalize_json_output(client: Any, state: "AnthropicLoopState") -> str | None:
+    from .base import STRICT_JSON_ONLY_MSG
+
     state.messages.append(
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": "Continue and return only the final answer in the required JSON format, with no extra text.",
-                }
-            ],
-        }
+        {"role": "user", "content": [{"type": "text", "text": STRICT_JSON_ONLY_MSG}]}
     )
     if state.prefill:
         state.messages.append(
@@ -73,16 +67,10 @@ def _finalize_json_output(client: Any, state: "AnthropicLoopState") -> str | Non
 
 
 async def _afinalize_json_output(client: Any, state: "AnthropicLoopState") -> str | None:
+    from .base import STRICT_JSON_ONLY_MSG
+
     state.messages.append(
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": "Continue and return only the final answer in the required JSON format, with no extra text.",
-                }
-            ],
-        }
+        {"role": "user", "content": [{"type": "text", "text": STRICT_JSON_ONLY_MSG}]}
     )
     if state.prefill:
         state.messages.append(

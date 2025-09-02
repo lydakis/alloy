@@ -213,8 +213,10 @@ def _prepare_request_kwargs(
 
 
 def _finalize_json_output(client: Any, state: OpenAILoopState) -> str:
+    from .base import STRICT_JSON_ONLY_MSG
+
     kwargs2 = _prepare_request_kwargs(
-        "Continue from the previous response and provide the final answer in the required format only.",
+        STRICT_JSON_ONLY_MSG,
         config=state.config,
         text_format=state.text_format,
         tool_defs=None,
@@ -226,8 +228,10 @@ def _finalize_json_output(client: Any, state: OpenAILoopState) -> str:
 
 
 async def _afinalize_json_output(client: Any, state: OpenAILoopState) -> str:
+    from .base import STRICT_JSON_ONLY_MSG
+
     kwargs2 = _prepare_request_kwargs(
-        "Continue from the previous response and provide the final answer in the required format only.",
+        STRICT_JSON_ONLY_MSG,
         config=state.config,
         text_format=state.text_format,
         tool_defs=None,

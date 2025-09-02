@@ -69,42 +69,16 @@ def _finalize_json_output(
     cfg2 = dict(cfg)
     cfg2.pop("tools", None)
     cfg2.pop("automatic_function_calling", None)
-    finalize_msg = T.Content(
-        role="user",
-        parts=[
-            T.Part.from_text(
-                text=(
-                    "Return only a JSON object that matches the required schema. "
-                    "No extra text or code fences."
-                )
-            )
-        ],
-    )
-
-    def _finalize_once(msg: Any) -> tuple[str, Any]:
-        res = client.models.generate_content(
-            model=model_name, contents=messages + [msg], config=cfg2 or None
-        )
-        txt = _extract_text_from_response(res)
-        parsed = getattr(res, "parsed", None)
-        return txt, parsed
-
-    txt, parsed = _finalize_once(finalize_msg)
-    if parsed is not None and str(txt).strip():
-        return txt
+    from .base import STRICT_JSON_ONLY_MSG
 
     strict_msg = T.Content(
         role="user",
-        parts=[
-            T.Part.from_text(
-                text=(
-                    "Respond ONLY with the JSON object matching the required schema. No extra text, no backticks."
-                )
-            )
-        ],
+        parts=[T.Part.from_text(text=STRICT_JSON_ONLY_MSG)],
     )
-    txt2, _parsed2 = _finalize_once(strict_msg)
-    return txt2
+    res = client.models.generate_content(
+        model=model_name, contents=messages + [strict_msg], config=cfg2 or None
+    )
+    return _extract_text_from_response(res)
 
 
 async def _afinalize_json_output(
@@ -115,41 +89,16 @@ async def _afinalize_json_output(
     cfg2 = dict(cfg)
     cfg2.pop("tools", None)
     cfg2.pop("automatic_function_calling", None)
-    finalize_msg = T.Content(
-        role="user",
-        parts=[
-            T.Part.from_text(
-                text=(
-                    "Return only a JSON object that matches the required schema. "
-                    "No extra text or code fences."
-                )
-            )
-        ],
-    )
+    from .base import STRICT_JSON_ONLY_MSG
 
-    async def _finalize_once(msg: Any) -> tuple[str, Any]:
-        res = await client.aio.models.generate_content(
-            model=model_name, contents=messages + [msg], config=cfg2 or None
-        )
-        txt = _extract_text_from_response(res)
-        parsed = getattr(res, "parsed", None)
-        return txt, parsed
-
-    txt, parsed = await _finalize_once(finalize_msg)
-    if parsed is not None and str(txt).strip():
-        return txt
     strict_msg = T.Content(
         role="user",
-        parts=[
-            T.Part.from_text(
-                text=(
-                    "Respond ONLY with the JSON object matching the required schema. No extra text, no backticks."
-                )
-            )
-        ],
+        parts=[T.Part.from_text(text=STRICT_JSON_ONLY_MSG)],
     )
-    txt2, _parsed2 = await _finalize_once(strict_msg)
-    return txt2
+    res = await client.aio.models.generate_content(
+        model=model_name, contents=messages + [strict_msg], config=cfg2 or None
+    )
+    return _extract_text_from_response(res)
 
 
 class GeminiLoopState(BaseLoopState[Any]):
@@ -434,7 +383,6 @@ class GeminiBackend(ModelBackend):
         return self._client_sync
 
     def _get_async_client(self) -> Any:
-        # Gemini uses the same client with an `.aio` surface for async calls.
         return self._get_sync_client()
 
 

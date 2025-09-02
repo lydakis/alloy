@@ -265,6 +265,11 @@ def serialize_tool_payload(payload: object) -> str:
         return str(payload)
 
 
+STRICT_JSON_ONLY_MSG = (
+    "Respond ONLY with the JSON object matching the required schema. No extra text, no backticks."
+)
+
+
 def build_tools_common(
     tools: list | None,
     formatter: Callable[[str, str, dict[str, Any]], Any],
