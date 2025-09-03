@@ -41,33 +41,29 @@ configure(model="gpt-5-mini", temperature=0.2)
 
 ## Provider Extras (advanced)
 
-Pass provider knobs via `Config.extra` or `ALLOY_EXTRA_JSON`. Use generic keys first; provider‑prefixed fallbacks are supported for backward compatibility.
+Pass provider knobs via `Config.extra` or `ALLOY_EXTRA_JSON`. Use provider‑prefixed keys (one way), reflecting provider differences.
 
-Primary keys
+Provider keys
 
-| Key | Type | Example | Notes |
-|-----|------|---------|-------|
-| `tool_choice` | str or dict | `"auto"`, `"any"`, `"none"` or provider dicts (e.g., `{ "type": "auto" }`) | Controls tool-calling behavior when tools are present |
-| `allowed_tools` | list[str] | `["get_weather", "get_time"]` | Restrict callable tools (used by Gemini) |
-| `disable_parallel_tool_use` | bool | `true` | Prevent parallel tool execution (Anthropic) |
-| `ollama_api` | str | `"native"` or `"openai_chat"` | Select Ollama strategy |
-
-Provider fallbacks (optional)
-
-| Provider | Fallback Key(s) | Notes |
-|----------|------------------|-------|
-| OpenAI | `openai_tool_choice` | Mirrors `tool_choice` |
-| Anthropic | `anthropic_tool_choice`, `anthropic_disable_parallel_tool_use` | Mirrors `tool_choice` and `disable_parallel_tool_use` |
-| Gemini | `gemini_tool_choice`, `gemini_allowed_tools` | Mirrors `tool_choice` and `allowed_tools` |
-| Ollama (OpenAI‑chat) | `ollama_tool_choice` | Mirrors `tool_choice` |
+| Provider | Key | Type | Example | Notes |
+|----------|-----|------|---------|-------|
+| OpenAI | `openai_tool_choice` | str or dict | `"auto"`, `"required"`, or function spec dict | Overrides default tool choice when tools are present |
+| Anthropic | `anthropic_tool_choice` | dict | `{ "type": "auto" | "any" | "tool" | "none" }` | Matches Anthropic tool choice semantics |
+| Anthropic | `anthropic_disable_parallel_tool_use` | bool | `true` | Disables parallel tool use (when applicable) |
+| Gemini | `gemini_tool_choice` | str or dict | `"AUTO"`, `"ANY"`, `"NONE"` | Tool calling mode |
+| Gemini | `gemini_allowed_tools` | list[str] | `["f1", "f2"]` | Restrict callable function names |
+| Ollama | `ollama_api` | str | `"native"` or `"openai_chat"` | Select API strategy; native uses `/api/chat` with `format={JSON Schema}` |
+| Ollama (OpenAI‑chat) | `ollama_tool_choice` | str or dict | `"auto"`, `"required"`, or function spec dict | OpenAI‑compatible tool choice when using `openai_chat` |
 
 Examples
 ```bash
 # Using ALLOY_EXTRA_JSON (shell)
 export ALLOY_EXTRA_JSON='{
-  "tool_choice": "auto",
-  "disable_parallel_tool_use": true,
-  "allowed_tools": ["get_weather", "get_time"],
+  "openai_tool_choice": "auto",
+  "anthropic_tool_choice": {"type":"auto"},
+  "anthropic_disable_parallel_tool_use": true,
+  "gemini_tool_choice": "AUTO",
+  "gemini_allowed_tools": ["get_weather", "get_time"],
   "ollama_api": "native"
 }'
 ```

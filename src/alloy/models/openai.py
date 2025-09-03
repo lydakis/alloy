@@ -117,7 +117,7 @@ class OpenAILoopState(BaseLoopState[Any]):
         extra = getattr(self.config, "extra", {}) or {}
         choice = None
         if isinstance(extra, dict):
-            choice = extra.get("tool_choice") or extra.get("openai_tool_choice")
+            choice = extra.get("openai_tool_choice")
         if isinstance(choice, (str, dict)):
             kwargs["tool_choice"] = choice
         else:

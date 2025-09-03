@@ -198,7 +198,7 @@ class OllamaOpenAIChatLoopState(BaseLoopState[Any]):
         extra = getattr(self.config, "extra", {}) or {}
         choice = None
         if isinstance(extra, dict):
-            choice = extra.get("tool_choice") or extra.get("ollama_tool_choice")
+            choice = extra.get("ollama_tool_choice")
         if isinstance(choice, (str, dict)):
             kwargs["tool_choice"] = choice
         res = cli.chat.completions.create(**kwargs)
@@ -225,7 +225,7 @@ class OllamaOpenAIChatLoopState(BaseLoopState[Any]):
         extra = getattr(self.config, "extra", {}) or {}
         choice = None
         if isinstance(extra, dict):
-            choice = extra.get("tool_choice") or extra.get("ollama_tool_choice")
+            choice = extra.get("ollama_tool_choice")
         if isinstance(choice, (str, dict)):
             kwargs["tool_choice"] = choice
         res = await cli.chat.completions.create(**kwargs)

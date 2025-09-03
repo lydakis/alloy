@@ -140,7 +140,7 @@ class AnthropicLoopState(BaseLoopState[Any]):
         extra = getattr(self.config, "extra", {}) or {}
         choice: dict[str, Any] = {"type": "auto"}
         if isinstance(extra, dict):
-            override = extra.get("tool_choice") or extra.get("anthropic_tool_choice")
+            override = extra.get("anthropic_tool_choice")
             if isinstance(override, dict) and override.get("type") in {
                 "auto",
                 "any",
@@ -148,9 +148,7 @@ class AnthropicLoopState(BaseLoopState[Any]):
                 "none",
             }:
                 choice = dict(override)
-            dptu = extra.get("disable_parallel_tool_use")
-            if dptu is None:
-                dptu = extra.get("anthropic_disable_parallel_tool_use")
+            dptu = extra.get("anthropic_disable_parallel_tool_use")
             if isinstance(dptu, bool) and choice.get("type") in {"auto", "any", "tool"}:
                 choice["disable_parallel_tool_use"] = dptu
         kwargs["tool_choice"] = choice

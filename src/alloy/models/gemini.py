@@ -185,8 +185,8 @@ class GeminiLoopState(BaseLoopState[Any]):
             tc = None
             allowed = None
             if isinstance(extra, dict):
-                tc = extra.get("tool_choice") or extra.get("gemini_tool_choice")
-                allowed = extra.get("allowed_tools") or extra.get("gemini_allowed_tools")
+                tc = extra.get("gemini_tool_choice")
+                allowed = extra.get("gemini_allowed_tools")
             mode_raw = None
             if isinstance(tc, dict):
                 mode_raw = tc.get("type")
