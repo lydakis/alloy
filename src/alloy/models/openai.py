@@ -17,6 +17,7 @@ from .base import (
     serialize_tool_payload,
     build_tools_common,
     ensure_object_schema,
+    STRICT_JSON_ONLY_MSG,
 )
 
 
@@ -211,7 +212,6 @@ def _prepare_request_kwargs(
 
 
 def _finalize_json_output(client: Any, state: OpenAILoopState) -> str:
-    from .base import STRICT_JSON_ONLY_MSG
 
     kwargs2 = _prepare_request_kwargs(
         STRICT_JSON_ONLY_MSG,
@@ -226,7 +226,6 @@ def _finalize_json_output(client: Any, state: OpenAILoopState) -> str:
 
 
 async def _afinalize_json_output(client: Any, state: OpenAILoopState) -> str:
-    from .base import STRICT_JSON_ONLY_MSG
 
     kwargs2 = _prepare_request_kwargs(
         STRICT_JSON_ONLY_MSG,

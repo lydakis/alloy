@@ -15,6 +15,7 @@ from .base import (
     should_finalize_structured_output,
     serialize_tool_payload,
     build_tools_common,
+    STRICT_JSON_ONLY_MSG,
 )
 from ..types import flatten_property_paths
 
@@ -45,7 +46,6 @@ def _extract_text_from_response(resp: Any) -> str:
 
 
 def _finalize_json_output(client: Any, state: "AnthropicLoopState") -> str | None:
-    from .base import STRICT_JSON_ONLY_MSG
 
     state.messages.append(
         {"role": "user", "content": [{"type": "text", "text": STRICT_JSON_ONLY_MSG}]}
@@ -68,7 +68,6 @@ def _finalize_json_output(client: Any, state: "AnthropicLoopState") -> str | Non
 
 
 async def _afinalize_json_output(client: Any, state: "AnthropicLoopState") -> str | None:
-    from .base import STRICT_JSON_ONLY_MSG
 
     state.messages.append(
         {"role": "user", "content": [{"type": "text", "text": STRICT_JSON_ONLY_MSG}]}

@@ -16,6 +16,7 @@ from .base import (
     should_finalize_structured_output,
     build_tools_common,
     ensure_object_schema,
+    STRICT_JSON_ONLY_MSG,
 )
 from ..types import to_jsonable
 
@@ -66,8 +67,6 @@ def _finalize_json_output(
     cfg2 = dict(cfg)
     cfg2.pop("tools", None)
     cfg2.pop("automatic_function_calling", None)
-    from .base import STRICT_JSON_ONLY_MSG
-
     strict_msg = T.Content(
         role="user",
         parts=[T.Part.from_text(text=STRICT_JSON_ONLY_MSG)],
@@ -86,8 +85,6 @@ async def _afinalize_json_output(
     cfg2 = dict(cfg)
     cfg2.pop("tools", None)
     cfg2.pop("automatic_function_calling", None)
-    from .base import STRICT_JSON_ONLY_MSG
-
     strict_msg = T.Content(
         role="user",
         parts=[T.Part.from_text(text=STRICT_JSON_ONLY_MSG)],

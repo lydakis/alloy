@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Iterable
-from typing import Any, Callable, NoReturn
+from typing import Any, Callable, NoReturn, get_origin
 from .config import get_config
 from .errors import CommandError, ConfigurationError
 from .models.base import get_backend
 from .tool import ToolCallable, ToolSpec
-from .types import to_json_schema, parse_output
+from .types import to_json_schema, parse_output, is_dataclass_type, is_typeddict_type
 
 
 _MISSING: Any = object()
@@ -251,8 +251,7 @@ def _to_spec(func: Callable[..., Any]) -> ToolSpec:
 
 def _is_instance_of(value: Any, tp: Any) -> bool:
     try:
-        from .types import is_dataclass_type, is_typeddict_type
-        from typing import get_origin
+        _ = (is_dataclass_type, is_typeddict_type, get_origin)
     except Exception:
         return isinstance(value, tp)
     if tp is Any:

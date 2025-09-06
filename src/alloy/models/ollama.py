@@ -6,6 +6,7 @@ import json
 
 from ..config import Config
 from ..errors import ConfigurationError
+from ..types import flatten_property_paths
 from .base import (
     ModelBackend,
     BaseLoopState,
@@ -15,6 +16,7 @@ from .base import (
     serialize_tool_payload,
     build_tools_common,
     ensure_object_schema,
+    STRICT_JSON_ONLY_MSG,
 )
 
 
@@ -137,8 +139,6 @@ class OllamaLoopState(BaseLoopState[Any]):
     def _build_chat_kwargs(self, use_format: bool, stream: bool = False) -> dict[str, Any]:
         msgs = list(self.messages)
         if use_format and isinstance(self.output_schema, dict):
-            from .base import STRICT_JSON_ONLY_MSG
-
             msgs = msgs + [
                 {"role": "user", "content": (STRICT_JSON_ONLY_MSG)},
             ]
@@ -340,12 +340,24 @@ class OllamaBackend(ModelBackend):
                 and bool(config.auto_finalize_missing_output)
                 and should_finalize_structured_output(out, output_schema)
             ):
-                state_oai.messages.append(
-                    {
-                        "role": "user",
-                        "content": "Respond ONLY with the JSON object matching the required schema.",
-                    }
-                )
+                try:
+                    paths = flatten_property_paths(output_schema) or []
+                    if not paths:
+                        props = (
+                            output_schema.get("properties", {})
+                            if isinstance(output_schema.get("properties"), dict)
+                            else {}
+                        )
+                        paths = list(sorted(props.keys()))
+                    keys_text = ", ".join(paths)
+                    strict_msg = (
+                        "Return only a JSON object that exactly matches the required schema. "
+                        f"Use exactly these property names (including nested): {keys_text}. "
+                        "No extra text, no backticks."
+                    )
+                except Exception:
+                    strict_msg = "Respond ONLY with the JSON object matching the required schema. No extra text, no backticks."
+                state_oai.messages.append({"role": "user", "content": strict_msg})
                 out2 = self.run_tool_loop(oai_client, state_oai)
                 out2 = _strip_code_fences(out2)
                 return out2 if out2.strip() else out
@@ -481,12 +493,24 @@ class OllamaBackend(ModelBackend):
                 and bool(config.auto_finalize_missing_output)
                 and should_finalize_structured_output(out, output_schema)
             ):
-                state_oai.messages.append(
-                    {
-                        "role": "user",
-                        "content": "Respond ONLY with the JSON object matching the required schema.",
-                    }
-                )
+                try:
+                    paths = flatten_property_paths(output_schema) or []
+                    if not paths:
+                        props = (
+                            output_schema.get("properties", {})
+                            if isinstance(output_schema.get("properties"), dict)
+                            else {}
+                        )
+                        paths = list(sorted(props.keys()))
+                    keys_text = ", ".join(paths)
+                    strict_msg = (
+                        "Return only a JSON object that exactly matches the required schema. "
+                        f"Use exactly these property names (including nested): {keys_text}. "
+                        "No extra text, no backticks."
+                    )
+                except Exception:
+                    strict_msg = "Respond ONLY with the JSON object matching the required schema. No extra text, no backticks."
+                state_oai.messages.append({"role": "user", "content": strict_msg})
                 out2 = await self.arun_tool_loop(oai_client, state_oai)
                 out2 = _strip_code_fences(out2)
                 return out2 if (out2 or "").strip() else out
