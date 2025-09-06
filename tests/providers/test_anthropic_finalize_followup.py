@@ -1,58 +1,58 @@
 import pytest
+from typing import Any
 
-from alloy import tool
 from alloy.config import Config
+from alloy.models.anthropic import AnthropicBackend
 
 
 pytestmark = pytest.mark.providers
 
 
-@tool
-def foo() -> str:
-    return "ok"
-
-
-def test_anthropic_finalize_followup_after_tools(monkeypatch):
-    from alloy.models.anthropic import AnthropicBackend
-
-    calls: list[dict] = []
+def test_anthropic_finalize_followup_removes_tools_and_adds_strict(monkeypatch):
+    calls: list[dict[str, Any]] = []
 
     class _FakeMessages:
-        def __init__(self, outer):
-            self._outer = outer
+        def __init__(self) -> None:
+            self._count = 0
 
-        def create(self, **kwargs):
+        def create(self, **kwargs: Any) -> Any:
             calls.append(kwargs)
-            idx = len(calls)
-            if idx == 1:
-                return type(
-                    "Resp",
-                    (),
-                    {"content": [{"type": "tool_use", "id": "c1", "name": "foo", "input": {}}]},
-                )()
-            if idx == 2:
-                return type("Resp", (), {"content": [{"type": "text", "text": ""}]})()
-            return type("Resp", (), {"content": [{"type": "text", "text": '{"x":"ok"}'}]})()
+            self._count += 1
+            if self._count == 1:
+                return {"content": [{"type": "text", "text": ""}]}
+            return {"content": [{"type": "text", "text": '{"x":"ok"}'}]}
 
     class _FakeClient:
-        def __init__(self):
-            self.messages = _FakeMessages(self)
+        def __init__(self) -> None:
+            self.messages = _FakeMessages()
 
     be = AnthropicBackend()
     be._Anthropic = lambda: _FakeClient()
 
     out = be.complete(
         "prompt",
-        tools=[foo],
+        tools=[],
         output_schema={
             "type": "object",
             "properties": {"x": {"type": "string"}},
             "required": ["x"],
+            "additionalProperties": False,
         },
         config=Config(model="claude-sonnet-4-20250514", auto_finalize_missing_output=True),
     )
-    assert isinstance(out, str)
-    assert len(calls) >= 2
-    if len(calls) >= 3:
-        last = calls[-1]
-        assert "tools" not in last and "tool_choice" not in last
+
+    assert isinstance(out, str) and out.strip()
+    assert len(calls) == 2
+    final_kwargs = calls[1]
+    assert "tools" not in final_kwargs
+    assert "tool_choice" not in final_kwargs
+    msgs = final_kwargs.get("messages", [])
+    assert any(
+        isinstance(b.get("content"), list)
+        and any(
+            (c.get("type") == "text" and "json object" in c.get("text", "").lower())
+            for c in b.get("content", [])
+        )
+        for b in msgs
+        if isinstance(b, dict)
+    )

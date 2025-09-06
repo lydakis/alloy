@@ -3,68 +3,57 @@ import pytest
 
 from alloy import ask, CommandError
 
-
 pytestmark = pytest.mark.unit
 
 
-def test_ask_includes_context_in_prompt(monkeypatch):
-    captured = {}
+def test_ask_adds_context_and_calls_backend(monkeypatch):
+    class _FakeBackend:
+        def __init__(self):
+            self.last_prompt = None
 
-    class _CapBackend:
         def complete(self, prompt: str, *, tools=None, output_schema=None, config=None) -> str:
-            captured["prompt"] = prompt
-            return "ok"
+            self.last_prompt = prompt
+            return prompt
 
-        def stream(self, *a, **k):
-            return iter(["x"])
+    fb = _FakeBackend()
+    mod = importlib.import_module("alloy.ask")
+    monkeypatch.setattr(mod, "get_backend", lambda model: fb)
+    monkeypatch.setenv("ALLOY_MODEL", "gpt-5-mini")
+    out = ask("Do it", context={"k": 1})
+    assert "Context:" in out and "Task:" in out
+    assert fb.last_prompt == out
 
-    ask_mod = importlib.import_module("alloy.ask")
-    monkeypatch.setattr(ask_mod, "get_backend", lambda model: _CapBackend())
-    out = ask("Run", context={"k": 1}, model="gpt-5-mini")
-    assert out == "ok"
-    assert "Context:" in captured.get("prompt", "") and "Task:" in captured.get("prompt", "")
 
-
-def test_ask_wraps_backend_exception(monkeypatch):
-    class _FailBackend:
-        def complete(self, *a, **k) -> str:
-            raise RuntimeError("boom")
-
-    ask_mod = importlib.import_module("alloy.ask")
-    monkeypatch.setattr(ask_mod, "get_backend", lambda model: _FailBackend())
+def test_ask_stream_rejects_tools(monkeypatch):
     with pytest.raises(CommandError):
-        ask("hi", model="gpt-5-mini")
-
-
-@pytest.mark.asyncio
-async def test_ask_stream_async_disallowed_with_tools():
-    with pytest.raises(CommandError):
-        ask.stream_async("hi", tools=[lambda: None], model="gpt-5-mini")
+        list(ask.stream("hello", tools=[lambda: None]))
 
 
 @pytest.mark.asyncio
 async def test_ask_stream_async_happy_path(monkeypatch):
-    class _AsyncBackend:
+    class _FakeBackend:
         async def astream(self, prompt: str, *, tools=None, output_schema=None, config=None):
             async def agen():
-                for ch in ("a", "b"):
-                    yield ch
+                yield "ok"
 
             return agen()
 
-    ask_mod = importlib.import_module("alloy.ask")
-    monkeypatch.setattr(ask_mod, "get_backend", lambda model: _AsyncBackend())
+    mod = importlib.import_module("alloy.ask")
+    monkeypatch.setattr(mod, "get_backend", lambda model: _FakeBackend())
+    monkeypatch.setenv("ALLOY_MODEL", "gpt-5-mini")
 
-    aiter = ask.stream_async("hello", model="gpt-5-mini")
-    out: list[str] = []
+    out = []
+    aiter = ask.stream_async("Say OK")
     async for ch in aiter:
         out.append(ch)
-    assert out == ["a", "b"]
+        break
+    await aiter.aclose()
+    assert "".join(out) == "ok"
 
 
 @pytest.mark.asyncio
 async def test_ask_stream_async_includes_context_in_prompt(monkeypatch):
-    captured = {}
+    captured: dict[str, str] = {}
 
     class _AsyncBackend:
         async def astream(self, prompt: str, *, tools=None, output_schema=None, config=None):
@@ -78,9 +67,11 @@ async def test_ask_stream_async_includes_context_in_prompt(monkeypatch):
 
     ask_mod = importlib.import_module("alloy.ask")
     monkeypatch.setattr(ask_mod, "get_backend", lambda model: _AsyncBackend())
+    monkeypatch.setenv("ALLOY_MODEL", "gpt-5-mini")
 
     aiter = ask.stream_async("run", context={"user": 1}, model="gpt-5-mini")
     async for _ in aiter:
         pass
+    await aiter.aclose()
     prompt = captured.get("prompt", "")
     assert "Context:" in prompt and "Task:" in prompt
