@@ -57,3 +57,25 @@ jobs:
     steps:
       - name: Mark PyPI deployment as successful
         run: echo "PyPI publish completed; marking deployment green."
+
+  github-release:
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Create GitHub Release with notes file (if present)
+        if: ${{ hashFiles(format('.github/release-notes/{0}.md', github.ref_name)) != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: .github/release-notes/${{ github.ref_name }}.md
+      - name: Create GitHub Release with generated notes (fallback)
+        if: ${{ hashFiles(format('.github/release-notes/{0}.md', github.ref_name)) == '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
