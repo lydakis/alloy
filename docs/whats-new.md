@@ -5,6 +5,27 @@ Release notes and highlights. See full changelog for details.
 - [Changelog](https://github.com/lydakis/alloy/blob/main/CHANGELOG.md)
 - [Releases](https://github.com/lydakis/alloy/releases)
 
+## 0.3.1 (2025-09-06)
+
+- Tool payload normalization
+  - Central helper for dataclasses and containers; providers use consistent JSON serialization.
+
+- Anthropic structured outputs
+  - Provider‑native guidance with precise nested key hints; minimal object prefill ("{") only.
+  - Remove unsupported `response_format`; single strict finalize turn remains.
+
+- Gemini fixes
+  - Suppress non‑text warnings by reading `candidates.content.parts`.
+  - Ensure `FunctionResponse.response` is a dict (wrap scalars as `{ "result": ... }`).
+
+- Ollama
+  - Native path unchanged (strict `format` enforcement).
+  - OpenAI‑chat path adds strict nested‑keys finalize hints where schema cannot be enforced.
+
+- Tests & imports
+  - Add unit tests for ask context, env overrides, finalize predicate.
+  - Move non‑optional imports to module scope; keep provider SDK imports lazy.
+
 ## 0.3.0 (2025-09-02)
 
 - Finalize centralization

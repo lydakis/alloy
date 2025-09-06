@@ -7,6 +7,21 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [0.3.1] - 2025-09-06
+### Fixes and Improvements
+- Tool payload normalization: central helper converts dataclasses and containers to JSON‑safe structures; all providers use consistent serialization.
+- Anthropic structured outputs: provider‑native guidance with precise nested key hints; minimal object prefill ("{") only; remove unsupported response_format usage. Single strict finalize turn when needed.
+- Gemini tools: suppress SDK non‑text warnings by reading `candidates.content.parts`; ensure `FunctionResponse.response` is a dict (wrap scalars as `{ "result": ... }`).
+- Ollama:
+  - Native path unchanged (strict schema via `format`).
+  - OpenAI‑chat path adds strict nested‑keys finalize hints where schema cannot be enforced.
+  - Split dataclass tool tests per API path.
+- Imports: move non‑optional imports to module scope; keep optional provider SDK imports lazy and guarded.
+- Finalize predicate: detect missing required keys recursively for object schemas to reduce parse failures; unit tests added.
+
+### Tests & Coverage
+- Added unit tests for ask context, env overrides, finalize predicate presence checks; restored async ask context test. Non‑integration coverage ≥ 80%.
+
 ## [0.3.0] - 2025-09-02
 ### Highlights
 - Finalize centralization: one canonical rule in `should_finalize_structured_output` handles strings (including wrapped primitives) vs. non-strings. Providers defer to it; string outputs finalize only when empty.
@@ -128,7 +143,8 @@ Semantic Versioning.
 - OpenAI backend (structured outputs, tools), Anthropic, Gemini, Ollama
 - Retries, streaming, env-based config, src layout, tests, CI
 
-[Unreleased]: https://github.com/lydakis/alloy-py/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/lydakis/alloy-py/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/lydakis/alloy-py/releases/tag/v0.3.1
 [0.3.0]: https://github.com/lydakis/alloy-py/releases/tag/v0.3.0
 [0.2.1]: https://github.com/lydakis/alloy-py/releases/tag/v0.2.1
 [0.2.0]: https://github.com/lydakis/alloy-py/releases/tag/v0.2.0
