@@ -173,7 +173,7 @@ class GeminiLoopState(BaseLoopState[Any]):
             payload = res.value if res.ok else res.error
             response_obj = to_jsonable(payload)
             if not isinstance(response_obj, (dict, list)):
-                response_obj = {"value": response_obj}
+                response_obj = {"result": response_obj}
             resp_part = self.T.Part.from_function_response(
                 name=(call.name or "unknown"), response=response_obj
             )
@@ -402,9 +402,6 @@ class GeminiBackend(ModelBackend):
 
 
 def _response_text(res: Any) -> str:
-    txt = getattr(res, "text", None)
-    if isinstance(txt, str) and txt:
-        return txt
     candidates = getattr(res, "candidates", None)
     if isinstance(candidates, list) and candidates:
         cand0 = candidates[0]
