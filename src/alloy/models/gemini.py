@@ -14,6 +14,7 @@ from .base import (
     ToolCall,
     ToolResult,
     should_finalize_structured_output,
+    tool_payload_to_obj,
     build_tools_common,
     ensure_object_schema,
 )
@@ -170,7 +171,9 @@ class GeminiLoopState(BaseLoopState[Any]):
             self.messages.append(self._last_assistant_content)
         for call, res in zip(calls, results):
             payload = res.value if res.ok else res.error
-            response_obj = payload if isinstance(payload, (dict, list)) else {"result": payload}
+            response_obj = tool_payload_to_obj(payload)
+            if not isinstance(response_obj, (dict, list)):
+                response_obj = {"value": response_obj}
             resp_part = self.T.Part.from_function_response(
                 name=(call.name or "unknown"), response=response_obj
             )

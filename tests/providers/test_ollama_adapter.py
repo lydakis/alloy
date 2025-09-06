@@ -251,6 +251,91 @@ def test_ollama_openai_chat_tool_flow(monkeypatch):
     assert calls and isinstance(calls[0].get("tools"), list)
 
 
+def test_ollama_openai_chat_tool_flow_dataclass_payload(monkeypatch):
+    from alloy.models.ollama import OllamaBackend
+    from dataclasses import dataclass
+    from alloy import tool
+
+    calls: list[dict] = []
+
+    class _Msg:
+        def __init__(self, content: str, tool_calls: list | None = None):
+            self.content = content
+            self.tool_calls = tool_calls or []
+
+    class _TCFunc:
+        def __init__(self, name: str, arguments: str):
+            self.name = name
+            self.arguments = arguments
+
+    class _TCall:
+        def __init__(self, name: str, arguments: str, id_: str = "tc_1"):
+            self.id = id_
+            self.type = "function"
+            self.function = _TCFunc(name, arguments)
+
+    class _Choice:
+        def __init__(self, message: _Msg):
+            self.message = message
+
+    class _Resp:
+        def __init__(self, msg: _Msg):
+            self.choices = [_Choice(msg)]
+
+    class _FakeOpenAI:
+        def __init__(self) -> None:
+            self.count = 0
+
+            class _Completions:
+                def __init__(self, outer) -> None:
+                    self._outer = outer
+
+                def create(self, **kwargs):
+                    calls.append(kwargs)
+                    self._outer.count += 1
+                    if self._outer.count == 1:
+                        tc = _TCall("pick_flight", "{}")
+                        return _Resp(_Msg("", [tc]))
+                    return _Resp(_Msg("done"))
+
+            class _Chat:
+                def __init__(self, outer) -> None:
+                    self.completions = _Completions(outer)
+
+            self.chat = _Chat(self)
+
+    be = OllamaBackend()
+    monkeypatch.setattr(be, "_get_openai_client", lambda: _FakeOpenAI())
+
+    @dataclass
+    class FlightOption:
+        airline: str
+        price: int
+
+    @tool
+    def pick_flight() -> FlightOption:
+        return FlightOption(airline="TestAir", price=123)
+
+    out = be.complete(
+        "Use pick_flight() and return result.",
+        tools=[pick_flight],
+        output_schema=None,
+        config=Config(model="ollama:llama3", extra={"ollama_api": "openai_chat"}),
+    )
+    assert out.strip() == "done"
+    assert len(calls) >= 2, "expected 2 calls"
+    msgs = calls[1].get("messages") or []
+    has_tool_payload = False
+    for m in msgs:
+        if isinstance(m, dict) and m.get("role") == "tool":
+            c = m.get("content", "")
+            assert isinstance(c, str) and c
+            has_tool_payload = ("FlightOption" in c) or ("TestAir" in c)
+            if has_tool_payload:
+                break
+    assert has_tool_payload, "Expected a serialized dataclass payload in tool message"
+
+
 def test_ollama_openai_stream_text(monkeypatch):
     from alloy.models.ollama import OllamaBackend
 

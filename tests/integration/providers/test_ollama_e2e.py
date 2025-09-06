@@ -194,3 +194,53 @@ async def test_ollama_async_command_streaming_text_only(strategy: str, model_id:
         if len("".join(out)) >= 5:
             break
     assert len("".join(out)) > 0
+
+
+@requires_ollama
+def test_ollama_native_tool_dataclass_payload():
+    from dataclasses import dataclass
+
+    model_id = os.getenv("ALLOY_OLLAMA_NATIVE_MODEL", "ollama:llama3.2")
+    configure(model=model_id, temperature=0, extra={"ollama_api": "native"})
+
+    @dataclass
+    class FlightOption:
+        airline: str
+        price: int
+
+    @tool
+    def pick_flight() -> FlightOption:
+        """Return a flight option (dataclass)."""
+        return FlightOption(airline="TestAir", price=123)
+
+    @command(output=str, tools=[pick_flight])
+    def plan() -> str:
+        return "Use the tool pick_flight() now. Then respond with 'ok'."
+
+    out = plan()
+    assert isinstance(out, str) and out.strip()
+
+
+@requires_ollama
+def test_ollama_openai_chat_tool_dataclass_payload():
+    from dataclasses import dataclass
+
+    model_id = os.getenv("ALLOY_OLLAMA_OPENAI_MODEL", "ollama:gpt-oss")
+    configure(model=model_id, temperature=0, extra={"ollama_api": "openai_chat"})
+
+    @dataclass
+    class FlightOption:
+        airline: str
+        price: int
+
+    @tool
+    def pick_flight() -> FlightOption:
+        """Return a flight option (dataclass)."""
+        return FlightOption(airline="TestAir", price=123)
+
+    @command(output=str, tools=[pick_flight])
+    def plan() -> str:
+        return "Use the tool pick_flight() now. Then respond with 'ok'."
+
+    out = plan()
+    assert isinstance(out, str) and out.strip()

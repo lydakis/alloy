@@ -275,7 +275,7 @@ class OllamaOpenAIChatLoopState(BaseLoopState[Any]):
             self.messages.append(self._last_assistant_content)
         for call, res in zip(calls, results):
             payload = res.value if res.ok else (res.error or "")
-            content = payload if isinstance(payload, str) else json.dumps(payload)
+            content = serialize_tool_payload(payload)
             self.messages.append(
                 {"role": "tool", "tool_call_id": call.id or "", "content": content}
             )

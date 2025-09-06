@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, AsyncIterable
-from dataclasses import dataclass
+from dataclasses import dataclass, is_dataclass, asdict
 from typing import Any, Callable, Generic, TypeVar
 import inspect
 import abc
@@ -275,11 +275,32 @@ def should_finalize_structured_output(text: str, schema: dict | None) -> bool:
         return True
 
 
+def tool_payload_to_obj(payload: object) -> object:
+    """Return a JSON‑serializable Python object for a tool payload.
+
+    Supports dataclasses and built-in containers (dict, list, tuple).
+    """
+
+    if is_dataclass(payload) and not isinstance(payload, type):
+        return asdict(payload)
+    if isinstance(payload, dict):
+        return {k: tool_payload_to_obj(v) for k, v in payload.items()}
+    if isinstance(payload, (list, tuple)):
+        return [tool_payload_to_obj(v) for v in payload]
+    return payload
+
+
 def serialize_tool_payload(payload: object) -> str:
+    """Serialize a tool's return value into a JSON string (or pass through string).
+
+    Uses ``tool_payload_to_obj`` to normalize complex types before encoding.
+    Falls back to ``str(payload)`` if encoding fails.
+    """
+
     if isinstance(payload, str):
         return payload
     try:
-        return json.dumps(payload)
+        return json.dumps(tool_payload_to_obj(payload))
     except Exception:
         return str(payload)
 
