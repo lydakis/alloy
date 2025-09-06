@@ -5,7 +5,7 @@ from typing import Any
 from typing import get_args, get_origin, get_type_hints, Union as _Union
 import types as _pytypes
 from functools import lru_cache
-from dataclasses import is_dataclass, fields, MISSING
+from dataclasses import is_dataclass, fields, MISSING, asdict
 
 
 def to_json_schema(tp: Any, strict: bool = True) -> dict | None:
@@ -197,3 +197,49 @@ def is_typeddict_type(tp: Any) -> bool:
 
 def _primitive_name(tp: Any) -> str:
     return {str: "string", int: "integer", float: "number", bool: "boolean"}[tp]
+
+
+def to_jsonable(value: Any) -> Any:
+    """Convert a Python value to a JSON‑serializable structure.
+
+    Supports dataclasses (converted via asdict) and recursively normalizes
+    dict, list, and tuple containers. Leaves primitives and strings as is.
+    """
+    if is_dataclass(value) and not isinstance(value, type):
+        return asdict(value)
+    if isinstance(value, dict):
+        return {k: to_jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [to_jsonable(v) for v in value]
+    return value
+
+
+def flatten_property_paths(schema: dict) -> list[str]:
+    """Return dotted property paths for all properties in an object schema.
+
+    Arrays of objects use the segment "[*]" to indicate any index.
+    """
+
+    def walk(s: dict, prefix: str) -> list[str]:
+        t = (s.get("type") or "").lower()
+        out: list[str] = []
+        if t == "object":
+            props_node = s.get("properties")
+            props = props_node if isinstance(props_node, dict) else {}
+            for name, child in props.items():
+                if isinstance(child, dict):
+                    path = name if not prefix else f"{prefix}.{name}"
+                    out.append(path)
+                    out.extend(walk(child, path))
+        elif t == "array":
+            items = s.get("items") if isinstance(s.get("items"), dict) else None
+            seg = "[*]" if prefix else "[*]"
+            path = f"{prefix}.{seg}" if prefix else seg
+            out.append(path)
+            if isinstance(items, dict):
+                out.extend(walk(items, path))
+        return out
+
+    if not isinstance(schema, dict) or (schema.get("type") or "").lower() != "object":
+        return []
+    return walk(schema, "")

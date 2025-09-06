@@ -16,6 +16,7 @@ from .base import (
     serialize_tool_payload,
     build_tools_common,
 )
+from ..types import flatten_property_paths
 
 _ANTHROPIC_REQUIRED_MAX_TOKENS = 2048
 
@@ -413,33 +414,38 @@ class AnthropicBackend(ModelBackend):
         prefill: str | None = None
         system_hint: str | None = None
         if output_schema and isinstance(output_schema, dict):
-
-            def _prefill_from_schema(s: dict) -> str:
-                t = s.get("type")
-                if t == "object":
-                    return "{"
-                return '{"value":'
-
             t = (output_schema.get("type") or "").lower()
             if t == "object":
-                prefill = _prefill_from_schema(output_schema)
-                props = (
-                    output_schema.get("properties", {})
-                    if isinstance(output_schema.get("properties"), dict)
-                    else {}
-                )
-                keys = ", ".join(sorted(props.keys()))
-                system_hint = (
-                    "Return only a JSON object that exactly matches the required schema. "
-                    f"Use these keys: {keys}. Use numbers for numeric fields without symbols. No extra text."
-                )
+                try:
+                    paths = flatten_property_paths(output_schema)
+                    prefill = "{"
+                    if paths:
+                        keys_text = ", ".join(paths)
+                    else:
+                        props = (
+                            output_schema.get("properties", {})
+                            if isinstance(output_schema.get("properties"), dict)
+                            else {}
+                        )
+                        keys_text = ", ".join(sorted(props.keys()))
+                    system_hint = (
+                        "Return only a JSON object that exactly matches the required schema. "
+                        f"Use exactly these property names (including nested): {keys_text}. "
+                        "Use numbers for numeric fields without symbols. No extra text."
+                    )
+                except Exception:
+                    prefill = "{"
+                    system_hint = (
+                        "Return only a JSON object that exactly matches the required schema. "
+                        "Use the exact property names. No extra text."
+                    )
             elif t in ("number", "integer", "boolean", "string", "array"):
                 tools_present = tool_defs is not None
                 if not tools_present:
-                    prefill = _prefill_from_schema(output_schema)
+                    prefill = None
                     system_hint = (
-                        'Return only a JSON object of the form {"value": <value>} where <value> matches the required type. '
-                        + "No extra text before or after the JSON."
+                        "Return only the JSON value matching the required type. "
+                        "No extra text before or after the JSON."
                     )
                 else:
                     prefill = None
@@ -447,7 +453,6 @@ class AnthropicBackend(ModelBackend):
             else:
                 prefill = None
                 system_hint = None
-
         return tool_defs, tool_map, prefill, system_hint
 
     def _prepare_stream_kwargs(self, prompt: str, config: Config) -> dict[str, Any]:

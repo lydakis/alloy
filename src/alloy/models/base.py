@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, AsyncIterable
-from dataclasses import dataclass, is_dataclass, asdict
+from dataclasses import dataclass
 from typing import Any, Callable, Generic, TypeVar
 import inspect
 import abc
@@ -9,6 +9,7 @@ import concurrent.futures
 import asyncio
 
 from ..config import Config, DEFAULT_PARALLEL_TOOLS_MAX
+from ..types import to_jsonable
 from ..errors import ConfigurationError, ToolError, create_tool_loop_exception
 import os
 import json
@@ -237,6 +238,8 @@ def should_finalize_structured_output(text: str, schema: dict | None) -> bool:
     - If no schema, do not finalize.
     - If schema (or its wrapped form) represents a string, finalize only if the
       current text is empty. Non-empty text is considered final for strings.
+    - For object schemas, attempt to parse JSON and ensure required keys exist;
+      if parsing fails or required keys are missing, request a finalize turn.
     - Otherwise, finalize when the current text is empty or not valid JSON
       (after stripping optional code fences).
     """
@@ -269,38 +272,59 @@ def should_finalize_structured_output(text: str, schema: dict | None) -> bool:
             s = s[:-3]
         s = s.strip()
     try:
-        json.loads(s)
-        return False
+        data = json.loads(s)
     except Exception:
         return True
 
+    if (schema.get("type") or "").lower() == "object":
 
-def tool_payload_to_obj(payload: object) -> object:
-    """Return a JSON‑serializable Python object for a tool payload.
+        def _has_required(s: dict[str, Any], v: Any) -> bool:
+            if (s.get("type") or "").lower() != "object":
+                return True
+            if not isinstance(v, dict):
+                return False
+            req_node = s.get("required")
+            req = req_node if isinstance(req_node, list) else []
+            for k in req:
+                if k not in v:
+                    return False
+            props_node = s.get("properties")
+            props = props_node if isinstance(props_node, dict) else {}
+            for name, child_schema in props.items():
+                if not isinstance(child_schema, dict):
+                    continue
+                if name in v:
+                    ct = (child_schema.get("type") or "").lower()
+                    if ct == "object":
+                        if not _has_required(child_schema, v[name]):
+                            return False
+                    elif ct == "array":
+                        items_node = child_schema.get("items")
+                        items = items_node if isinstance(items_node, dict) else None
+                        if items and isinstance(v[name], list):
+                            it = (items.get("type") or "").lower()
+                            if it == "object":
+                                for elem in v[name]:
+                                    if not _has_required(items, elem):
+                                        return False
+            return True
 
-    Supports dataclasses and built-in containers (dict, list, tuple).
-    """
-
-    if is_dataclass(payload) and not isinstance(payload, type):
-        return asdict(payload)
-    if isinstance(payload, dict):
-        return {k: tool_payload_to_obj(v) for k, v in payload.items()}
-    if isinstance(payload, (list, tuple)):
-        return [tool_payload_to_obj(v) for v in payload]
-    return payload
+        if not _has_required(schema, data):
+            return True
+    return False
 
 
 def serialize_tool_payload(payload: object) -> str:
     """Serialize a tool's return value into a JSON string (or pass through string).
 
-    Uses ``tool_payload_to_obj`` to normalize complex types before encoding.
+    Uses ``to_jsonable`` to normalize complex types before encoding.
     Falls back to ``str(payload)`` if encoding fails.
     """
 
     if isinstance(payload, str):
         return payload
     try:
-        return json.dumps(tool_payload_to_obj(payload))
+        return json.dumps(to_jsonable(payload))
     except Exception:
         return str(payload)
 
