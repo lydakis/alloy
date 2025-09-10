@@ -1,3 +1,59 @@
+# AGENTS — Quick Guide
+
+This file guides coding agents working in this repository. It applies to the entire repo. Deeper `AGENTS.md` files may further specialize instructions and take precedence within their subtrees.
+
+## Scope & Expectations
+- Keep changes minimal, focused, and reversible; avoid broad refactors.
+- Do not alter public API without explicit instruction; prefer additive changes.
+- Never commit secrets (`.env`, API keys). Verify `.gitignore` is respected.
+- Follow style tools; let formatters fix whitespace vs. hand edits.
+
+## One‑Time Setup
+- Create env: `python -m venv .venv && source .venv/bin/activate`
+- Install dev deps: `pip install -e '.[dev]'`
+- Install hooks: `pre-commit install`
+
+## Core Commands
+- Quick check: `make ci-fast` (lint + typecheck + focused tests, coverage >= 80)
+- Full local CI: `make ci` (lint, typecheck, tests)
+- Tests: `make test` (filter: `pytest -k <pattern> -q`)
+- Lint/format: `make lint` / `make format` then `make precommit`
+- Typecheck: `make typecheck`
+- Examples (fake backend): `make examples-quick`
+- Provider examples (need keys): `make examples-openai|anthropic|gemini|ollama`
+- Docs: `make docs-serve` (live) or `make docs-build` (strict)
+- Release (trusted publishing): create and push a tag, see `make release`
+
+## Testing Profiles
+- Unit/contracts/providers: `make ci-fast`
+- Integration (requires keys): `make itest` or provider‑specific `make itest-openai|anthropic|gemini|ollama`
+- Skip integ locally: `ALLOY_IT_MODEL=none pytest -q`
+- Smoke examples without keys: `make smoke-examples` (uses `ALLOY_BACKEND=fake`)
+
+## Environment Cheatsheet
+- Default model: `gpt-5-mini` (override with `ALLOY_MODEL`)
+- Useful vars: `ALLOY_TEMPERATURE`, `ALLOY_MAX_TOKENS`, `ALLOY_SYSTEM`/`ALLOY_DEFAULT_SYSTEM`, `ALLOY_RETRY`, `ALLOY_MAX_TOOL_TURNS`, `ALLOY_EXTRA_JSON`
+- Provider keys: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`; use `.env` locally and `dotenv -f .env run -- <cmd>`
+
+## Code & Docs Style
+- Python: PEP 8 + type hints; 4‑space indent. Run `ruff` and `black`.
+- Docstrings: concise, imperative; include non‑obvious types.
+- Imports: re‑export public API from `alloy/__init__.py`; import via `from alloy import ...` in code/docs.
+- Decorators: bare `@command`/`@tool` when no options; `@command(...)`/`@tool(...)` when passing options.
+
+## Design Notes
+- Provider‑agnostic logic lives outside `alloy/models/`; provider adapters go in `alloy/models/<provider>.py`.
+- Tools: prefer Design‑by‑Contract via `@require`/`@ensure`; raise `ToolError` with short, instructive messages.
+- Streaming: text‑only; commands with tools or non‑string outputs do not stream.
+
+## Agent Do/Don’t
+- Do: use `rg` for fast search; keep diffs tight; update docs/tests when touching behavior.
+- Do: run `make precommit` before proposing a PR.
+- Don’t: bump dependencies or change public symbols to satisfy lint without discussion.
+- Don’t: introduce provider‑specific behavior into core modules.
+
+---
+
 # Repository Guidelines
 
 ## Project Structure & Module Organization
