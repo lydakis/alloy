@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, AsyncIterable
+from collections.abc import Iterable, AsyncIterable, Iterator
 from dataclasses import dataclass
 from typing import Any, Callable, Generic, TypeVar
 import inspect
@@ -61,6 +61,8 @@ class ModelBackend:
 
     Concrete backends implement completion and tool-calling behavior.
     """
+
+    supports_streaming_tools: bool = False
 
     def complete(
         self,
@@ -190,19 +192,7 @@ class ModelBackend:
             if not calls:
                 return text
 
-            state.turns += 1
-            lim = state.config.max_tool_turns
-            if isinstance(lim, int) and lim >= 0 and state.turns > lim:
-                raise create_tool_loop_exception(
-                    max_turns=lim, turns_taken=state.turns, partial_text=state.last_response_text
-                )
-
-            ptm_raw = state.config.parallel_tools_max
-            ptm = (
-                ptm_raw if isinstance(ptm_raw, int) and ptm_raw > 0 else DEFAULT_PARALLEL_TOOLS_MAX
-            )
-            results = self.execute_tools(calls, parallel_tools_max=ptm, tool_map=state.tool_map)
-            state.add_tool_results(calls, results)
+            self._handle_tool_turn(state, calls)
 
     async def arun_tool_loop(self, client: Any, state: BaseLoopState[T]) -> str:
         while True:
@@ -214,21 +204,101 @@ class ModelBackend:
             if not calls:
                 return text
 
-            state.turns += 1
-            lim = state.config.max_tool_turns
-            if isinstance(lim, int) and lim >= 0 and state.turns > lim:
-                raise create_tool_loop_exception(
-                    max_turns=lim, turns_taken=state.turns, partial_text=state.last_response_text
-                )
+            await self._ahandle_tool_turn(state, calls)
 
-            ptm_raw = state.config.parallel_tools_max
-            ptm = (
-                ptm_raw if isinstance(ptm_raw, int) and ptm_raw > 0 else DEFAULT_PARALLEL_TOOLS_MAX
+    def run_stream_loop(
+        self,
+        state: BaseLoopState[T],
+        stream_step: Callable[[BaseLoopState[T]], Iterator[str]],
+    ) -> Iterable[str]:
+        """Drive a streaming conversation that may invoke tools.
+
+        ``stream_step`` must return a generator that yields text chunks. When
+        the generator finishes, it should expose a callable attribute
+        ``_alloy_get_tool_calls`` returning the tool calls gathered for that
+        turn (or ``None``/``[]`` if no calls). When no tool calls are returned,
+        iteration stops. Otherwise tool results are executed and appended via
+        the state before the next turn.
+        """
+
+        def gen() -> Iterator[str]:
+            while True:
+                iterator = stream_step(state)
+                getter = getattr(iterator, "_alloy_get_tool_calls", None)
+                calls_holder: list[ToolCall] | None = None
+                try:
+                    while True:
+                        chunk = next(iterator)
+                        yield chunk
+                except StopIteration:
+                    if callable(getter):
+                        calls_holder = list(getter() or [])
+                except Exception:
+                    raise
+                else:
+                    if callable(getter):
+                        calls_holder = list(getter() or [])
+                raw_calls = calls_holder or []
+                calls_list = list(raw_calls or [])
+                if not calls_list:
+                    return
+                self._handle_tool_turn(state, calls_list)
+
+        return gen()
+
+    async def arun_stream_loop(
+        self,
+        state: BaseLoopState[T],
+        stream_step: Callable[[BaseLoopState[T]], AsyncIterable[str]],
+    ) -> AsyncIterable[str]:
+        async def agen() -> AsyncIterable[str]:
+            while True:
+                agen_iterable = stream_step(state)
+                agen_step = agen_iterable.__aiter__()
+                getter = getattr(agen_iterable, "_alloy_get_tool_calls", None)
+                calls: list[ToolCall] | None = None
+                try:
+                    while True:
+                        chunk = await agen_step.__anext__()
+                        yield chunk
+                except StopAsyncIteration:
+                    pass
+                if callable(getter):
+                    calls = list(getter() or [])
+                if not calls:
+                    return
+                await self._ahandle_tool_turn(state, calls)
+
+        return agen()
+
+    def _handle_tool_turn(self, state: BaseLoopState[T], calls: list[ToolCall]) -> None:
+        if not calls:
+            return
+        self._increment_turn_or_raise(state)
+        ptm = self._resolve_parallel_tools_max(state)
+        results = self.execute_tools(calls, parallel_tools_max=ptm, tool_map=state.tool_map)
+        state.add_tool_results(calls, results)
+
+    async def _ahandle_tool_turn(self, state: BaseLoopState[T], calls: list[ToolCall]) -> None:
+        if not calls:
+            return
+        self._increment_turn_or_raise(state)
+        ptm = self._resolve_parallel_tools_max(state)
+        results = await self.aexecute_tools(calls, parallel_tools_max=ptm, tool_map=state.tool_map)
+        state.add_tool_results(calls, results)
+
+    def _increment_turn_or_raise(self, state: BaseLoopState[T]) -> None:
+        state.turns += 1
+        lim = state.config.max_tool_turns
+        if isinstance(lim, int) and lim >= 0 and state.turns > lim:
+            raise create_tool_loop_exception(
+                max_turns=lim, turns_taken=state.turns, partial_text=state.last_response_text
             )
-            results = await self.aexecute_tools(
-                calls, parallel_tools_max=ptm, tool_map=state.tool_map
-            )
-            state.add_tool_results(calls, results)
+
+    @staticmethod
+    def _resolve_parallel_tools_max(state: BaseLoopState[T]) -> int:
+        ptm_raw = state.config.parallel_tools_max
+        return ptm_raw if isinstance(ptm_raw, int) and ptm_raw > 0 else DEFAULT_PARALLEL_TOOLS_MAX
 
 
 def should_finalize_structured_output(text: str, schema: dict | None) -> bool:

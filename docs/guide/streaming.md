@@ -6,10 +6,10 @@ Understand current text‑only streaming and the preview for sequence‑of‑obj
 
 ## Current (stable)
 
-- Text‑only streaming.
-- Commands that use tools or non‑string outputs do not stream via Alloy.
+- Text-only streaming.
+- Tools can stream when the configured backend advertises support (OpenAI Responses today); otherwise the call falls back to a configuration error.
 
-> Warning: Streaming supports text only; tools and structured outputs are not supported.
+> Warning: Structured outputs are not supported while streaming. Tool streaming is limited to backends that explicitly support it.
 
 APIs
 ```python

@@ -45,8 +45,8 @@ class _AskNamespace:
     ) -> Iterable[str]:
         effective = get_config(overrides)
         backend = get_backend(effective.model)
-        if tools:
-            raise CommandError("Streaming supports text only; tools are not supported")
+        if tools and not getattr(backend, "supports_streaming_tools", False):
+            raise CommandError("Streaming with tools is not supported by the configured backend")
         if context:
             prompt = f"Context: {context}\n\nTask: {prompt}"
         try:
@@ -67,17 +67,18 @@ class _AskNamespace:
         context: dict[str, Any] | None = None,
         **overrides,
     ):
-        if tools:
-            raise CommandError("Streaming supports text only; tools are not supported")
-
         async def agen():
             effective = get_config(overrides)
             backend = get_backend(effective.model)
+            if tools and not getattr(backend, "supports_streaming_tools", False):
+                raise CommandError(
+                    "Streaming with tools is not supported by the configured backend"
+                )
             p = f"Context: {context}\n\nTask: {prompt}" if context else prompt
             try:
                 aiter = await backend.astream(
                     p,
-                    tools=None,
+                    tools=tools or None,
                     output_schema=None,
                     config=effective,
                 )

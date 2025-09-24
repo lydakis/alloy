@@ -146,6 +146,56 @@ def test_openai_sync_streaming_text_only():
 
 
 @requires_openai
+def test_openai_sync_streaming_with_tools():
+    model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))
+    configure(model=model, temperature=0)
+
+    calls: dict[str, int] = {"count": 0}
+
+    @tool
+    def fetch_fact() -> str:
+        calls["count"] += 1
+        return "Tool says hi"
+
+    chunks = list(
+        ask.stream(
+            "Call the fetch_fact tool to get the latest detail, then reply exactly with 'Summary: Tool says hi'.",
+            tools=[fetch_fact],
+        )
+    )
+    text = "".join(chunks).strip()
+    assert "Summary:" in text
+    assert "Tool says hi" in text
+    assert calls["count"] >= 1
+
+
+@requires_openai
+@pytest.mark.asyncio
+async def test_openai_async_streaming_with_tools():
+    model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))
+    configure(model=model, temperature=0)
+
+    calls: dict[str, int] = {"count": 0}
+
+    @tool
+    def fetch_fact() -> str:
+        calls["count"] += 1
+        return "Tool says hi"
+
+    chunks: list[str] = []
+    aiter = ask.stream_async(
+        "Call the fetch_fact tool to get the latest detail, then reply exactly with 'Summary: Tool says hi'.",
+        tools=[fetch_fact],
+    )
+    async for ch in aiter:
+        chunks.append(ch)
+    text = "".join(chunks).strip()
+    assert "Summary:" in text
+    assert "Tool says hi" in text
+    assert calls["count"] >= 1
+
+
+@requires_openai
 @pytest.mark.asyncio
 async def test_openai_async_command_streaming_text_only():
     model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))
@@ -178,3 +228,62 @@ def test_openai_sync_command_streaming_text_only():
         if len("".join(out)) >= 5:
             break
     assert len("".join(out)) > 0
+
+
+@requires_openai
+def test_openai_sync_command_streaming_with_tools():
+    model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))
+    configure(model=model, temperature=0)
+
+    calls: dict[str, int] = {"count": 0}
+
+    @tool
+    def fetch_fact() -> str:
+        calls["count"] += 1
+        return "Tool says hi"
+
+    @command(output=str, tools=[fetch_fact])
+    def plan() -> str:
+        return (
+            "Call fetch_fact now, then respond with 'Summary: Tool says hi'. "
+            "Do not add extra commentary."
+        )
+
+    chunks: list[str] = []
+    for ch in plan.stream():
+        chunks.append(ch)
+    text = "".join(chunks).strip()
+    assert text
+    assert "Summary:" in text
+    assert "Tool says hi" in text
+    assert calls["count"] >= 1
+
+
+@requires_openai
+@pytest.mark.asyncio
+async def test_openai_async_command_streaming_with_tools():
+    model = os.getenv("ALLOY_IT_MODEL", os.getenv("ALLOY_MODEL", "gpt-5-mini"))
+    configure(model=model, temperature=0)
+
+    calls: dict[str, int] = {"count": 0}
+
+    @tool
+    def fetch_fact() -> str:
+        calls["count"] += 1
+        return "Tool says hi"
+
+    @command(output=str, tools=[fetch_fact])
+    async def plan() -> str:
+        return (
+            "Call fetch_fact now, then respond with 'Summary: Tool says hi'. "
+            "Do not add extra commentary."
+        )
+
+    collected: list[str] = []
+    async for ch in plan.stream():
+        collected.append(ch)
+    text = "".join(collected).strip()
+    assert text
+    assert "Summary:" in text
+    assert "Tool says hi" in text
+    assert calls["count"] >= 1

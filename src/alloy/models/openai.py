@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, AsyncIterable
+from collections.abc import Iterable, AsyncIterable, Iterator, AsyncIterator
 from typing import Any
 import json
 
@@ -249,6 +249,8 @@ class OpenAIBackend(ModelBackend):
     unavailable.
     """
 
+    supports_streaming_tools = True
+
     def __init__(self) -> None:
         self._OpenAI: Any | None = None
         self._AsyncOpenAI: Any | None = None
@@ -304,34 +306,145 @@ class OpenAIBackend(ModelBackend):
         config: Config,
     ) -> Iterable[str]:
         _ = self._get_sync_client()
-        if tools or output_schema is not None:
+        if output_schema is not None:
             raise ConfigurationError(
-                "Streaming supports text only; tools and structured outputs are not supported"
+                "Streaming supports text only; structured outputs are not supported"
             )
 
         client: Any = self._client_sync
-        kwargs = _prepare_request_kwargs(
-            prompt,
+
+        # Fast path: no tools → existing plain text stream
+        if not tools:
+            kwargs = _prepare_request_kwargs(
+                prompt,
+                config=config,
+                text_format=None,
+                tool_defs=None,
+                pending=None,
+                prev_id=None,
+            )
+            stream = client.responses.stream(**kwargs)
+
+            def gen_plain():
+                with stream as s:
+                    for event in s:
+                        et = _get(event, "type", "")
+                        if et == "response.output_text.delta":
+                            delta = _get(event, "delta", "") or ""
+                            if delta:
+                                yield delta
+                        elif et == "error":
+                            break
+
+            return gen_plain()
+
+        tool_defs, tool_map = _build_tools(tools)
+        state = OpenAILoopState(
+            prompt=prompt,
             config=config,
             text_format=None,
-            tool_defs=None,
-            pending=None,
-            prev_id=None,
+            tool_defs=tool_defs,
+            tool_map=tool_map,
         )
-        stream = client.responses.stream(**kwargs)
 
-        def gen():
-            with stream as s:
-                for event in s:
-                    et = _get(event, "type", "")
-                    if et == "response.output_text.delta":
-                        delta = _get(event, "delta", "") or ""
-                        if delta:
-                            yield delta
-                    elif et == "error":
-                        break
+        def stream_step(loop_state: BaseLoopState[Any]) -> Iterator[str]:
+            if not isinstance(loop_state, OpenAILoopState):
+                raise TypeError("stream_step expects OpenAILoopState")
+            calls_holder: dict[str, list[ToolCall]] = {"value": []}
 
-        return gen()
+            def iterator() -> Iterator[str]:
+                pending_payload = loop_state.pending
+                loop_state.pending = None
+                kwargs = _prepare_request_kwargs(
+                    prompt,
+                    config=config,
+                    text_format=None,
+                    tool_defs=loop_state.tool_defs,
+                    pending=pending_payload,
+                    prev_id=loop_state.prev_id,
+                )
+                loop_state._apply_tool_choice(kwargs)
+                stream_ctx = client.responses.stream(**kwargs)
+
+                by_id: dict[str, dict[str, str]] = {}
+                final_resp_obj: Any | None = None
+
+                with stream_ctx as s:
+                    for event in s:
+                        et = _get(event, "type", "")
+                        if et == "response.created":
+                            rid = _get(event, "response")
+                            rid = _get(rid, "id", _get(event, "id"))
+                            if isinstance(rid, str) and rid:
+                                loop_state.prev_id = rid
+                        elif et == "response.output_text.delta":
+                            delta = _get(event, "delta", "") or ""
+                            if delta:
+                                yield delta
+                        elif et == "response.output_item.added":
+                            item = _get(event, "item", {})
+                            if _get(item, "type") == "function_call":
+                                cid = str(_get(item, "id") or _get(item, "call_id") or "")
+                                name = str(_get(item, "name") or "")
+                                if cid and cid not in by_id:
+                                    by_id[cid] = {"name": name, "args": ""}
+                        elif et == "response.function_call_arguments.delta":
+                            cid = str(_get(event, "id") or _get(event, "call_id") or "")
+                            if cid:
+                                piece = _get(event, "delta", "") or ""
+                                rec = by_id.setdefault(cid, {"name": "", "args": ""})
+                                if isinstance(piece, str):
+                                    rec["args"] += piece
+                        elif et in ("error", "response.error"):
+                            break
+
+                    final_resp = getattr(s, "get_final_response", None)
+                    if callable(final_resp):
+                        try:
+                            final_resp_obj = final_resp()
+                        except Exception:
+                            final_resp_obj = None
+
+                calls: list[ToolCall] = []
+                if final_resp_obj is not None:
+                    try:
+                        text_val = loop_state.extract_text(final_resp_obj)
+                        loop_state.last_response_text = text_val
+                        parsed = loop_state.extract_tool_calls(final_resp_obj) or []
+                        if parsed:
+                            calls = parsed
+                    except Exception:
+                        calls = []
+
+                if not calls and by_id:
+                    for cid, rec in by_id.items():
+                        raw = rec.get("args") or "{}"
+                        try:
+                            args = json.loads(raw)
+                            if not isinstance(args, dict):
+                                args = {}
+                        except Exception:
+                            args = {}
+                        calls.append(ToolCall(id=cid or None, name=rec.get("name", ""), args=args))
+
+                calls_holder["value"] = calls
+
+            class _StreamWrapper(Iterator[str]):
+                def __init__(self, gen: Iterator[str]):
+                    self._gen = gen
+
+                def __iter__(self) -> Iterator[str]:
+                    return self
+
+                def __next__(self) -> str:
+                    return next(self._gen)
+
+                def _alloy_get_tool_calls(self) -> list[ToolCall]:
+                    return calls_holder.get("value", [])
+
+            return _StreamWrapper(iterator())
+
+        return self.run_stream_loop(state, stream_step)
 
     async def acomplete(
         self,
@@ -370,34 +483,144 @@ class OpenAIBackend(ModelBackend):
         config: Config,
     ) -> AsyncIterable[str]:
         _ = self._get_async_client()
-        if tools or output_schema is not None:
+        if output_schema is not None:
             raise ConfigurationError(
-                "Streaming supports text only; tools and structured outputs are not supported"
+                "Streaming supports text only; structured outputs are not supported"
             )
 
         client: Any = self._client_async
-        kwargs = _prepare_request_kwargs(
-            prompt,
+
+        if not tools:
+            kwargs = _prepare_request_kwargs(
+                prompt,
+                config=config,
+                text_format=None,
+                tool_defs=None,
+                pending=None,
+                prev_id=None,
+            )
+            stream_ctx = client.responses.stream(**kwargs)
+
+            async def agen_plain():
+                async with stream_ctx as s:
+                    async for event in s:
+                        et = _get(event, "type", "")
+                        if et == "response.output_text.delta":
+                            delta = _get(event, "delta", "") or ""
+                            if delta:
+                                yield delta
+                        elif et == "error":
+                            break
+
+            return agen_plain()
+
+        tool_defs, tool_map = _build_tools(tools)
+        state = OpenAILoopState(
+            prompt=prompt,
             config=config,
             text_format=None,
-            tool_defs=None,
-            pending=None,
-            prev_id=None,
+            tool_defs=tool_defs,
+            tool_map=tool_map,
         )
-        stream_ctx = client.responses.stream(**kwargs)
 
-        async def agen():
-            async with stream_ctx as s:
-                async for event in s:
-                    et = _get(event, "type", "")
-                    if et == "response.output_text.delta":
-                        delta = _get(event, "delta", "") or ""
-                        if delta:
-                            yield delta
-                    elif et == "error":
-                        break
+        def stream_step(loop_state: BaseLoopState[Any]) -> AsyncIterator[str]:
+            if not isinstance(loop_state, OpenAILoopState):
+                raise TypeError("stream_step expects OpenAILoopState")
+            calls_holder: dict[str, list[ToolCall]] = {"value": []}
 
-        return agen()
+            async def iterator() -> AsyncIterator[str]:
+                pending_payload = loop_state.pending
+                loop_state.pending = None
+                kwargs = _prepare_request_kwargs(
+                    prompt,
+                    config=config,
+                    text_format=None,
+                    tool_defs=loop_state.tool_defs,
+                    pending=pending_payload,
+                    prev_id=loop_state.prev_id,
+                )
+                loop_state._apply_tool_choice(kwargs)
+                stream_ctx = client.responses.stream(**kwargs)
+
+                by_id: dict[str, dict[str, str]] = {}
+                final_resp_obj: Any | None = None
+
+                async with stream_ctx as s:
+                    async for event in s:
+                        et = _get(event, "type", "")
+                        if et == "response.created":
+                            rid = _get(event, "response")
+                            rid = _get(rid, "id", _get(event, "id"))
+                            if isinstance(rid, str) and rid:
+                                loop_state.prev_id = rid
+                        elif et == "response.output_text.delta":
+                            delta = _get(event, "delta", "") or ""
+                            if delta:
+                                yield delta
+                        elif et == "response.output_item.added":
+                            item = _get(event, "item", {})
+                            if _get(item, "type") == "function_call":
+                                cid = str(_get(item, "id") or _get(item, "call_id") or "")
+                                name = str(_get(item, "name") or "")
+                                if cid and cid not in by_id:
+                                    by_id[cid] = {"name": name, "args": ""}
+                        elif et == "response.function_call_arguments.delta":
+                            cid = str(_get(event, "id") or _get(event, "call_id") or "")
+                            if cid:
+                                piece = _get(event, "delta", "") or ""
+                                rec = by_id.setdefault(cid, {"name": "", "args": ""})
+                                if isinstance(piece, str):
+                                    rec["args"] += piece
+                        elif et in ("error", "response.error"):
+                            break
+
+                    final_resp = getattr(s, "get_final_response", None)
+                    if callable(final_resp):
+                        try:
+                            final_resp_obj = await final_resp()
+                        except Exception:
+                            final_resp_obj = None
+
+                calls: list[ToolCall] = []
+                if final_resp_obj is not None:
+                    try:
+                        text_val = loop_state.extract_text(final_resp_obj)
+                        loop_state.last_response_text = text_val
+                        parsed = loop_state.extract_tool_calls(final_resp_obj) or []
+                        if parsed:
+                            calls = parsed
+                    except Exception:
+                        calls = []
+
+                if not calls and by_id:
+                    for cid, rec in by_id.items():
+                        raw = rec.get("args") or "{}"
+                        try:
+                            args = json.loads(raw)
+                            if not isinstance(args, dict):
+                                args = {}
+                        except Exception:
+                            args = {}
+                        calls.append(ToolCall(id=cid or None, name=rec.get("name", ""), args=args))
+
+                calls_holder["value"] = calls
+
+            class _AsyncStreamWrapper(AsyncIterator[str]):
+                def __init__(self, agen: AsyncIterator[str]):
+                    self._aiter = agen
+
+                def __aiter__(self) -> AsyncIterator[str]:
+                    return self
+
+                async def __anext__(self) -> str:
+                    return await self._aiter.__anext__()
+
+                def _alloy_get_tool_calls(self) -> list[ToolCall]:
+                    return calls_holder.get("value", [])
+
+            return _AsyncStreamWrapper(iterator())
+
+        return await self.arun_stream_loop(state, stream_step)
 
     def _get_sync_client(self) -> Any:
         if self._OpenAI is None:
