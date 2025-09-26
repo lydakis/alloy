@@ -7,7 +7,7 @@ Understand current text‑only streaming and the preview for sequence‑of‑obj
 ## Current (stable)
 
 - Text-only streaming.
-- Tools can stream when the configured backend advertises support (OpenAI Responses today); otherwise the call falls back to a configuration error.
+- Tools can stream when the configured backend advertises support (OpenAI Responses and Anthropic Claude today); otherwise the call falls back to a configuration error.
 
 > Warning: Structured outputs are not supported while streaming. Tool streaming is limited to backends that explicitly support it.
 

@@ -121,6 +121,29 @@ def test_anthropic_streaming_text_only_minimal():
 
 
 @requires_anthropic
+def test_anthropic_sync_streaming_with_tools():
+    configure(model=model_env or "claude-sonnet-4-20250514", temperature=0)
+
+    calls: dict[str, int] = {"count": 0}
+
+    @tool
+    def fetch_fact() -> str:
+        calls["count"] += 1
+        return "Tool says hi"
+
+    chunks = list(
+        ask.stream(
+            "Call the fetch_fact tool to get the latest detail, then reply exactly with 'Summary: Tool says hi'.",
+            tools=[fetch_fact],
+        )
+    )
+    text = "".join(chunks).strip()
+    assert "Summary:" in text
+    assert "Tool says hi" in text
+    assert calls["count"] >= 1
+
+
+@requires_anthropic
 def test_anthropic_parallel_tool_calls_single_message_results():
     configure(model=model_env or "claude-sonnet-4-20250514", temperature=0.2)
 
@@ -208,6 +231,31 @@ async def test_anthropic_async_streaming_text_only():
         if len("".join(chunks)) >= 5:
             break
     assert len("".join(chunks)) > 0
+
+
+@requires_anthropic
+@pytest.mark.asyncio
+async def test_anthropic_async_streaming_with_tools():
+    configure(model=model_env or "claude-sonnet-4-20250514", temperature=0)
+
+    calls: dict[str, int] = {"count": 0}
+
+    @tool
+    def fetch_fact() -> str:
+        calls["count"] += 1
+        return "Tool says hi"
+
+    chunks: list[str] = []
+    aiter = ask.stream_async(
+        "Call the fetch_fact tool to get the latest detail, then reply exactly with 'Summary: Tool says hi'.",
+        tools=[fetch_fact],
+    )
+    async for ch in aiter:
+        chunks.append(ch)
+    text = "".join(chunks).strip()
+    assert "Summary:" in text
+    assert "Tool says hi" in text
+    assert calls["count"] >= 1
 
 
 @requires_anthropic

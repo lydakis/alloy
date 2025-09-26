@@ -1,7 +1,7 @@
 import pytest
 
 from alloy.config import Config
-from alloy import ConfigurationError
+from alloy import ConfigurationError, tool
 
 
 class _OAIFakeStream:
@@ -127,16 +127,84 @@ async def test_astream_gating_equivalence(monkeypatch, provider):
         from alloy.models.openai import OpenAIBackend
 
         be = OpenAIBackend()
-        be._client_async = type("C", (), {"responses": object()})()
+
+        class _Resp:
+            @staticmethod
+            def stream(**kwargs):
+                return _OAIFakeStream(
+                    [
+                        {"type": "response.output_text.delta", "delta": "chunk"},
+                    ]
+                )
+
+        be._client_async = type("C", (), {"responses": _Resp})()
         monkeypatch.setattr(be, "_get_async_client", lambda: be._client_async)
         cfg = Config(model="gpt-5-mini")
+        _tool_calls: list[str] = []
+
+        @tool
+        def noop() -> str:
+            _tool_calls.append("run")
+            return "ok"
+
+        aiter = await be.astream("prompt", tools=[noop], output_schema=None, config=cfg)
+        chunks = []
+        async for ch in aiter:
+            chunks.append(ch)
+        assert "".join(chunks) == "chunk"
+        assert _tool_calls
     elif provider == "anthropic":
         from alloy.models.anthropic import AnthropicBackend
 
         be = AnthropicBackend()
-        be._client_async = type("C", (), {"messages": object()})()
+
+        class _Stream:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return False
+
+            @property
+            def text_stream(self):
+                async def _gen():
+                    yield "chunk"
+
+                return _gen()
+
+            async def get_final_message(self):
+                from anthropic.types import Message
+
+                return Message.model_validate(
+                    {
+                        "id": "msg",
+                        "content": [{"type": "text", "text": "chunk"}],
+                        "model": "claude-3-sonnet",
+                        "role": "assistant",
+                        "stop_reason": "end_turn",
+                        "type": "message",
+                        "usage": {"input_tokens": 1, "output_tokens": 1},
+                    }
+                )
+
+        be._client_async = type(
+            "C", (), {"messages": type("M", (), {"stream": staticmethod(lambda **_: _Stream())})()}
+        )()
         monkeypatch.setattr(be, "_get_async_client", lambda: be._client_async)
         cfg = Config(model="claude-3")
+        _tool_calls: list[str] = []
+
+        @tool
+        def noop() -> str:
+            _tool_calls.append("run")
+            return "ok"
+
+        aiter = await be.astream("prompt", tools=[noop], output_schema=None, config=cfg)
+        chunks: list[str] = []
+        async for ch in aiter:
+            chunks.append(ch)
+        assert "".join(chunks) == "chunk"
+        assert _tool_calls
     else:
         from alloy.models.gemini import GeminiBackend
 
@@ -145,7 +213,7 @@ async def test_astream_gating_equivalence(monkeypatch, provider):
         monkeypatch.setattr(be, "_get_sync_client", lambda: be._client_sync)
         cfg = Config(model="gemini-2.5-flash")
 
-    with pytest.raises(ConfigurationError):
-        await be.astream("prompt", tools=[lambda: None], output_schema=None, config=cfg)
+        with pytest.raises(ConfigurationError):
+            await be.astream("prompt", tools=[lambda: None], output_schema=None, config=cfg)
     with pytest.raises(ConfigurationError):
         await be.astream("prompt", tools=None, output_schema={"type": "string"}, config=cfg)

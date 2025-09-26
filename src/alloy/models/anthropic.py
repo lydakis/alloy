@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, AsyncIterable
+from collections.abc import Iterable, AsyncIterable, Iterator, AsyncIterator
 from typing import Any
 
 from ..config import Config
@@ -235,6 +235,8 @@ class AnthropicLoopState(BaseLoopState[Any]):
 class AnthropicBackend(ModelBackend):
     """Anthropic Claude backend."""
 
+    supports_streaming_tools = True
+
     def __init__(self) -> None:
         self._Anthropic: Any | None = None
         self._AsyncAnthropic: Any | None = None
@@ -295,28 +297,105 @@ class AnthropicBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> Iterable[str]:
-        if tools or output_schema is not None:
+        if output_schema is not None:
             raise ConfigurationError(
-                "Streaming supports text only; tools and structured outputs are not supported"
+                "Streaming supports text only; structured outputs are not supported"
             )
         client: Any = self._get_sync_client()
-        kwargs = self._prepare_stream_kwargs(prompt, config)
-        stream_ctx = client.messages.stream(**kwargs)
+        if not tools:
+            kwargs = self._prepare_stream_kwargs(prompt, config)
+            stream_ctx = client.messages.stream(**kwargs)
 
-        def gen():
-            with stream_ctx as s:
-                text_stream = getattr(s, "text_stream", None)
-                if text_stream is not None:
-                    for delta in text_stream:
-                        if isinstance(delta, str) and delta:
-                            yield delta
-                    return
-                for event in s:
-                    text = self._parse_stream_event(event)
-                    if isinstance(text, str) and text:
-                        yield text
+            def gen():
+                with stream_ctx as s:
+                    text_stream = getattr(s, "text_stream", None)
+                    if text_stream is not None:
+                        for delta in text_stream:
+                            if isinstance(delta, str) and delta:
+                                yield delta
+                        return
+                    for event in s:
+                        text = self._parse_stream_event(event)
+                        if isinstance(text, str) and text:
+                            yield text
 
-        return gen()
+            return gen()
+
+        tool_defs, tool_map, prefill, system_hint = self._prepare_conversation(tools, None)
+
+        system = config.default_system
+        sys_str = system
+        if isinstance(system_hint, str) and system_hint:
+            sys_str = f"{system}\n\n{system_hint}" if system else system_hint
+
+        state = AnthropicLoopState(
+            prompt=prompt,
+            config=config,
+            system=sys_str,
+            tool_defs=tool_defs,
+            tool_map=tool_map,
+            prefill=prefill,
+        )
+
+        def stream_step(loop_state: BaseLoopState[Any]) -> Iterator[str]:
+            if not isinstance(loop_state, AnthropicLoopState):
+                raise TypeError("stream_step expects AnthropicLoopState")
+            calls_holder: dict[str, list[ToolCall]] = {"value": []}
+
+            def iterator() -> Iterator[str]:
+                kwargs = loop_state._base_kwargs()
+                loop_state._apply_tool_choice(kwargs)
+                stream_ctx = client.messages.stream(**kwargs)
+
+                final_message: Any | None = None
+
+                with stream_ctx as s:
+                    text_stream = getattr(s, "text_stream", None)
+                    if text_stream is not None:
+                        for delta in text_stream:
+                            if isinstance(delta, str) and delta:
+                                yield delta
+                    else:
+                        for event in s:
+                            text = self._parse_stream_event(event)
+                            if isinstance(text, str) and text:
+                                yield text
+
+                    getter = getattr(s, "get_final_message", None)
+                    if callable(getter):
+                        try:
+                            final_message = getter()
+                        except Exception:
+                            final_message = None
+
+                calls: list[ToolCall] = []
+                if final_message is not None:
+                    try:
+                        text_val = loop_state.extract_text(final_message)
+                        loop_state.last_response_text = text_val
+                        parsed = loop_state.extract_tool_calls(final_message) or []
+                        if parsed:
+                            calls = parsed
+                    except Exception:
+                        calls = []
+                calls_holder["value"] = calls
+
+            class _StreamWrapper(Iterator[str]):
+                def __init__(self, gen: Iterator[str]):
+                    self._gen = gen
+
+                def __iter__(self) -> Iterator[str]:
+                    return self
+
+                def __next__(self) -> str:
+                    return next(self._gen)
+
+                def _alloy_get_tool_calls(self) -> list[ToolCall]:
+                    return calls_holder.get("value", [])
+
+            return _StreamWrapper(iterator())
+
+        return self.run_stream_loop(state, stream_step)
 
     async def acomplete(
         self,
@@ -364,28 +443,105 @@ class AnthropicBackend(ModelBackend):
         output_schema: dict | None = None,
         config: Config,
     ) -> AsyncIterable[str]:
-        if tools or output_schema is not None:
+        if output_schema is not None:
             raise ConfigurationError(
-                "Streaming supports text only; tools and structured outputs are not supported"
+                "Streaming supports text only; structured outputs are not supported"
             )
         client: Any = self._get_async_client()
-        kwargs = self._prepare_stream_kwargs(prompt, config)
-        stream_ctx = client.messages.stream(**kwargs)
+        if not tools:
+            kwargs = self._prepare_stream_kwargs(prompt, config)
+            stream_ctx = client.messages.stream(**kwargs)
 
-        async def agen():
-            async with stream_ctx as s:
-                text_stream = getattr(s, "text_stream", None)
-                if text_stream is not None:
-                    async for delta in text_stream:
-                        if isinstance(delta, str) and delta:
-                            yield delta
-                    return
-                async for event in s:
-                    text = self._parse_stream_event(event)
-                    if isinstance(text, str) and text:
-                        yield text
+            async def agen():
+                async with stream_ctx as s:
+                    text_stream = getattr(s, "text_stream", None)
+                    if text_stream is not None:
+                        async for delta in text_stream:
+                            if isinstance(delta, str) and delta:
+                                yield delta
+                        return
+                    async for event in s:
+                        text = self._parse_stream_event(event)
+                        if isinstance(text, str) and text:
+                            yield text
 
-        return agen()
+            return agen()
+
+        tool_defs, tool_map, prefill, system_hint = self._prepare_conversation(tools, None)
+
+        system = config.default_system
+        sys_str = system
+        if isinstance(system_hint, str) and system_hint:
+            sys_str = f"{system}\n\n{system_hint}" if system else system_hint
+
+        state = AnthropicLoopState(
+            prompt=prompt,
+            config=config,
+            system=sys_str,
+            tool_defs=tool_defs,
+            tool_map=tool_map,
+            prefill=prefill,
+        )
+
+        def stream_step(loop_state: BaseLoopState[Any]) -> AsyncIterator[str]:
+            if not isinstance(loop_state, AnthropicLoopState):
+                raise TypeError("stream_step expects AnthropicLoopState")
+            calls_holder: dict[str, list[ToolCall]] = {"value": []}
+
+            async def iterator() -> AsyncIterator[str]:
+                kwargs = loop_state._base_kwargs()
+                loop_state._apply_tool_choice(kwargs)
+                stream_ctx = client.messages.stream(**kwargs)
+
+                final_message: Any | None = None
+
+                async with stream_ctx as s:
+                    text_stream = getattr(s, "text_stream", None)
+                    if text_stream is not None:
+                        async for delta in text_stream:
+                            if isinstance(delta, str) and delta:
+                                yield delta
+                    else:
+                        async for event in s:
+                            text = self._parse_stream_event(event)
+                            if isinstance(text, str) and text:
+                                yield text
+
+                    getter = getattr(s, "get_final_message", None)
+                    if callable(getter):
+                        try:
+                            final_message = await getter()
+                        except Exception:
+                            final_message = None
+
+                calls: list[ToolCall] = []
+                if final_message is not None:
+                    try:
+                        text_val = loop_state.extract_text(final_message)
+                        loop_state.last_response_text = text_val
+                        parsed = loop_state.extract_tool_calls(final_message) or []
+                        if parsed:
+                            calls = parsed
+                    except Exception:
+                        calls = []
+                calls_holder["value"] = calls
+
+            class _AsyncStreamWrapper(AsyncIterator[str]):
+                def __init__(self, agen: AsyncIterator[str]):
+                    self._aiter = agen.__aiter__()
+
+                def __aiter__(self) -> AsyncIterator[str]:
+                    return self
+
+                async def __anext__(self) -> str:
+                    return await self._aiter.__anext__()
+
+                def _alloy_get_tool_calls(self) -> list[ToolCall]:
+                    return calls_holder.get("value", [])
+
+            return _AsyncStreamWrapper(iterator())
+
+        return await self.arun_stream_loop(state, stream_step)
 
     def _get_sync_client(self) -> Any:
         if self._Anthropic is None:
