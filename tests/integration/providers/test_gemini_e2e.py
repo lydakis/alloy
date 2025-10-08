@@ -1,7 +1,8 @@
 import os
+
 import pytest
 
-from alloy import command, configure, tool
+from alloy import CommandError, command, configure, tool
 
 pytestmark = pytest.mark.integration
 
@@ -14,6 +15,12 @@ requires_gemini = pytest.mark.skipif(
     not (has_key and is_gemini),
     reason="GOOGLE_API_KEY not set or model not gemini*; integration test skipped",
 )
+
+
+def _skip_if_quota_error(exc: CommandError) -> None:
+    msg = str(exc).lower()
+    if any(tok in msg for tok in ("quota", "rate", "429", "resource exhausted")):
+        pytest.skip(f"Gemini quota exhausted: {exc}")
 
 
 @requires_gemini
@@ -45,6 +52,32 @@ async def test_gemini_async_streaming_text_only():
 
 
 @requires_gemini
+@pytest.mark.asyncio
+async def test_gemini_async_streaming_with_tools():
+    configure(model=model_env or "gemini-2.5-flash", temperature=0)
+    from alloy import ask
+
+    calls: dict[str, int] = {"count": 0}
+
+    @tool
+    def fetch_fact() -> str:
+        calls["count"] += 1
+        return "Tool says hi"
+
+    chunks: list[str] = []
+    aiter = ask.stream_async(
+        "Call the fetch_fact tool to get the latest detail, then reply exactly with 'Summary: Tool says hi'.",
+        tools=[fetch_fact],
+    )
+    async for ch in aiter:
+        chunks.append(ch)
+    text = "".join(chunks).strip()
+    assert "Summary:" in text
+    assert "Tool says hi" in text
+    assert calls["count"] >= 1
+
+
+@requires_gemini
 def test_gemini_sync_streaming_text_only():
     configure(model=model_env or "gemini-2.5-flash", temperature=0)
     from alloy import ask
@@ -55,6 +88,30 @@ def test_gemini_sync_streaming_text_only():
         if len("".join(chunks)) >= 5:
             break
     assert len("".join(chunks)) > 0
+
+
+@requires_gemini
+def test_gemini_sync_streaming_with_tools():
+    configure(model=model_env or "gemini-2.5-flash", temperature=0)
+    from alloy import ask
+
+    calls: dict[str, int] = {"count": 0}
+
+    @tool
+    def fetch_fact() -> str:
+        calls["count"] += 1
+        return "Tool says hi"
+
+    chunks = list(
+        ask.stream(
+            "Call the fetch_fact tool to get the latest detail, then reply exactly with 'Summary: Tool says hi'.",
+            tools=[fetch_fact],
+        )
+    )
+    text = "".join(chunks).strip()
+    assert "Summary:" in text
+    assert "Tool says hi" in text
+    assert calls["count"] >= 1
 
 
 @requires_gemini
@@ -107,7 +164,11 @@ def test_gemini_tools_optional_param_is_omittable():
             "Return only the number."
         )
 
-    out = use_add()
+    try:
+        out = use_add()
+    except CommandError as exc:
+        _skip_if_quota_error(exc)
+        raise
     assert isinstance(out, int)
     assert out == 3
 
@@ -128,7 +189,11 @@ def test_gemini_typed_dict_output():
             "Numbers must be numeric literals (no currency symbols)."
         )
 
-    out = make()
+    try:
+        out = make()
+    except CommandError as exc:
+        _skip_if_quota_error(exc)
+        raise
     assert isinstance(out, dict)
     assert out.get("name")
     assert isinstance(out.get("price"), (int, float)) and out["price"] > 0

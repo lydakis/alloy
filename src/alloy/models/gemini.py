@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, AsyncIterable
+from collections.abc import Iterable, AsyncIterable, Iterator, AsyncIterator
 from typing import Any, cast
 import json
 
@@ -206,6 +206,8 @@ class GeminiLoopState(BaseLoopState[Any]):
 class GeminiBackend(ModelBackend):
     """Google Gemini backend (minimal implementation)."""
 
+    supports_streaming_tools = True
+
     def __init__(self) -> None:
         self._GenAIClient: Any | None = None
         self._Types: Any | None = None
@@ -269,9 +271,9 @@ class GeminiBackend(ModelBackend):
         config: Config,
     ) -> Iterable[str]:
         _ = self._get_sync_client()
-        if tools or output_schema is not None:
+        if output_schema is not None:
             raise ConfigurationError(
-                "Streaming supports text only; tools and structured outputs are not supported"
+                "Streaming supports text only; structured outputs are not supported"
             )
         client: Any = self._client_sync
         model_name = config.model
@@ -279,30 +281,120 @@ class GeminiBackend(ModelBackend):
             raise ConfigurationError(
                 "A model name must be specified in the configuration for the Gemini backend."
             )
-        cfg = _prepare_config(config, None)
+        if not tools:
+            cfg = _prepare_config(config, None)
 
-        try:
-            stream = client.models.generate_content_stream(
-                model=model_name, contents=prompt, config=cfg or None
-            )
-        except Exception as e:
-            raise ConfigurationError(str(e)) from e
-
-        def gen():
             try:
-                for chunk in stream:
-                    txt = getattr(chunk, "text", "") or ""
-                    if txt:
-                        yield txt
-            finally:
+                stream = client.models.generate_content_stream(
+                    model=model_name, contents=prompt, config=cfg or None
+                )
+            except Exception as e:
+                raise ConfigurationError(str(e)) from e
+
+            def gen():
                 try:
+                    for chunk in stream:
+                        txt = getattr(chunk, "text", "") or ""
+                        if txt:
+                            yield txt
+                finally:
+                    try:
+                        close = getattr(stream, "close", None)
+                        if callable(close):
+                            close()
+                    except Exception:
+                        pass
+
+            return gen()
+
+        T = self._Types
+        if T is None:
+            raise ConfigurationError("Google GenAI SDK types not available")
+
+        cfg = _prepare_config(config, None)
+        cfg_state = dict(cfg)
+        cfg_state.pop("response_mime_type", None)
+        cfg_state.pop("response_json_schema", None)
+
+        state = GeminiLoopState(
+            types_mod=T,
+            config=config,
+            tools=tools or [],
+            cfg=cfg_state,
+            prompt=prompt,
+        )
+
+        def stream_step(loop_state: BaseLoopState[Any]) -> Iterator[str]:
+            if not isinstance(loop_state, GeminiLoopState):
+                raise TypeError("stream_step expects GeminiLoopState")
+
+            calls_holder: dict[str, list[ToolCall]] = {"value": []}
+
+            def iterator() -> Iterator[str]:
+                loop_state._apply_tool_choice()
+                stream = client.models.generate_content_stream(
+                    model=model_name,
+                    contents=loop_state.messages,
+                    config=loop_state.cfg or None,
+                )
+                final_resp: Any | None = None
+                collected_chunks: list[str] = []
+                calls: list[ToolCall] = []
+                try:
+                    for chunk in stream:
+                        final_resp = chunk
+                        txt = getattr(chunk, "text", "") or ""
+                        if txt:
+                            collected_chunks.append(txt)
+                            yield txt
+                        if not calls:
+                            try:
+                                parsed = loop_state.extract_tool_calls(chunk) or []
+                            except Exception:
+                                parsed = []
+                            if parsed:
+                                calls = parsed
+                                break
+                finally:
                     close = getattr(stream, "close", None)
                     if callable(close):
-                        close()
-                except Exception:
-                    pass
+                        try:
+                            close()
+                        except Exception:
+                            pass
 
-        return gen()
+                if not calls and final_resp is not None:
+                    try:
+                        text_val = loop_state.extract_text(final_resp)
+                    except Exception:
+                        text_val = ""
+                    try:
+                        parsed = loop_state.extract_tool_calls(final_resp) or []
+                    except Exception:
+                        parsed = []
+                    if parsed:
+                        calls = parsed
+                    loop_state.last_response_text = "".join(collected_chunks) or text_val
+                else:
+                    loop_state.last_response_text = "".join(collected_chunks)
+                calls_holder["value"] = calls
+
+            class _StreamWrapper(Iterator[str]):
+                def __init__(self, gen: Iterator[str]):
+                    self._gen = gen
+
+                def __iter__(self) -> Iterator[str]:
+                    return self
+
+                def __next__(self) -> str:
+                    return next(self._gen)
+
+                def _alloy_get_tool_calls(self) -> list[ToolCall]:
+                    return calls_holder.get("value", [])
+
+            return _StreamWrapper(iterator())
+
+        return self.run_stream_loop(state, stream_step)
 
     async def acomplete(
         self,
@@ -355,9 +447,9 @@ class GeminiBackend(ModelBackend):
         config: Config,
     ) -> AsyncIterable[str]:
         _ = self._get_sync_client()
-        if tools or output_schema is not None:
+        if output_schema is not None:
             raise ConfigurationError(
-                "Streaming supports text only; tools and structured outputs are not supported"
+                "Streaming supports text only; structured outputs are not supported"
             )
         client: Any = self._client_sync
         model_name = config.model
@@ -365,27 +457,117 @@ class GeminiBackend(ModelBackend):
             raise ConfigurationError(
                 "A model name must be specified in the configuration for the Gemini backend."
             )
-        cfg = _prepare_config(config, None)
+        if not tools:
+            cfg = _prepare_config(config, None)
 
-        stream_ctx = await client.aio.models.generate_content_stream(
-            model=model_name, contents=prompt, config=cfg or None
+            stream_ctx = await client.aio.models.generate_content_stream(
+                model=model_name, contents=prompt, config=cfg or None
+            )
+
+            async def agen():
+                try:
+                    async for chunk in stream_ctx:
+                        txt = getattr(chunk, "text", "") or ""
+                        if txt:
+                            yield txt
+                finally:
+                    try:
+                        aclose = getattr(stream_ctx, "aclose", None)
+                        if callable(aclose):
+                            await aclose()
+                    except Exception:
+                        pass
+
+            return agen()
+
+        T = self._Types
+        if T is None:
+            raise ConfigurationError("Google GenAI SDK types not available")
+
+        cfg = _prepare_config(config, None)
+        cfg_state = dict(cfg)
+        cfg_state.pop("response_mime_type", None)
+        cfg_state.pop("response_json_schema", None)
+
+        state = GeminiLoopState(
+            types_mod=T,
+            config=config,
+            tools=tools or [],
+            cfg=cfg_state,
+            prompt=prompt,
         )
 
-        async def agen():
-            try:
-                async for chunk in stream_ctx:
-                    txt = getattr(chunk, "text", "") or ""
-                    if txt:
-                        yield txt
-            finally:
+        def stream_step(loop_state: BaseLoopState[Any]) -> AsyncIterator[str]:
+            if not isinstance(loop_state, GeminiLoopState):
+                raise TypeError("stream_step expects GeminiLoopState")
+
+            calls_holder: dict[str, list[ToolCall]] = {"value": []}
+
+            async def iterator() -> AsyncIterator[str]:
+                loop_state._apply_tool_choice()
+                stream_ctx = await client.aio.models.generate_content_stream(
+                    model=model_name,
+                    contents=loop_state.messages,
+                    config=loop_state.cfg or None,
+                )
+                final_resp: Any | None = None
+                collected_chunks: list[str] = []
+                calls: list[ToolCall] = []
                 try:
+                    async for chunk in stream_ctx:
+                        final_resp = chunk
+                        txt = getattr(chunk, "text", "") or ""
+                        if txt:
+                            collected_chunks.append(txt)
+                            yield txt
+                        if not calls:
+                            try:
+                                parsed = loop_state.extract_tool_calls(chunk) or []
+                            except Exception:
+                                parsed = []
+                            if parsed:
+                                calls = parsed
+                                break
+                finally:
                     aclose = getattr(stream_ctx, "aclose", None)
                     if callable(aclose):
-                        await aclose()
-                except Exception:
-                    pass
+                        try:
+                            await aclose()
+                        except Exception:
+                            pass
 
-        return agen()
+                if not calls and final_resp is not None:
+                    try:
+                        text_val = loop_state.extract_text(final_resp)
+                    except Exception:
+                        text_val = ""
+                    try:
+                        parsed = loop_state.extract_tool_calls(final_resp) or []
+                    except Exception:
+                        parsed = []
+                    if parsed:
+                        calls = parsed
+                    loop_state.last_response_text = "".join(collected_chunks) or text_val
+                else:
+                    loop_state.last_response_text = "".join(collected_chunks)
+                calls_holder["value"] = calls
+
+            class _AsyncStreamWrapper(AsyncIterator[str]):
+                def __init__(self, agen: AsyncIterator[str]):
+                    self._aiter = agen.__aiter__()
+
+                def __aiter__(self) -> AsyncIterator[str]:
+                    return self
+
+                async def __anext__(self) -> str:
+                    return await self._aiter.__anext__()
+
+                def _alloy_get_tool_calls(self) -> list[ToolCall]:
+                    return calls_holder.get("value", [])
+
+            return _AsyncStreamWrapper(iterator())
+
+        return await self.arun_stream_loop(state, stream_step)
 
     def _get_sync_client(self) -> Any:
         if self._GenAIClient is None:
