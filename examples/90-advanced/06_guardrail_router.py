@@ -325,9 +325,7 @@ async def run_workflow(workflow_input: WorkflowInput) -> dict[str, object]:
                 "approval_message": approval_message,
                 "approval_granted": approved,
                 "final_message": (
-                    "Your return is on the way."
-                    if approved
-                    else "What else can I help you with?"
+                    "Your return is on the way." if approved else "What else can I help you with?"
                 ),
             }
         )
