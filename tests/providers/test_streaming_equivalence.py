@@ -209,11 +209,135 @@ async def test_astream_gating_equivalence(monkeypatch, provider):
         from alloy.models.gemini import GeminiBackend
 
         be = GeminiBackend()
-        be._client_sync = object()
+
+        class _Part:
+            def __init__(self, text=None, function_call=None, function_response=None):
+                self.text = text
+                self.function_call = function_call
+                self.function_response = function_response
+
+        class _Types:
+            class Schema:
+                def __init__(self, **kwargs):
+                    self.kw = kwargs
+
+            class FunctionDeclaration:
+                def __init__(self, **kwargs):
+                    self.kw = kwargs
+
+            class Tool:
+                def __init__(self, **kwargs):
+                    self.kw = kwargs
+
+            class AutomaticFunctionCallingConfig:
+                def __init__(self, **kwargs):
+                    self.kw = kwargs
+
+            class FunctionCallingConfig:
+                def __init__(self, **kwargs):
+                    self.kw = kwargs
+
+            class ToolConfig:
+                def __init__(self, **kwargs):
+                    self.kw = kwargs
+
+            class Content:
+                def __init__(self, role, parts):
+                    self.role = role
+                    self.parts = parts
+
+            class Part:
+                @staticmethod
+                def from_text(text: str):
+                    return _Part(text=text)
+
+                @staticmethod
+                def from_function_response(name: str, response):
+                    return _Part(function_response={"name": name, "response": response})
+
+        def _tool_chunk():
+            fc = type("_FC", (), {"name": "noop", "args": {}})()
+            envelope = type("_Envelope", (), {"function_call": fc, "name": "noop"})()
+            part = _Part(function_call=fc)
+            content = _Types.Content(role="assistant", parts=[part])
+            candidate = type("_Cand", (), {"content": content})()
+            return type(
+                "_Resp",
+                (),
+                {
+                    "text": "",
+                    "function_calls": [envelope],
+                    "candidates": [candidate],
+                    "parsed": None,
+                },
+            )()
+
+        def _text_chunk():
+            part = _Part(text="chunk")
+            content = _Types.Content(role="assistant", parts=[part])
+            candidate = type("_Cand", (), {"content": content})()
+            return type(
+                "_Resp",
+                (),
+                {
+                    "text": "chunk",
+                    "function_calls": None,
+                    "candidates": [candidate],
+                    "parsed": None,
+                },
+            )()
+
+        class _AsyncStream:
+            def __init__(self, chunks):
+                self._iter = iter(chunks)
+
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                try:
+                    return next(self._iter)
+                except StopIteration as exc:
+                    raise StopAsyncIteration from exc
+
+            async def aclose(self):
+                return None
+
+        class _AsyncModels:
+            def __init__(self):
+                self.calls = 0
+
+            async def generate_content_stream(self, *, model, contents, config=None):
+                self.calls += 1
+                if self.calls == 1:
+                    return _AsyncStream([_tool_chunk()])
+                if self.calls == 2:
+                    return _AsyncStream([_text_chunk()])
+                raise AssertionError("unexpected extra async stream")
+
+        be._client_sync = type(
+            "_Client",
+            (),
+            {
+                "aio": type("_Aio", (), {"models": _AsyncModels()})(),
+                "models": type("_Sync", (), {"generate_content_stream": lambda **_: []})(),
+            },
+        )()
+        be._Types = _Types
         monkeypatch.setattr(be, "_get_sync_client", lambda: be._client_sync)
         cfg = Config(model="gemini-2.5-flash")
+        _tool_calls: list[str] = []
 
-        with pytest.raises(ConfigurationError):
-            await be.astream("prompt", tools=[lambda: None], output_schema=None, config=cfg)
+        @tool
+        def noop() -> str:
+            _tool_calls.append("run")
+            return "ok"
+
+        aiter = await be.astream("prompt", tools=[noop], output_schema=None, config=cfg)
+        chunks: list[str] = []
+        async for ch in aiter:
+            chunks.append(ch)
+        assert "".join(chunks) == "chunk"
+        assert _tool_calls
     with pytest.raises(ConfigurationError):
         await be.astream("prompt", tools=None, output_schema={"type": "string"}, config=cfg)

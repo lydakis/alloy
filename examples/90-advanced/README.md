@@ -10,3 +10,4 @@ Files:
 - `03_multi_modal.py` — OCR an image (pillow+pytesseract) and summarize
 - `04_observability.py` — timing wrapper
 - `05_eval_simple.py` — tiny exact-match eval
+- `06_guardrail_router.py` — guardrail + routing workflow (classification, retention tool, approvals)

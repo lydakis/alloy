@@ -5,7 +5,7 @@ Run:
   python examples/80-patterns/04_streaming_updates.py
 
 Notes:
-  - Streaming supports text-only output; tools stream only when the backend supports it (OpenAI Responses and Anthropic Claude today)
+  - Streaming supports text-only output; tools stream only when the backend supports it (OpenAI Responses, Anthropic Claude, and Google Gemini today)
   - Offline: export ALLOY_BACKEND=fake (emits a single 'demo' chunk)
 """
 
