@@ -113,7 +113,7 @@ def command(
     system: str | None = ...,
     retry: int | None = ...,
     retry_on: type[BaseException] | None = ...,
-) -> _CommandDecorator[None]: ...
+) -> _CommandDecorator[str]: ...
 
 class _AskNamespace:
     def __call__(
