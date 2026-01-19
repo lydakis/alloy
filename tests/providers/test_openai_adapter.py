@@ -3,7 +3,6 @@ from unittest.mock import Mock
 
 from alloy.config import Config
 
-
 pytestmark = pytest.mark.providers
 
 

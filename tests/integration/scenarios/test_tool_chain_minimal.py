@@ -3,7 +3,6 @@ import pytest
 
 from alloy import command, configure, tool
 
-
 pytestmark = [pytest.mark.integration, pytest.mark.serial]
 
 

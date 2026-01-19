@@ -8,7 +8,6 @@ import contextvars
 import functools
 import logging
 
-
 log = logging.getLogger(__name__)
 
 DEFAULT_PARALLEL_TOOLS_MAX: int = 8

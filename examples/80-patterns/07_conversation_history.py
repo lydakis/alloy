@@ -18,7 +18,6 @@ from typing import Literal
 from alloy import command, configure
 from dotenv import load_dotenv
 
-
 ROOT = Path(__file__).with_name("_conversations")
 ROOT.mkdir(exist_ok=True)
 

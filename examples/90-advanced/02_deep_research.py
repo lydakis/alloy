@@ -15,7 +15,6 @@ from pathlib import Path
 from alloy import command, configure
 from dotenv import load_dotenv
 
-
 WORKSPACE = Path(__file__).with_name("_workspace_deep_research")
 
 

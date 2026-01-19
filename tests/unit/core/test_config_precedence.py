@@ -4,7 +4,6 @@ import pytest
 from alloy.config import get_config, configure, _reset_config_for_tests
 from alloy import ask, command
 
-
 pytestmark = pytest.mark.unit
 
 

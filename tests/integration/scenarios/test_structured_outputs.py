@@ -4,7 +4,6 @@ from dataclasses import dataclass
 
 from alloy import command, configure
 
-
 pytestmark = [pytest.mark.integration, pytest.mark.serial]
 
 

@@ -4,7 +4,6 @@ import subprocess
 import pytest
 from pathlib import Path
 
-
 pytestmark = pytest.mark.examples
 
 

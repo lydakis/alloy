@@ -5,6 +5,7 @@ Sync brand assets from the public alloy-brand repo into docs/assets/.
 Defaults to GitHub Pages URLs so it works without local clones.
 Override base via ALLOY_BRAND_BASE_URL if needed.
 """
+
 from __future__ import annotations
 
 import os

@@ -4,7 +4,6 @@ from typing import Any
 from alloy import tool
 from alloy.config import Config
 
-
 pytestmark = pytest.mark.providers
 
 

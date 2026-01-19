@@ -20,7 +20,6 @@ from typing import Literal
 from alloy import command, configure, require, tool
 from dotenv import load_dotenv
 
-
 #
 # Tool definitions
 #

@@ -3,7 +3,6 @@ import pytest
 
 from alloy.types import to_json_schema
 
-
 pytestmark = pytest.mark.unit
 
 

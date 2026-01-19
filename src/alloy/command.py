@@ -9,7 +9,6 @@ from .models.base import get_backend
 from .tool import ToolCallable, ToolSpec
 from .types import to_json_schema, parse_output, is_dataclass_type, is_typeddict_type
 
-
 _MISSING: Any = object()
 
 

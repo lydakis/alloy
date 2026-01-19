@@ -1,7 +1,6 @@
 import pytest
 from alloy.types import parse_output
 
-
 pytestmark = pytest.mark.unit
 
 
