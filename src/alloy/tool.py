@@ -7,7 +7,6 @@ from typing import Any, Callable
 from .errors import ToolError
 from .types import to_json_schema
 
-
 Predicate = Callable[[Any], bool]
 
 

@@ -2,7 +2,6 @@ import pytest
 
 from alloy import ask, command
 
-
 pytestmark = pytest.mark.unit
 
 

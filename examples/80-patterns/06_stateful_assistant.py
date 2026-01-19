@@ -22,7 +22,6 @@ from dataclasses import dataclass
 from alloy import command, tool, configure
 from dotenv import load_dotenv
 
-
 ROOT = Path(__file__).with_name("_memory_stateful")
 ROOT.mkdir(exist_ok=True)
 

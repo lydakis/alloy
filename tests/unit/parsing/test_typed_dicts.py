@@ -2,7 +2,6 @@ import pytest
 
 from alloy.types import to_json_schema, parse_output
 
-
 pytestmark = pytest.mark.unit
 
 

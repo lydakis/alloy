@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from alloy import command, tool, configure
 from dotenv import load_dotenv
 
-
 # Mock document store
 DOCUMENTS = {
     "doc1": "Python was created by Guido van Rossum and released in 1991.",

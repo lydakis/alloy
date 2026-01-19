@@ -4,7 +4,6 @@ from typing import Any
 from alloy.config import Config
 from alloy.models.anthropic import AnthropicBackend
 
-
 pytestmark = pytest.mark.providers
 
 

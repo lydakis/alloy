@@ -7,7 +7,6 @@ from alloy import command, configure, CommandError
 from tests.utils.oracle import extract_price_oracle
 from tests.utils.normalization import normalize_price
 
-
 pytestmark = [pytest.mark.parity_live, pytest.mark.serial]
 
 

@@ -3,7 +3,6 @@ import pytest
 from alloy.config import Config
 from alloy import tool
 
-
 pytestmark = pytest.mark.providers
 
 

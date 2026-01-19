@@ -24,7 +24,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 from alloy import command, tool, ask, configure, require, ensure
 
-
 # Workspace root for this example (local to this folder)
 WS_ROOT = Path(__file__).with_name("_workspace_deep_agents")
 WS_ROOT.mkdir(parents=True, exist_ok=True)
@@ -221,9 +220,7 @@ def deep_research(goal: str) -> str:
 
     Output contract:
     - Return a JSON object with:\n      - summary: 1-2 sentences summarizing the outcome\n      - files: an array of workspace file paths you created (e.g., ["files/REPORT.md", "files/notes/a.md"]).
-    """.strip().format(
-        goal=goal
-    )
+    """.strip().format(goal=goal)
 
 
 def main() -> None:

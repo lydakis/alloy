@@ -6,7 +6,7 @@ repos:
         args: ["--fix"]
         stages: [pre-commit, pre-push]
   - repo: https://github.com/psf/black
-    rev: 24.8.0
+    rev: 26.1.0
     hooks:
       - id: black
         stages: [pre-commit, pre-push]

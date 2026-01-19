@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Iterable, AsyncIterable, Awaitable, Callable
 
-
 if TYPE_CHECKING:
     from dataclasses import dataclass
     from alloy import command, ask
