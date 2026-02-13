@@ -87,3 +87,12 @@ def test_openai_stream_yields_text(monkeypatch):
     cfg = Config(model="gpt-5-mini")
     chunks = list(be.stream("prompt", tools=None, output_schema=None, config=cfg))
     assert "".join(chunks) == "Sync stream"
+
+
+def test_openai_stream_disallows_schema(monkeypatch):
+    be = OpenAIBackend()
+    be._client_sync = object()
+    monkeypatch.setattr(be, "_get_sync_client", lambda: be._client_sync)
+    cfg = Config(model="gpt-5-mini")
+    with pytest.raises(ConfigurationError):
+        be.stream("prompt", tools=None, output_schema={"type": "string"}, config=cfg)

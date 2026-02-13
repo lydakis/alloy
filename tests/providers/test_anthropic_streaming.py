@@ -89,6 +89,15 @@ def test_anthropic_stream_yields_text(monkeypatch):
     assert "".join(chunks) == "Hello Claude"
 
 
+def test_anthropic_stream_disallows_schema(monkeypatch):
+    be = AnthropicBackend()
+    be._client_sync = object()
+    monkeypatch.setattr(be, "_get_sync_client", lambda: be._client_sync)
+    cfg = Config(model="claude-3")
+    with pytest.raises(ConfigurationError):
+        be.stream("prompt", tools=None, output_schema={"type": "string"}, config=cfg)
+
+
 def _make_message(content: list[dict[str, object]], *, stop_reason: str = "end_turn") -> Message:
     return Message.model_validate(
         {

@@ -134,6 +134,15 @@ def test_gemini_stream_yields_text(monkeypatch):
     assert "".join(chunks) == "Sync Gemini"
 
 
+def test_gemini_stream_disallows_schema(monkeypatch):
+    be = GeminiBackend()
+    be._client_sync = object()
+    monkeypatch.setattr(be, "_get_sync_client", lambda: be._client_sync)
+    cfg = Config(model="gemini-2.5-flash")
+    with pytest.raises(ConfigurationError):
+        be.stream("prompt", tools=None, output_schema={"type": "string"}, config=cfg)
+
+
 class _FakeStream:
     def __init__(self, chunks: list[object]):
         self._chunks = chunks
