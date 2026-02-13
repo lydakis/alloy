@@ -62,6 +62,6 @@ If only some providers are configured, tests parameterized across providers will
 
 ## Notes
 
-- Streaming is text-only for all providers; commands that use tools or non-string outputs do not stream.
+- Streaming is text-based; tool streaming is supported where the backend advertises it. Commands that return non-string outputs do not stream.
 - Scenarios choose a single fallback model if no providers are available.
 - Config auto-routing: `get_config()` sets `extra["ollama_api"]="openai_chat"` for models matching `"ollama:*gpt-oss*"`, unless explicitly set.

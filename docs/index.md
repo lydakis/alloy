@@ -44,9 +44,9 @@ Links: [Tutorial](tutorial/index.md) · [Guide](guide/core-concepts.md) · [Exam
 
 ## Streaming
 
-Current: text‑only. Commands that use tools or non‑string outputs do not stream via Alloy. See [Guide → Streaming](guide/streaming.md).
+Current: text streaming, and tool-calling can also stream text on supported backends (OpenAI/Anthropic/Gemini today). Non-string outputs do not stream yet. See [Guide → Streaming](guide/streaming.md).
 
-Preview (vNext): Alloy will support streaming structured outputs as whole objects when the return type is a sequence (e.g., `list[T]`). Items are yielded one validated object at a time, even when tools are used. See [guide/streaming.md#preview-vnext](guide/streaming.md#preview-vnext).
+Preview (vNext): structured output streaming as full objects is planned, not yet available.
 
 ## Providers
 

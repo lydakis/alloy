@@ -39,8 +39,9 @@ def extract(text: str) -> str:
 
 ## Streaming limits
 
-- Streaming is text‑only today.
-- Commands with tools or typed outputs do not stream — call them normally to get the final typed result.
+- Streaming is text-based today.
+- Non-string/typed outputs still do not stream.
+- Commands with tools can stream text chunks on backends that support tool streaming (OpenAI/Anthropic/Gemini today).
 
 Wrong
 ```python

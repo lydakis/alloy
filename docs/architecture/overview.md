@@ -25,7 +25,7 @@ flowchart LR
 - Provider abstraction: thin adapters translate a uniform request into provider‑specific APIs.
 - Type system: Python annotations → JSON Schema → provider structured outputs → Python objects.
 - Errors: clear separation of configuration errors vs. model/parse errors.
-- Streaming: text‑only today; preview for sequence‑of‑objects.
+- Streaming: text, with backend-specific support for tool-streaming. Sequence/object streaming is not yet implemented.
 
 ## Code References
 

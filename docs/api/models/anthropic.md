@@ -17,5 +17,5 @@ See also
 ```bash
 export ANTHROPIC_API_KEY=...
 export ALLOY_MODEL=claude-sonnet-4-20250514
-# Tip: Anthropic requires max_tokens; Alloy uses 512 if unset
+# Tip: Anthropic requires max_tokens; Alloy uses 2048 if unset
 ```

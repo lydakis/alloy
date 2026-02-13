@@ -31,7 +31,7 @@ configure(retry=2, max_tokens=512)
 
 ## Errors
 
-- `ConfigurationError`: misconfiguration or unsupported capability. Examples: missing/invalid model, provider SDK not installed, invalid strict output schema, using streaming with tools/typed outputs.
+- `ConfigurationError`: misconfiguration or unsupported capability. Examples: missing/invalid model, provider SDK not installed, invalid strict output schema, unsupported streaming mode.
 - `CommandError`: command failed to produce a final value. Examples: model returned empty output; parse failed for the requested type; provider error bubbled up and retries (if any) were exhausted.
 - `ToolError`: raised by tools (often via `@require/@ensure`) and surfaced back to the model as the tool's output so it can adjust — not a hard failure by itself.
 - `ToolLoopLimitExceeded`: too many tool turns; includes the last partial assistant text to aid recovery.

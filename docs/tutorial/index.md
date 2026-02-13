@@ -149,9 +149,9 @@ You'll see: a short message indicating the steps; contracts guide the model.
 
 ---
 
-## 6) Streaming (text‑only today)
+## 6) Streaming
 
-What you’ll learn: stream text chunks; typed outputs/tools don’t stream.
+What you’ll learn: stream text chunks. Non-string outputs don’t stream; tool-backed commands can stream text when supported by provider.
 
 Code (tutorial_step6.py)
 ```python
@@ -174,7 +174,7 @@ Run: `python tutorial_step6.py`
 
 You'll see: streamed text printed inline for both loops (two short lines).
 
-Note: Commands with tools or typed outputs don’t stream. Details: [Guide → Streaming](../guide/streaming.md).
+Note: Commands with non-string outputs don’t stream. Some tool-backed commands can stream text when the provider supports it. Details: [Guide → Streaming](../guide/streaming.md).
 
 ---
 

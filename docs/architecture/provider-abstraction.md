@@ -5,7 +5,7 @@ How Alloy normalizes provider differences (~3 minutes).
 ---
 
 - Request assembly: messages, tools, and schema built once; adapters map to provider requests.
-- Streaming: adapters expose text streaming when supported; structured streaming preview assembles list elements.
+- Streaming: adapters expose text streaming when supported. Structured streaming (object chunks) is not yet implemented.
 - Structured outputs: JSON Schema sent via provider‑native mechanisms; primitives wrapped/unwrapped as needed.
 - Error handling: normalize transient vs configuration vs parse errors.
 
@@ -16,7 +16,7 @@ How Alloy normalizes provider differences (~3 minutes).
 - API: Responses API (`responses.create` / `responses.stream`)
 - Tools: yes (function calling); parallel tool requests possible
 - Structured outputs: yes (json_schema) with strict parse; primitives wrapped via `{value: ...}`
-- Streaming: text‑only
+- Streaming: text (tool streaming supported)
 - Finalization: one extra turn (no tools) to produce final structured answer when missing (auto‑finalize)
 - Code: [src/alloy/models/openai.py](https://github.com/lydakis/alloy/blob/main/src/alloy/models/openai.py)
 
@@ -25,8 +25,9 @@ How Alloy normalizes provider differences (~3 minutes).
 - API: `messages.create`
 - Tools: yes (tool_use/tool_result)
 - Structured outputs: yes (schema guidance + prefill)
-- Streaming: text‑only
-- Requirements: `max_tokens` required (defaults to 512 if unset)
+- Streaming: text (tool streaming supported)
+- Requirements: `max_tokens` required (defaults to 2048 if unset)
+- Structured outputs: not currently streamable
 - Code: [src/alloy/models/anthropic.py](https://github.com/lydakis/alloy/blob/main/src/alloy/models/anthropic.py)
 
 ### Google Gemini
@@ -34,8 +35,9 @@ How Alloy normalizes provider differences (~3 minutes).
 - API: `google-genai` (responses + tool config)
 - Tools: yes
 - Structured outputs: yes (response_json_schema)
-- Streaming: text‑only
+- Streaming: text (tool streaming supported)
 - Requirements: `max_tool_turns` must be configured
+- Structured outputs: not currently streamable
 - Code: [src/alloy/models/gemini.py](https://github.com/lydakis/alloy/blob/main/src/alloy/models/gemini.py)
 
 ### Ollama (local)
@@ -43,7 +45,7 @@ How Alloy normalizes provider differences (~3 minutes).
 - API: `ollama.chat`
 - Tools: not implemented in scaffold
 - Structured outputs: limited (prompt steering for primitives)
-- Streaming: not implemented in scaffold
+- Streaming: text‑only in Alloy; tool streaming is not supported in Ollama path
 - Code: [src/alloy/models/ollama.py](https://github.com/lydakis/alloy/blob/main/src/alloy/models/ollama.py)
 
 ### Fake (offline)
@@ -73,7 +75,8 @@ Loop semantics
 
 - Turn limit: increments only when tool calls are present; raises `ToolLoopLimitExceeded` if `turns > max_tool_turns`. The exception includes `partial_text` from the last assistant content.
 - Parallel tools: serial for one call; otherwise bounded by `Config.parallel_tools_max` (default), using threads in sync and `asyncio.to_thread` in async.
-- Streaming: text‑only. Provider front‑ends enforce this; streaming with tools or structured outputs raises a configuration error.
+- Streaming: tool-streaming support depends on backend capabilities.
+- Streaming typed/object outputs still raises a configuration error.
 
 Provider responsibilities
 

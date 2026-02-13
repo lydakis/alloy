@@ -43,20 +43,20 @@ export ALLOY_BACKEND=fake
 
 | Provider | Text | Tools | Structured Outputs | Streaming Text | Streaming + Tools | Streaming + Structured | Notes |
 |---|---|---|---|---|---|---|---|
-| OpenAI | Yes | Yes | Yes | Yes | No | No | Uses Responses API; auto-finalize missing structured output on OpenAI when enabled. |
-| Anthropic (Claude) | Yes | Yes | Yes | Yes | No | No | Requires `max_tokens` (Alloy uses 2048 if unset). |
-| Google Gemini | Yes | Yes | Yes | Yes | No | No | Requires `max_tool_turns` configured; uses `google-genai`. |
+| OpenAI | Yes | Yes | Yes | Yes | Yes | No | Uses Responses API; auto-finalize missing structured output on OpenAI when enabled. |
+| Anthropic (Claude) | Yes | Yes | Yes | Yes | Yes | No | Requires `max_tokens` (Alloy uses 2048 if unset). |
+| Google Gemini | Yes | Yes | Yes | Yes | Yes | No | Requires `max_tool_turns` configured; uses `google-genai`. |
 | Ollama (local) | Yes | Yes | Yes | Yes | No | No | Two APIs: native `/api/chat` (JSON Schema via `format`, full Ollama options) and OpenAI‑compatible Chat Completions. Default is native; config auto‑routes `ollama:*gpt-oss*` to compat unless overridden via `extra["ollama_api"]`. |
 | Fake (offline) | Yes | No | Yes (deterministic stub) | Yes | No | No | Offline backend for CI/examples; not for production. |
 
-Note: “Streaming + Structured” means sequence‑of‑objects only (e.g., `list[T]`); Alloy does not stream partial object deltas.
+Note: “Streaming + Structured” is not yet supported. Streaming outputs currently stay text-only.
 
 ### Ollama specifics
 
 - API selection: `extra["ollama_api"] = "native" | "openai_chat"`. Default: `native`; config auto‑routes `ollama:*gpt-oss*` to `openai_chat` unless explicitly set.
 - Native API advantages: strict structured outputs with `format={JSON Schema}`, Ollama‑specific options (e.g., `num_predict`, `num_ctx`).
 - OpenAI‑compat advantages: drop‑in with OpenAI clients (e.g., gpt‑oss). Some Ollama knobs are not exposed here.
-- Limitations: streaming is text‑only (no tools or structured outputs while streaming). Tool calling requires a tool‑capable model.
+- Limitations: streaming is currently text-only; typed/object streaming is not yet supported. Ollama streaming remains text-only (no tools or structured outputs while streaming). Tool calling requires a tool‑capable model.
 
 ---
 
