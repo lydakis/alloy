@@ -65,9 +65,7 @@ def test_provider_matrix_matches_backend_streaming_tools():
         assert provider in table, f"Missing row for {provider} in providers matrix"
         row = table[provider]
         assert row["streaming_text"] == "Yes"
-        assert (
-            _to_bool(row["streaming_tools"]) is bool(backend.supports_streaming_tools)
-        )
+        assert _to_bool(row["streaming_tools"]) is bool(backend.supports_streaming_tools)
 
     # Fake backend is intentionally streaming-text only.
     assert _to_bool(table["Fake (offline)"]["streaming_tools"]) is False
