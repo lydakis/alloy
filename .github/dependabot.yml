@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    ignore:
+      - dependency-name: "griffe"
+        update-types:
+          - "version-update:semver-major"
     commit-message:
       prefix: "deps"
       include: "scope"
