@@ -132,6 +132,7 @@ Streaming is text‑only across providers; commands with tools or non‑string o
 ## Docs & Examples
 - Docs pages: Typing, Equivalence Guide, Tool Recipes (HTTP fetch, file search, provider‑backed web search, DBC sequence).
 - Examples: see `examples/basic_*.py`, `examples/tools_demo.py`, `examples/basic/streaming_outputs.py`, and `examples/patterns/*` for orchestration patterns expressed via commands/tools.
+- Keep `griffe` on the current major version pinned in `pyproject.toml` until `mkdocstrings` handles `src/alloy/__init__.pyi` cleanly during `mkdocs build`; major bumps currently break the docs workflow.
 
 ## Release
 - Version in `pyproject.toml`; bump with changelog entries.
