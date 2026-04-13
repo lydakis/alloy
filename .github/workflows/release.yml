@@ -71,14 +71,14 @@ jobs:
       - uses: actions/checkout@v6
       - name: Create GitHub Release with notes file (if present)
         if: ${{ hashFiles(format('.github/release-notes/{0}.md', github.ref_name)) != '' }}
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           body_path: .github/release-notes/${{ github.ref_name }}.md
       - name: Create GitHub Release with generated notes (fallback)
         if: ${{ hashFiles(format('.github/release-notes/{0}.md', github.ref_name)) == '' }}
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
