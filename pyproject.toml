@@ -64,7 +64,7 @@ dev = [
   "mypy>=1.17.1,<2",
   "pre-commit>=4.3.0,<5",
   "hypothesis>=6.115.0,<7",
-  "python-dateutil>=2.9.0.post0,<3",
+  "python-dateutil>=2.9.0.post0,<4",
 ]
 docs = [
   "mkdocs>=1.6,<2",
